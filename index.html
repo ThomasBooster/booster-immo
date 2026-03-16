@@ -1,0 +1,3775 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Booster Immobilier — Suivi des Ventes</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #2D455A;
+    --primary-light: #3d5a73;
+    --primary-dark: #1e2f3e;
+    --accent: #E8A838;
+    --accent-light: #f0c060;
+    --bg: #f4f6f8;
+    --bg-card: #ffffff;
+    --text: #1a2530;
+    --text-muted: #6b7f8e;
+    --border: #d8e2ea;
+    --success: #2ecc71;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --info: #3498db;
+    --sidebar-w: 240px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ---- AUTH ---- */
+  #auth-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  #auth-screen::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    border: 1px solid rgba(232,168,56,0.15);
+    top: -200px; right: -150px;
+  }
+  #auth-screen::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    border: 1px solid rgba(232,168,56,0.1);
+    bottom: -150px; left: -100px;
+  }
+
+  .auth-card {
+    background: white;
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 420px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.25);
+    position: relative;
+    z-index: 1;
+  }
+  .auth-logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .auth-logo .logo-icon {
+    width: 60px; height: 60px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: white;
+    margin-bottom: 12px;
+  }
+  .auth-logo h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--primary);
+  }
+  .auth-logo p {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .auth-form h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: var(--primary);
+  }
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: white;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(45,69,90,0.1);
+  }
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(45,69,90,0.3);
+  }
+  .btn-primary:active { transform: translateY(0); }
+  .auth-error {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: var(--danger);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 12px;
+    display: none;
+  }
+
+  /* ---- APP LAYOUT ---- */
+  #app { display: none; min-height: 100vh; }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--primary);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .sidebar-logo .logo-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    color: white;
+    line-height: 1.2;
+  }
+  .sidebar-logo .logo-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 2px;
+  }
+  .sidebar-logo .logo-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-top: 6px;
+    letter-spacing: 0.3px;
+  }
+
+  .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+  .nav-section { margin-bottom: 24px; }
+  .nav-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: rgba(255,255,255,0.65);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
+  .nav-item.active { background: rgba(232,168,56,0.2); color: var(--accent-light); }
+  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-footer {
+    padding: 16px 12px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .user-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: white;
+    flex-shrink: 0;
+  }
+  .user-name { font-size: 13px; font-weight: 600; color: white; }
+  .user-role { font-size: 11px; color: rgba(255,255,255,0.45); }
+  .btn-logout {
+    width: 100%;
+    padding: 9px;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    border-radius: 8px;
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,0.15); color: white; }
+
+  /* Main content */
+  .main-content {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .topbar {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--primary);
+  }
+  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+  .badge-month {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .page { padding: 28px; display: none; }
+  .page.active { display: block; }
+
+  /* Cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+  }
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Table */
+  .card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--primary);
+  }
+  .card-body { padding: 20px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr {
+    border-bottom: 1px solid #f0f4f8;
+    transition: background 0.1s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f8fafc; }
+  tbody td { padding: 11px 14px; font-size: 13px; }
+
+  .rank-badge {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .rank-1 { background: #FFD700; color: #7d6200; }
+  .rank-2 { background: #C0C0C0; color: #4a4a4a; }
+  .rank-3 { background: #CD7F32; color: #5a2c00; }
+  .rank-other { background: var(--bg); color: var(--text-muted); }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 100px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .status-signed { background: #d1fae5; color: #065f46; }
+  .status-report { background: #fef3c7; color: #92400e; }
+  .status-withdrawn { background: #fee2e2; color: #991b1b; }
+  .status-pending { background: #e0e7ff; color: #3730a3; }
+  .status-asigner { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+
+  /* Form pour saisie */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-accent {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+  }
+  .btn-accent:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,168,56,0.4); }
+  .btn-outline {
+    background: white;
+    border: 1.5px solid var(--border);
+    color: var(--text-muted);
+  }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-danger { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; }
+  .btn-danger:hover { background: #fca5a5; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  .amount-display {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  /* Filters */
+  .filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .filter-select {
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: white;
+    cursor: pointer;
+  }
+  .filter-select:focus { outline: none; border-color: var(--primary); }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--primary);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { background: #065f46; }
+  #toast.error { background: #991b1b; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    width: 500px;
+    max-width: 95vw;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.2);
+  }
+  .modal h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--primary);
+    margin-bottom: 20px;
+  }
+  .modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  /* Classement page */
+  .ranking-podium {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .podium-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .podium-card.first {
+    border-color: #FFD700;
+    box-shadow: 0 4px 20px rgba(255,215,0,0.2);
+  }
+  .podium-card.second {
+    border-color: #C0C0C0;
+    box-shadow: 0 4px 20px rgba(192,192,192,0.2);
+  }
+  .podium-card.third {
+    border-color: #CD7F32;
+    box-shadow: 0 4px 20px rgba(205,127,50,0.15);
+  }
+  .podium-medal { font-size: 32px; margin-bottom: 8px; }
+  .podium-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--primary);
+    margin-bottom: 6px;
+  }
+  .podium-amount {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+  .podium-ht { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Params */
+  .params-section {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .params-section h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--primary);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tva-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+    padding: 14px 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .tva-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+  }
+  .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .ranking-podium { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .highlight-row { background: #fffbeb !important; }
+
+  input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">BI</div>
+      <h1>Booster Immobilier</h1>
+      <p>Suivi des ventes — Accès privé</p>
+    </div>
+    <div class="auth-form">
+      <h2>Connexion</h2>
+      <div class="form-group">
+        <label>Identifiant</label>
+        <input type="text" id="login-user" placeholder="Votre identifiant">
+      </div>
+      <div class="form-group">
+        <label>Mot de passe</label>
+        <input type="password" id="login-pass" placeholder="Votre mot de passe" onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Se connecter</button>
+      <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-name">Booster Immobilier</div>
+        <div class="logo-sub">Réseau de 5 agences</div>
+        <span class="logo-badge">Suivi des Ventes</span>
+      </div>
+      <div class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Tableau de bord</div>
+          <div class="nav-item active" onclick="showPage('dashboard', this)">
+            <span class="nav-icon">📊</span> Vue d'ensemble
+          </div>
+          <div class="nav-item" onclick="showPage('ranking', this)">
+            <span class="nav-icon">🏆</span> Classement
+          </div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Analyse & Insights</div>
+          <div class="nav-item" onclick="showPage('encaissements', this)">
+            <span class="nav-icon">💰</span> Encaissements
+          </div>
+          <div class="nav-item" onclick="showPage('performances', this)">
+            <span class="nav-icon">📈</span> Performances
+          </div>
+          <div class="nav-item" onclick="showPage('chatbot', this)">
+            <span class="nav-icon">💬</span> Assistant IA
+          </div>
+        </div>
+        <div class="nav-section" id="nav-saisie-section" style="display:none">
+          <div class="nav-section-title">Gestion</div>
+          <div class="nav-item" onclick="showPage('saisie', this)">
+            <span class="nav-icon">✏️</span> Saisie SSP
+          </div>
+          <div class="nav-item" onclick="showPage('dossiers', this)">
+            <span class="nav-icon">📁</span> Tous les dossiers
+          </div>
+          <div class="nav-item" onclick="showPage('apporteurs', this)">
+            <span class="nav-icon">🤝</span> Apporteurs
+          </div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Compte</div>
+          <div class="nav-item" onclick="showPage('params', this)">
+            <span class="nav-icon">⚙️</span> Paramètres
+          </div>
+          <div class="nav-item" id="nav-rapport" onclick="showPage('rapport', this)">
+            <span class="nav-icon">📄</span> Rapport PDF
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="sidebar-avatar">?</div>
+          <div>
+            <div class="user-name" id="sidebar-username">—</div>
+            <div class="user-role" id="sidebar-role">—</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      <div class="topbar">
+        <div class="topbar-title" id="topbar-title">Vue d'ensemble</div>
+        <div class="topbar-actions">
+          <span class="badge-month" id="current-month-badge">—</span>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid" id="stats-grid"></div>
+
+        <div class="filters">
+          <select class="filter-select" id="filter-mois" onchange="refreshDashboard()">
+            <option value="">Tous les mois</option>
+          </select>
+          <select class="filter-select" id="filter-agence-dash" onchange="refreshDashboard()">
+            <option value="">Toutes les agences</option>
+          </select>
+        </div>
+
+        <!-- Dates butoire du mois -->
+        <div class="card" id="card-butoires" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">⏰ Dates butoire — mois en cours</span>
+            <span style="font-size:12px;color:var(--text-muted)" id="butoire-subtitle"></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Client</th><th>Agence</th><th>Date butoire</th><th>Statut</th><th>Jours restants</th><th>Actions</th></tr></thead>
+              <tbody id="butoires-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Dossiers SSP</span>
+            <span id="dash-count" style="font-size:12px;color:var(--text-muted)"></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Agence</th>
+                  <th>Brut TTC</th>
+                  <th>Apporteur</th>
+                  <th>Apport HT</th>
+                  <th>Net HT</th>
+                  <th>Statut</th>
+                  <th>Date SSP</th>
+                  <th>Date butoire</th>
+                  <th>Diag.</th>
+                  <th>Mois</th>
+                  <th>Saisi par</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dash-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Frais juridiques -->
+        <div class="card" id="card-juridique">
+          <div class="card-header">
+            <span class="card-title">⚖️ Frais de dossier juridique</span>
+            <span style="font-size:12px;color:var(--text-muted)">450 € HT / dossier — dûs à l'acte authentique</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Agence</th><th>Dossiers à l'acte</th><th>Frais dus (HT)</th><th>Détail dossiers</th></tr></thead>
+              <tbody id="juridique-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLASSEMENT -->
+      <div class="page" id="page-ranking">
+        <!-- Onglets Mensuel / Annuel -->
+        <div style="display:flex;gap:0;margin-bottom:20px;background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;width:fit-content">
+          <button id="tab-mensuel" onclick="switchRankTab('mensuel')" style="padding:10px 24px;border:none;background:var(--primary);color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">📅 Mensuel</button>
+          <button id="tab-annuel" onclick="switchRankTab('annuel')" style="padding:10px 24px;border:none;background:white;color:var(--text-muted);font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">📆 Annuel</button>
+        </div>
+
+        <!-- Vue mensuelle -->
+        <div id="rank-view-mensuel">
+          <div class="filters">
+            <select class="filter-select" id="filter-mois-rank" onchange="refreshRanking()">
+              <option value="">— Choisir un mois —</option>
+            </select>
+          </div>
+          <div class="ranking-podium" id="podium"></div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" id="rank-mensuel-title">Classement mensuel</span>
+            </div>
+            <div style="overflow-x:auto">
+              <table>
+                <thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>CA TTC</th><th>Dossiers signés</th><th>Performance</th></tr></thead>
+                <tbody id="rank-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vue annuelle -->
+        <div id="rank-view-annuel" style="display:none">
+          <div class="filters">
+            <select class="filter-select" id="filter-annee-rank" onchange="refreshRankingAnnuel()">
+            </select>
+          </div>
+          <div class="ranking-podium" id="podium-annuel"></div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" id="rank-annuel-title">Classement annuel</span>
+            </div>
+            <div style="overflow-x:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th><th>Agence</th><th>CA HT annuel</th><th>CA TTC annuel</th><th>Dossiers signés</th>
+                    <th>Détail mensuel</th>
+                    <th>Performance</th>
+                  </tr>
+                </thead>
+                <tbody id="rank-annuel-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Évolution mensuelle par agence -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">Évolution mensuelle des CA HT</span></div>
+            <div style="overflow-x:auto;padding:16px">
+              <table id="evolution-table">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SAISIE -->
+      <div class="page" id="page-saisie">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Nouveau dossier SSP</span>
+          </div>
+          <div class="card-body">
+            <!-- Infos générales -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nom du client *</label>
+                <input type="text" id="s-client" placeholder="ex: DUPONT" style="text-transform:uppercase">
+              </div>
+              <div class="form-group">
+                <label>Montant brut TTC (€) *</label>
+                <input type="number" id="s-ttc" placeholder="ex: 15000" oninput="calcHT()" min="0" step="0.01">
+              </div>
+              <div class="form-group">
+                <label>Statut</label>
+                <select id="s-statut">
+                  <option value="À SIGNER" selected>📋 À signer</option>
+                  <option value="SIGNÉ">✅ Signé</option>
+                  <option value="REPORT">⏳ Report</option>
+                  <option value="ANNULÉ">❌ Annulé</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Date de signature SSP</label>
+                <input type="date" id="s-date">
+              </div>
+              <div class="form-group">
+                <label>Date butoire acte authentique</label>
+                <input type="date" id="s-date-butoire">
+              </div>
+              <div class="form-group">
+                <label>Date effective acte authentique</label>
+                <input type="date" id="s-date-acte">
+              </div>
+              <div class="form-group">
+                <label>Mois *</label>
+                <select id="s-mois">
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Remarque</label>
+                <input type="text" id="s-remarque" placeholder="Optionnel">
+              </div>
+            </div>
+
+            <!-- Case diagnostics -->
+            <div style="margin-top:12px;padding:14px 16px;background:var(--bg);border-radius:10px;display:flex;align-items:center;gap:10px">
+              <input type="checkbox" id="s-diag" style="width:18px;height:18px;cursor:pointer;accent-color:var(--primary)">
+              <label for="s-diag" style="font-size:13px;font-weight:600;color:var(--text);cursor:pointer;text-transform:none;letter-spacing:0">🔍 Prise en charge agence des diagnostics</label>
+            </div>
+
+            <!-- Apporteur d'affaires -->
+            <div style="margin-top:16px;padding:16px;border:1.5px solid var(--border);border-radius:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--primary)">🤝 Apporteur d'affaires</div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-muted);text-transform:none;letter-spacing:0">
+                  <input type="checkbox" id="s-has-apporteur" onchange="toggleApporteur()" style="width:16px;height:16px;accent-color:var(--primary)"> Oui, il y a un apporteur
+                </label>
+              </div>
+              <div id="apporteur-fields" style="display:none">
+                <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr">
+                  <div class="form-group" style="margin:0">
+                    <label>Apporteur *</label>
+                    <select id="s-apporteur-select" onchange="onApporteurSelectChange('s')" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:white">
+                      <option value="">— Sélectionner —</option>
+                    </select>
+                    <input type="text" id="s-apporteur-nom" placeholder="Nom du nouvel apporteur" oninput="calcHT()" style="margin-top:8px;display:none">
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label>% de commission *</label>
+                    <input type="number" id="s-apporteur-pct" placeholder="ex: 10" min="0" max="100" step="0.01" oninput="calcHT()">
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label>Montant apport (HT)</label>
+                    <div class="amount-display" id="s-apporteur-montant" style="font-size:13px">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Récap montants -->
+            <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+              <div style="background:var(--bg);border-radius:10px;padding:12px 14px">
+                <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Montant brut HT</div>
+                <div style="font-size:15px;font-weight:700;color:var(--text-muted)" id="s-brut-ht-display">—</div>
+              </div>
+              <div style="background:#fef3c7;border-radius:10px;padding:12px 14px">
+                <div style="font-size:10px;font-weight:600;color:#92400e;text-transform:uppercase;margin-bottom:4px">Apport d'affaires HT</div>
+                <div style="font-size:15px;font-weight:700;color:#92400e" id="s-apport-ht-display">—</div>
+              </div>
+              <div style="background:#d1fae5;border-radius:10px;padding:12px 14px">
+                <div style="font-size:10px;font-weight:600;color:#065f46;text-transform:uppercase;margin-bottom:4px">Montant net HT (à répartir)</div>
+                <div style="font-size:15px;font-weight:700;color:#065f46" id="s-ht-display">—</div>
+              </div>
+            </div>
+
+            <!-- Répartition agences -->
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+                <div>
+                  <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--primary)">🏢 Répartition entre agences</div>
+                  <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Sur le montant net (après déduction apporteur)</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <button class="btn btn-outline btn-sm" onclick="changeNbAgences(-1)">−</button>
+                  <span id="nb-agences-display" style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--primary);min-width:24px;text-align:center">1</span>
+                  <button class="btn btn-outline btn-sm" onclick="changeNbAgences(1)">+</button>
+                </div>
+              </div>
+              <div id="agences-repartition"></div>
+              <div id="pct-warning" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600"></div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button class="btn btn-accent" onclick="saveDossier()">💾 Enregistrer le dossier</button>
+              <button class="btn btn-outline" onclick="clearSaisie()">🗑 Effacer</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste des dossiers récents -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Dossiers récents saisis par moi</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client</th><th>Agence</th><th>Brut TTC</th><th>Apport</th><th>Net HT</th><th>Statut</th><th>Date SSP</th><th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="my-dossiers-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOUS LES DOSSIERS -->
+      <div class="page" id="page-dossiers">
+        <div class="filters">
+          <input type="text" id="search-dos" class="filter-select" placeholder="🔍 Rechercher un client..." oninput="refreshDossiers()" style="min-width:220px">
+          <select class="filter-select" id="filter-mois-dos" onchange="refreshDossiers()">
+            <option value="">Tous les mois</option>
+          </select>
+          <select class="filter-select" id="filter-agence-dos" onchange="refreshDossiers()">
+            <option value="">Toutes les agences</option>
+          </select>
+          <select class="filter-select" id="filter-statut-dos" onchange="refreshDossiers()">
+            <option value="">Tous les statuts</option>
+            <option value="À SIGNER">À signer</option>
+            <option value="SIGNÉ">Signés</option>
+            <option value="REPORT">Report</option>
+            <option value="ANNULÉ">Annulés</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="clearSearchDos()">✕ Effacer</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Tous les dossiers</span>
+            <span id="dos-count" style="font-size:12px;color:var(--text-muted)"></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client</th><th>Agence</th><th>Brut TTC</th><th>Apporteur</th><th>Apport HT</th><th>Net HT</th><th>Statut</th><th>Date SSP</th><th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Saisi par</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dos-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PARAMETRES -->
+      <div class="page" id="page-params">
+        <div class="params-section">
+          <h3>👤 Mon compte</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Adresse e-mail</label>
+              <input type="email" id="p-email" placeholder="votre@email.com">
+            </div>
+            <div class="form-group">
+              <label>Nouveau mot de passe</label>
+              <input type="password" id="p-newpass" placeholder="Laisser vide pour ne pas changer">
+            </div>
+            <div class="form-group">
+              <label>Confirmer le mot de passe</label>
+              <input type="password" id="p-confirmpass" placeholder="Confirmation">
+            </div>
+          </div>
+          <button class="btn btn-accent" onclick="saveProfile()">💾 Enregistrer</button>
+        </div>
+
+        <div class="params-section" id="params-tva-section">
+          <h3>🧮 Taux de TVA</h3>
+          <div class="tva-display">
+            <div class="tva-value" id="tva-display-val">20%</div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted)">Taux actuel</div>
+              <div style="font-size:11px;color:var(--text-muted)">Appliqué à tous les calculs HT</div>
+            </div>
+          </div>
+          <div class="form-group" style="max-width:200px">
+            <label>Nouveau taux (%)</label>
+            <input type="number" id="p-tva" placeholder="ex: 20" min="0" max="100" step="0.1">
+          </div>
+          <button class="btn btn-accent" onclick="saveTVA()">💾 Mettre à jour</button>
+        </div>
+
+        <div class="params-section" id="params-admin-section" style="display:none">
+          <h3>👥 Gestion des utilisateurs (Admin)</h3>
+          <div id="users-list"></div>
+          <button class="btn btn-accent" onclick="openAddUser()" style="margin-top:16px">+ Ajouter un utilisateur</button>
+        </div>
+      </div>
+
+      <!-- ENCAISSEMENTS -->
+      <div class="page" id="page-encaissements">
+        <!-- Onglets -->
+        <div style="display:flex;gap:0;margin-bottom:20px;background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;width:fit-content">
+          <button id="tab-historique" onclick="switchEncTab('historique')" style="padding:10px 24px;border:none;background:var(--primary);color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">📋 Historique</button>
+          <button id="tab-previsionnel" onclick="switchEncTab('previsionnel')" style="padding:10px 24px;border:none;background:white;color:var(--text-muted);font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">🔮 Prévisionnel</button>
+        </div>
+
+        <!-- Historique -->
+        <div id="enc-view-historique">
+          <div class="filters">
+            <select class="filter-select" id="enc-hist-annee" onchange="refreshEncHistorique()">
+              <option value="">Toutes les années</option>
+            </select>
+            <select class="filter-select" id="enc-hist-mois" onchange="refreshEncHistorique()">
+              <option value="">Tous les mois</option>
+            </select>
+            <select class="filter-select" id="enc-hist-agence" onchange="refreshEncHistorique()">
+              <option value="">Toutes les agences</option>
+            </select>
+          </div>
+          <div class="stats-grid" id="enc-hist-stats"></div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📋 Encaissements réels — par date d'acte authentique</span>
+              <span id="enc-hist-count" style="font-size:12px;color:var(--text-muted)"></span>
+            </div>
+            <div style="overflow-x:auto">
+              <table>
+                <thead><tr><th>Mois</th><th>Agence</th><th>Client</th><th>Date acte</th><th>Montant HT</th></tr></thead>
+                <tbody id="enc-hist-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prévisionnel -->
+        <div id="enc-view-previsionnel" style="display:none">
+          <div class="filters">
+            <select class="filter-select" id="enc-prev-annee" onchange="refreshEncPrevisionnel()">
+              <option value="">Toutes les années</option>
+            </select>
+            <select class="filter-select" id="enc-prev-mois" onchange="refreshEncPrevisionnel()">
+              <option value="">Tous les mois</option>
+            </select>
+            <select class="filter-select" id="enc-prev-agence" onchange="refreshEncPrevisionnel()">
+              <option value="">Toutes les agences</option>
+            </select>
+          </div>
+          <div class="stats-grid" id="enc-prev-stats"></div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🔮 Prévisionnel — basé sur les dates butoires</span>
+              <span id="enc-prev-count" style="font-size:12px;color:var(--text-muted)"></span>
+            </div>
+            <div style="overflow-x:auto">
+              <table>
+                <thead><tr><th>Mois prévu</th><th>Agence</th><th>Client</th><th>Date butoire</th><th>Montant HT</th><th>Statut</th></tr></thead>
+                <tbody id="enc-prev-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PERFORMANCES -->
+      <div class="page" id="page-performances">
+        <!-- Onglets -->
+        <div style="display:flex;gap:0;margin-bottom:20px;background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;width:fit-content">
+          <button id="tab-perf-histo" onclick="switchPerfTab('histo')" style="padding:10px 24px;border:none;background:var(--primary);color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">📚 Analyse historique</button>
+          <button id="tab-perf-annuel" onclick="switchPerfTab('annuel')" style="padding:10px 24px;border:none;background:white;color:var(--text-muted);font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">📅 Analyse annuelle</button>
+          <button id="tab-perf-mensuel" onclick="switchPerfTab('mensuel')" style="padding:10px 24px;border:none;background:white;color:var(--text-muted);font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">🗓 Analyse mensuelle</button>
+        </div>
+
+        <!-- Analyse historique -->
+        <div id="perf-view-histo">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+            <button class="btn btn-accent" onclick="runPerfAnalysis('histo')">✨ Analyse IA</button>
+          </div>
+          <div class="stats-grid" id="perf-histo-stats"></div>
+          <div class="card" id="perf-histo-ai-card" style="display:none;margin-bottom:20px">
+            <div class="card-header"><span class="card-title">🤖 Analyse IA — Historique complet</span><span id="perf-histo-ai-status" style="font-size:12px;color:var(--text-muted)"></span></div>
+            <div id="perf-histo-ai-content" style="padding:20px;line-height:1.7;font-size:14px;white-space:pre-wrap"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Classement historique des agences</span></div>
+            <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Agence</th><th>CA HT total</th><th>Dossiers signés</th><th>Performance</th></tr></thead><tbody id="perf-histo-tbody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- Analyse annuelle -->
+        <div id="perf-view-annuel" style="display:none">
+          <div class="filters" style="margin-bottom:16px">
+            <select class="filter-select" id="perf-annuel-sel" onchange="refreshPerfAnnuel()"></select>
+            <button class="btn btn-accent btn-sm" onclick="runPerfAnalysis('annuel')">✨ Analyse IA</button>
+          </div>
+          <div class="stats-grid" id="perf-annuel-stats"></div>
+          <div class="card" id="perf-annuel-ai-card" style="display:none;margin-bottom:20px">
+            <div class="card-header"><span class="card-title">🤖 Analyse IA — Annuelle</span><span id="perf-annuel-ai-status" style="font-size:12px;color:var(--text-muted)"></span></div>
+            <div id="perf-annuel-ai-content" style="padding:20px;line-height:1.7;font-size:14px;white-space:pre-wrap"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title" id="perf-annuel-title">Classement annuel</span></div>
+            <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance</th></tr></thead><tbody id="perf-annuel-tbody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- Analyse mensuelle -->
+        <div id="perf-view-mensuel" style="display:none">
+          <div class="filters" style="margin-bottom:16px">
+            <select class="filter-select" id="perf-mensuel-sel" onchange="refreshPerfMensuel()"></select>
+            <button class="btn btn-accent btn-sm" onclick="runPerfAnalysis('mensuel')">✨ Analyse IA</button>
+          </div>
+          <div class="stats-grid" id="perf-mensuel-stats"></div>
+          <div class="card" id="perf-mensuel-ai-card" style="display:none;margin-bottom:20px">
+            <div class="card-header"><span class="card-title">🤖 Analyse IA — Mensuelle</span><span id="perf-mensuel-ai-status" style="font-size:12px;color:var(--text-muted)"></span></div>
+            <div id="perf-mensuel-ai-content" style="padding:20px;line-height:1.7;font-size:14px;white-space:pre-wrap"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title" id="perf-mensuel-title">Classement mensuel</span></div>
+            <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance</th></tr></thead><tbody id="perf-mensuel-tbody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHATBOT IA -->
+      <div class="page" id="page-chatbot">
+        <div style="display:flex;flex-direction:column;height:calc(100vh - 120px);max-height:800px">
+          <div style="margin-bottom:16px">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--primary)">💬 Assistant IA</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Posez n'importe quelle question sur vos données</div>
+          </div>
+
+          <!-- Messages -->
+          <div id="chat-messages" style="flex:1;overflow-y:auto;background:white;border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;min-height:300px">
+            <div id="chat-welcome" style="text-align:center;color:var(--text-muted);padding:30px 20px">
+              <div style="font-size:40px;margin-bottom:12px">🤖</div>
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:8px">Bonjour, je suis votre assistant IA !</div>
+              <div style="font-size:13px;line-height:1.6">Je connais tous vos dossiers et je peux répondre à vos questions.<br>Exemples : <em>"Quel est le CA de Saint-Cyprien ce mois ?"</em>, <em>"Combien de dossiers sont à signer ?"</em>, <em>"Quelle agence performe le mieux cette année ?"</em></div>
+            </div>
+          </div>
+
+          <!-- Suggestions rapides -->
+          <div id="chat-suggestions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn btn-outline btn-sm" onclick="sendSuggestion('Quel est le CA total du réseau ce mois ?')">CA ce mois</button>
+            <button class="btn btn-outline btn-sm" onclick="sendSuggestion('Quelle est l\'agence la plus performante cette année ?')">Top agence</button>
+            <button class="btn btn-outline btn-sm" onclick="sendSuggestion('Combien de dossiers sont en attente de signature ?')">Dossiers à signer</button>
+            <button class="btn btn-outline btn-sm" onclick="sendSuggestion('Quelles sont les dates butoires qui approchent ?')">Dates butoires</button>
+            <button class="btn btn-outline btn-sm" onclick="sendSuggestion('Donne-moi un résumé complet de l\'activité du réseau')">Résumé complet</button>
+          </div>
+
+          <!-- Input -->
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <input type="text" id="chat-input" placeholder="Posez votre question..." style="flex:1;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px" onkeydown="if(event.key==='Enter' && !event.shiftKey) sendChatMessage()">
+            <button class="btn btn-accent" onclick="sendChatMessage()" id="chat-send-btn" style="padding:12px 20px">Envoyer ↗</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- APPORTEURS -->
+      <div class="page" id="page-apporteurs">
+        <div class="filters">
+          <select class="filter-select" id="filter-annee-apporteurs" onchange="refreshApporteurs()"></select>
+          <select class="filter-select" id="filter-mois-apporteurs" onchange="refreshApporteurs()">
+            <option value="">— Tous les mois —</option>
+          </select>
+        </div>
+
+        <!-- Stats globales apporteurs -->
+        <div class="stats-grid" id="apporteurs-stats-grid" style="margin-bottom:20px"></div>
+
+        <!-- Tableau mensuel ou annuel -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title" id="apporteurs-table-title">📅 Détail par apporteur</span>
+            <span id="apporteurs-mois-label" style="font-size:12px;color:var(--text-muted)"></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead id="apporteurs-mensuel-head"></thead>
+              <tbody id="apporteurs-mensuel-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Liste des apporteurs connus -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 Apporteurs enregistrés</span>
+            <button class="btn btn-accent btn-sm" onclick="openAddApporteur()">+ Ajouter</button>
+          </div>
+          <div style="padding:16px">
+            <div id="apporteurs-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal ajout apporteur -->
+      <div class="modal-overlay" id="modal-add-apporteur" style="z-index:300">
+        <div class="modal" style="width:400px">
+          <h3>Ajouter un apporteur</h3>
+          <div class="form-group">
+            <label>Nom de l'apporteur *</label>
+            <input type="text" id="new-apporteur-nom" placeholder="ex: PAP.fr">
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-add-apporteur')">Annuler</button>
+            <button class="btn btn-accent" onclick="saveNewApporteur()">Ajouter</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAPPORT PDF -->
+      <div class="page" id="page-rapport">
+        <div class="params-section">
+          <h3>📄 Générer un rapport mensuel</h3>
+          <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px">Génère un rapport PDF par agence avec le classement mensuel, annuel et les frais juridiques dus.</p>
+          <div class="form-grid" style="max-width:500px">
+            <div class="form-group">
+              <label>Mois du rapport *</label>
+              <select id="rapport-mois" class="filter-select" style="width:100%">
+                <option value="">— Choisir un mois —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Agence (laisser vide = toutes)</label>
+              <select id="rapport-agence" class="filter-select" style="width:100%">
+                <option value="">Toutes les agences</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-accent" onclick="genererRapportPDF()">📄 Générer le(s) PDF</button>
+          </div>
+          <div id="rapport-status" style="margin-top:16px"></div>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div>
+</div><!-- /app -->
+
+<!-- Modal ajout/édition utilisateur -->
+<div class="modal-overlay" id="modal-user" style="z-index:300">
+  <div class="modal" style="width:480px">
+    <h3 id="modal-user-title">Ajouter un utilisateur</h3>
+    <input type="hidden" id="user-edit-id">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Identifiant de connexion *</label>
+        <input type="text" id="user-id" placeholder="ex: sophie" style="text-transform:lowercase">
+      </div>
+      <div class="form-group">
+        <label>Nom affiché *</label>
+        <input type="text" id="user-nom" placeholder="ex: Sophie">
+      </div>
+      <div class="form-group">
+        <label>Mot de passe *</label>
+        <input type="text" id="user-password" placeholder="ex: motdepasse123">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="user-email" placeholder="ex: sophie@booster-immobilier.com">
+      </div>
+      <div class="form-group">
+        <label>Rôle *</label>
+        <select id="user-role" onchange="onUserRoleChange()">
+          <option value="saisie">Saisie</option>
+          <option value="agence">Agence</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group" id="user-agence-group">
+        <label>Agence associée</label>
+        <select id="user-agence">
+          <option value="">— Aucune —</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-user')">Annuler</button>
+      <button class="btn btn-accent" onclick="saveUser()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmation suppression utilisateur -->
+<div class="modal-overlay" id="modal-delete-user" style="z-index:300">
+  <div class="modal">
+    <h3>Supprimer l'utilisateur</h3>
+    <p style="color:var(--text-muted);font-size:14px">Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.</p>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-delete-user')">Annuler</button>
+      <button class="btn btn-danger" id="confirm-delete-user-btn">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmation suppression -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal">
+    <h3>Supprimer le dossier</h3>
+    <p style="color:var(--text-muted);font-size:14px">Êtes-vous sûr de vouloir supprimer ce dossier ? Cette action est irréversible.</p>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-delete')">Annuler</button>
+      <button class="btn btn-danger" id="confirm-delete-btn">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal édition -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal" style="width:660px;max-height:90vh;overflow-y:auto">
+    <h3>Modifier le dossier</h3>
+    <input type="hidden" id="edit-id">
+    <!-- Bandeau vente partagée -->
+    <div id="edit-group-banner" style="display:none;margin-bottom:16px;padding:10px 14px;background:#ede9fe;border:1px solid #c4b5fd;border-radius:10px;font-size:13px;color:#4c1d95;line-height:1.5"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Client</label>
+        <input type="text" id="edit-client" style="text-transform:uppercase">
+      </div>
+      <div class="form-group">
+        <label>Agence</label>
+        <select id="edit-agence">
+          <option>Saint-Cyprien</option><option>Minimes</option><option>Bonnefoy</option>
+          <option>Roseraie</option><option>Saint-Agne</option><option>Côte Pavée</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Montant brut TTC</label>
+        <input type="number" id="edit-ttc" oninput="calcEditHT()">
+      </div>
+      <div class="form-group">
+        <label>Montant net HT</label>
+        <div class="amount-display" id="edit-ht-display">—</div>
+      </div>
+      <div class="form-group">
+        <label>Statut</label>
+        <select id="edit-statut">
+          <option value="À SIGNER">📋 À signer</option>
+          <option value="SIGNÉ">✅ Signé</option>
+          <option value="REPORT">⏳ Report</option>
+          <option value="ANNULÉ">❌ Annulé</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date SSP</label>
+        <input type="date" id="edit-date">
+      </div>
+      <div class="form-group">
+        <label>Date butoire acte authentique</label>
+        <input type="date" id="edit-date-butoire">
+      </div>
+      <div class="form-group">
+        <label>Date effective acte authentique</label>
+        <input type="date" id="edit-date-acte" oninput="onDateActeChange()">
+      </div>
+      <div class="form-group">
+        <label>Mois</label>
+        <select id="edit-mois">
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Remarque</label>
+        <input type="text" id="edit-remarque">
+      </div>
+    </div>
+    <!-- Diagnostics -->
+    <div style="margin:12px 0;padding:12px 14px;background:var(--bg);border-radius:10px;display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="edit-diag" style="width:16px;height:16px;accent-color:var(--primary)">
+      <label for="edit-diag" style="font-size:13px;font-weight:600;cursor:pointer;text-transform:none;letter-spacing:0">🔍 Prise en charge agence des diagnostics</label>
+    </div>
+    <!-- Apporteur -->
+    <div style="padding:14px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--primary)">🤝 Apporteur d'affaires</div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-muted);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="edit-has-apporteur" onchange="toggleEditApporteur()" style="width:15px;height:15px;accent-color:var(--primary)"> Oui
+        </label>
+      </div>
+      <div id="edit-apporteur-fields" style="display:none">
+        <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr">
+          <div class="form-group" style="margin:0">
+            <label>Apporteur</label>
+            <select id="edit-apporteur-select" onchange="onApporteurSelectChange('edit')" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:white">
+              <option value="">— Sélectionner —</option>
+            </select>
+            <input type="text" id="edit-apporteur-nom" placeholder="Nom du nouvel apporteur" oninput="calcEditHT()" style="margin-top:8px;display:none">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>% commission</label>
+            <input type="number" id="edit-apporteur-pct" min="0" max="100" step="0.01" oninput="calcEditHT()">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Montant apport HT</label>
+            <div class="amount-display" id="edit-apporteur-montant" style="font-size:12px">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit')">Annuler</button>
+      <button class="btn btn-accent" onclick="confirmEdit()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// =====================
+// SUPABASE CONFIG
+// =====================
+const SUPABASE_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
+const AGENCES = ['Saint-Cyprien','Minimes','Bonnefoy','Roseraie','Saint-Agne','Côte Pavée'];
+const MONTH_NAMES = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+// Génère la liste des mois dynamiquement :
+// - mois présents dans les dossiers en base
+// - + le mois courant toujours inclus
+// - triés chronologiquement
+function getMoisList() {
+  const now = new Date();
+  const currentMonthStr = MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
+  const moisSet = new Set([currentMonthStr]);
+  DB.dossiers.forEach(d => { if (d.mois) moisSet.add(d.mois); });
+  // Tri chronologique
+  return [...moisSet].sort((a, b) => {
+    const [ma, ya] = a.split(' ');
+    const [mb, yb] = b.split(' ');
+    if (ya !== yb) return parseInt(ya) - parseInt(yb);
+    return MONTH_NAMES.indexOf(ma) - MONTH_NAMES.indexOf(mb);
+  });
+}
+
+// Cache local (rechargé à chaque login)
+let DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [] };
+
+async function sbFetch(table, options = {}) {
+  const { method = 'GET', filter = '', body = null, select = '*', order = '' } = options;
+  let url = SUPABASE_URL + '/rest/v1/' + table + '?select=' + select;
+  if (filter) url += '&' + filter;
+  if (order) url += '&order=' + order;
+  const opts = {
+    method,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : (method === 'PATCH' ? 'return=representation' : '')
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error('Supabase error: ' + err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+async function sbInsert(table, data) {
+  const url = SUPABASE_URL + '/rest/v1/' + table;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+async function sbUpdate(table, filter, data) {
+  const url = SUPABASE_URL + '/rest/v1/' + table + '?' + filter;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+async function sbDelete(table, filter) {
+  const url = SUPABASE_URL + '/rest/v1/' + table + '?' + filter;
+  await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    }
+  });
+}
+
+// Convertit un dossier Supabase (snake_case) en format app (camelCase)
+function rowToDossier(r) {
+  return {
+    id: r.id,
+    groupId: r.group_id,
+    client: r.client,
+    agence: r.agence,
+    ttc: parseFloat(r.ttc) || 0,
+    brutHT: parseFloat(r.brut_ht) || 0,
+    ht: parseFloat(r.ht) || 0,
+    ttcTotal: parseFloat(r.ttc_total) || 0,
+    htTotal: parseFloat(r.ht_total) || 0,
+    pct: parseFloat(r.pct) || 100,
+    nbAgencesGroupe: r.nb_agences_groupe || 1,
+    hasApporteur: r.has_apporteur || false,
+    apporteurNom: r.apporteur_nom || '',
+    apporteurPct: parseFloat(r.apporteur_pct) || 0,
+    apportHT: parseFloat(r.apport_ht) || 0,
+    statut: r.statut || 'À SIGNER',
+    date: r.date_ssp || '',
+    dateButoire: r.date_butoire || '',
+    dateActe: r.date_acte || '',
+    diag: r.diag || false,
+    mois: r.mois || '',
+    remarque: r.remarque || '',
+    saisi: r.saisi || ''
+  };
+}
+
+// Convertit un dossier app (camelCase) en format Supabase (snake_case)
+function dossierToRow(d) {
+  return {
+    group_id: d.groupId || null,
+    client: d.client,
+    agence: d.agence,
+    ttc: d.ttc || 0,
+    brut_ht: d.brutHT || 0,
+    ht: d.ht || 0,
+    ttc_total: d.ttcTotal || 0,
+    ht_total: d.htTotal || 0,
+    pct: d.pct || 100,
+    nb_agences_groupe: d.nbAgencesGroupe || 1,
+    has_apporteur: d.hasApporteur || false,
+    apporteur_nom: d.apporteurNom || null,
+    apporteur_pct: d.apporteurPct || 0,
+    apport_ht: d.apportHT || 0,
+    statut: d.statut || 'À SIGNER',
+    date_ssp: d.date || null,
+    date_butoire: d.dateButoire || null,
+    date_acte: d.dateActe || null,
+    diag: d.diag || false,
+    mois: d.mois || '',
+    remarque: d.remarque || '',
+    saisi: d.saisi || ''
+  };
+}
+
+// Charge toutes les données depuis Supabase dans le cache local
+async function loadDB() {
+  showLoading(true);
+  try {
+    const [dossiers, users, settingsRows, apporteurs] = await Promise.all([
+      sbFetch('dossiers', { order: 'id.asc' }),
+      sbFetch('users'),
+      sbFetch('settings'),
+      sbFetch('apporteurs')
+    ]);
+    DB.dossiers = dossiers.map(rowToDossier);
+    DB.users = users.map(u => ({ id: u.id, password: u.password, email: u.email || '', role: u.role, nom: u.nom, agence: u.agence || null }));
+    DB.settings.tva = parseFloat(settingsRows.find(s => s.key === 'tva')?.value || '20');
+    DB.apporteurs = apporteurs.map(a => a.nom);
+  } catch(e) {
+    showToast('Erreur de connexion à la base de données', 'error');
+    console.error(e);
+  }
+  showLoading(false);
+}
+
+function getDB() { return DB; }
+
+function showLoading(show) {
+  let el = document.getElementById('loading-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loading-overlay';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(45,69,90,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px';
+    el.innerHTML = '<div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite"></div><div style="color:white;font-family:Syne,sans-serif;font-weight:700;font-size:15px">Chargement...</div>';
+    if (!document.getElementById('spin-style')) {
+      const s = document.createElement('style');
+      s.id = 'spin-style';
+      s.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(s);
+    }
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+
+// =====================
+// STATE
+// =====================
+let currentUser = null;
+
+// =====================
+// AUTH
+// =====================
+async function doLogin() {
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  document.getElementById('auth-error').style.display = 'none';
+
+  try {
+    showLoading(true);
+    const rows = await sbFetch('users', { filter: 'id=eq.' + encodeURIComponent(user) });
+    showLoading(false);
+    if (!rows.length || rows[0].password !== pass) {
+      document.getElementById('auth-error').style.display = 'block';
+      return;
+    }
+    currentUser = { id: rows[0].id, password: rows[0].password, email: rows[0].email || '', role: rows[0].role, nom: rows[0].nom, agence: rows[0].agence || null };
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    await initApp();
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur de connexion', 'error');
+    console.error(e);
+  }
+}
+
+function doLogout() {
+  currentUser = null;
+  DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [] };
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+async function initApp() {
+  await loadDB();
+
+  // Sidebar
+  document.getElementById('sidebar-avatar').textContent = currentUser.nom.charAt(0).toUpperCase();
+  document.getElementById('sidebar-username').textContent = currentUser.nom;
+  document.getElementById('sidebar-role').textContent = currentUser.role === 'admin' ? 'Administrateur' : currentUser.role === 'saisie' ? 'Saisie' : 'Agence';
+
+  // Navigation selon rôle
+  const saisieSection = document.getElementById('nav-saisie-section');
+  if (currentUser.role === 'saisie' || currentUser.role === 'admin') {
+    saisieSection.style.display = 'block';
+  }
+
+  // Mois courant
+  const now = new Date();
+  const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('current-month-badge').textContent = monthNames[now.getMonth()] + ' ' + now.getFullYear();
+
+  populateFilters();
+  loadProfile();
+  document.getElementById('tva-display-val').textContent = DB.settings.tva + '%';
+
+  if (currentUser.role === 'admin') {
+    document.getElementById('nav-rapport').style.display = 'flex';
+    document.getElementById('params-admin-section').style.display = 'block';
+    renderUsersList();
+  } else {
+    document.getElementById('nav-rapport').style.display = 'none';
+  }
+
+  refreshDashboard();
+  refreshRanking();
+  refreshRankingAnnuel();
+  refreshMyDossiers();
+  refreshDossiers();
+  renderRepartition();
+  populateApporteurSelects();
+}
+
+function populateFilters() {
+  const moisList = getMoisList();
+  const now = new Date();
+  const currentMonthStr = MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
+
+  // Filtres dashboard + dossiers
+  ['filter-mois','filter-mois-dos'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    while (sel.options.length > 1) sel.remove(1);
+    moisList.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); });
+  });
+
+  // Filtre mois classement
+  const selRank = document.getElementById('filter-mois-rank');
+  if (selRank) {
+    while (selRank.options.length > 1) selRank.remove(1);
+    moisList.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selRank.appendChild(o); });
+    for (let opt of selRank.options) { if (opt.value === currentMonthStr) { opt.selected = true; break; } }
+  }
+
+  // Filtre années classement annuel
+  const selAnnee = document.getElementById('filter-annee-rank');
+  if (selAnnee) {
+    while (selAnnee.options.length) selAnnee.remove(0);
+    const years = [...new Set(moisList.map(m => m.split(' ')[1]))].sort();
+    years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; selAnnee.appendChild(o); });
+    const curYear = now.getFullYear().toString();
+    for (let opt of selAnnee.options) { if (opt.value === curYear) { opt.selected = true; break; } }
+  }
+
+  // Filtres agences
+  ['filter-agence-dash','filter-agence-dos'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    while (sel.options.length > 1) sel.remove(1);
+    AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+  });
+
+  // Select mois saisie (s-mois) — mois courant sélectionné par défaut
+  const selSaisie = document.getElementById('s-mois');
+  if (selSaisie) {
+    while (selSaisie.options.length) selSaisie.remove(0);
+    moisList.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selSaisie.appendChild(o); });
+    for (let opt of selSaisie.options) { if (opt.value === currentMonthStr) { opt.selected = true; break; } }
+  }
+
+  // Select mois édition
+  const selEdit = document.getElementById('edit-mois');
+  if (selEdit) {
+    while (selEdit.options.length) selEdit.remove(0);
+    moisList.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selEdit.appendChild(o); });
+  }
+
+  // Filtre mois apporteurs
+  const selMA = document.getElementById('filter-mois-apporteurs');
+  if (selMA) {
+    while (selMA.options.length > 1) selMA.remove(1);
+    moisList.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selMA.appendChild(o); });
+  }
+
+  // Filtre année apporteurs
+  const selAA = document.getElementById('filter-annee-apporteurs');
+  if (selAA) {
+    while (selAA.options.length) selAA.remove(0);
+    const years = [...new Set(moisList.map(m => m.split(' ')[1]))].sort();
+    years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; selAA.appendChild(o); });
+    const curYear = now.getFullYear().toString();
+    for (let opt of selAA.options) { if (opt.value === curYear) { opt.selected = true; break; } }
+  }
+}
+
+// =====================
+// PAGES
+// =====================
+function showPage(name, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+
+  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
+  document.getElementById('topbar-title').textContent = titles[name] || name;
+
+  if (name === 'dashboard') refreshDashboard();
+  if (name === 'ranking') { if (currentRankTab === 'mensuel') refreshRanking(); else refreshRankingAnnuel(); }
+  if (name === 'saisie') { refreshMyDossiers(); renderRepartition(); populateApporteurSelects(); }
+  if (name === 'apporteurs') { refreshApporteurs(); }
+  if (name === 'encaissements') { initEncaissements(); }
+  if (name === 'performances') { initPerformances(); }
+  if (name === 'rapport') { populateRapportFilters(); }
+}
+
+// =====================
+// DASHBOARD
+// =====================
+function getDossiers(filters = {}) {
+  
+  let list = DB.dossiers;
+  if (filters.mois) list = list.filter(d => d.mois === filters.mois);
+  if (filters.agence) list = list.filter(d => d.agence === filters.agence);
+  if (filters.statut) list = list.filter(d => d.statut === filters.statut);
+  if (filters.saisi) list = list.filter(d => d.saisi === filters.saisi);
+  return list;
+}
+
+function refreshDashboard() {
+  const mois = document.getElementById('filter-mois').value;
+  const agence = document.getElementById('filter-agence-dash').value;
+  const list = getDossiers({ mois, agence });
+  const signed = list.filter(d => d.statut === 'SIGNÉ');
+
+  const totalTTC = signed.reduce((s, d) => s + (d.ttc || 0), 0);
+  const totalHT = signed.reduce((s, d) => s + (d.ht || 0), 0);
+  const nbSigned = signed.length;
+  const nbReport = list.filter(d => d.statut === 'REPORT').length;
+  const nbAnnule = list.filter(d => d.statut === 'ANNULÉ').length;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">CA TTC brut (signés)</div><div class="stat-value">${fmtEuro(totalTTC)}</div><div class="stat-sub">Hors reports et annulés</div></div>
+    <div class="stat-card"><div class="stat-label">CA net HT (signés)</div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
+    <div class="stat-card"><div class="stat-label">Dossiers signés</div><div class="stat-value">${nbSigned}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
+    <div class="stat-card"><div class="stat-label">Agences actives</div><div class="stat-value">${new Set(signed.map(d => d.agence)).size}</div><div class="stat-sub">sur ${AGENCES.length} agences</div></div>
+  `;
+
+  const tbody = document.getElementById('dash-tbody');
+  if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier</td></tr>'; return; }
+  document.getElementById('dash-count').textContent = list.length + ' dossier(s)';
+  tbody.innerHTML = list.sort((a,b) => (b.mois > a.mois ? 1 : -1) || (b.ttc - a.ttc)).map(d => `
+    <tr>
+      <td><strong>${d.client}</strong>${d.groupId ? ` <span style="font-size:10px;color:var(--text-muted)">#G${d.groupId}</span>` : ''}</td>
+      <td>${agenceBadge(d)}</td>
+      <td style="font-size:12px">${d.ttc ? fmtEuro(d.ttc) : '—'}</td>
+      <td style="font-size:11px;color:#92400e">${d.hasApporteur ? `<div style="font-weight:600">${d.apporteurNom}</div>` : '—'}</td>
+      <td style="font-size:11px;color:#92400e">${d.apportHT > 0 ? fmtEuro(d.apportHT) : '—'}</td>
+      <td style="font-weight:600;color:var(--primary)">${d.ht ? fmtEuro(d.ht) : '—'}</td>
+      <td>${statusBadge(d.statut)}</td>
+      <td style="font-size:12px">${d.date ? fmtDate(d.date) : '—'}</td>
+      <td style="font-size:12px;color:${d.dateButoire && !d.dateActe ? (new Date(d.dateButoire) < new Date() ? '#dc2626' : 'var(--text-muted)') : 'var(--text-muted)'}">${d.dateButoire && !d.dateActe ? fmtDate(d.dateButoire) : (d.dateActe ? '<span style="color:#065f46;font-size:11px">✅ Acte signé</span>' : '—')}</td>
+      <td style="font-size:12px;text-align:center">${d.diag ? '✅' : ''}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${d.mois}</td>
+      <td style="font-size:12px;color:var(--text-muted);text-transform:capitalize">${d.saisi}</td>
+      <td><button class="btn btn-sm btn-outline" onclick="openEdit(${d.id})">✏️</button></td>
+    </tr>`).join('');
+
+  // Dates butoire
+  refreshButoires();
+  // Frais juridiques
+  refreshJuridique(mois);
+}
+
+const FRAIS_JURIDIQUE = 450;
+
+function refreshJuridique(moisFilter) {
+  // Dossiers avec acte authentique signé (dateActe renseignée), filtrés par mois si sélectionné
+  
+  let list = DB.dossiers.filter(d => d.dateActe);
+  if (moisFilter) list = list.filter(d => d.mois === moisFilter);
+
+  const tbody = document.getElementById('juridique-tbody');
+  if (!tbody) return;
+
+  // Regrouper par agence
+  const byAgence = {};
+  AGENCES.forEach(a => byAgence[a] = { count: 0, frais: 0, dossiers: [] });
+
+  list.forEach(d => {
+    const pct = d.pct || 100;
+    const fraisPart = +(FRAIS_JURIDIQUE * pct / 100).toFixed(2);
+    if (!byAgence[d.agence]) byAgence[d.agence] = { count: 0, frais: 0, dossiers: [] };
+    byAgence[d.agence].count++;
+    byAgence[d.agence].frais += fraisPart;
+    byAgence[d.agence].dossiers.push({ client: d.client, frais: fraisPart, dateActe: d.dateActe, pct });
+  });
+
+  const totalFrais = Object.values(byAgence).reduce((s, a) => s + a.frais, 0);
+
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px">Aucun acte authentique signé${moisFilter ? ' ce mois' : ''}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = AGENCES.filter(a => byAgence[a].count > 0).map(a => {
+    const ag = byAgence[a];
+    const detail = ag.dossiers.map(d =>
+      `<span style="font-size:10px;background:var(--bg);padding:2px 7px;border-radius:4px;margin:1px">${d.client}${d.pct < 100 ? ` (${d.pct}%)` : ''} — ${fmtEuro(d.frais)}</span>`
+    ).join(' ');
+    return `<tr>
+      <td><strong>${a}</strong></td>
+      <td style="text-align:center">${ag.count}</td>
+      <td style="font-weight:700;color:#dc2626">${fmtEuro(ag.frais)}</td>
+      <td style="max-width:300px">${detail}</td>
+    </tr>`;
+  }).join('') + `<tr style="background:#fef2f2;font-weight:700">
+    <td colspan="2" style="text-align:right;padding:10px 14px;font-family:'Syne',sans-serif">TOTAL DÛ AU JURIDIQUE</td>
+    <td style="color:#dc2626;font-family:'Syne',sans-serif;font-size:16px">${fmtEuro(totalFrais)}</td>
+    <td style="font-size:11px;color:var(--text-muted)">450 € HT × nb dossiers (proratisé si vente partagée)</td>
+  </tr>`;
+}
+
+// =====================
+// RANKING
+// =====================
+let currentRankTab = 'mensuel';
+
+function switchRankTab(tab) {
+  currentRankTab = tab;
+  document.getElementById('rank-view-mensuel').style.display = tab === 'mensuel' ? 'block' : 'none';
+  document.getElementById('rank-view-annuel').style.display = tab === 'annuel' ? 'block' : 'none';
+  const btnM = document.getElementById('tab-mensuel');
+  const btnA = document.getElementById('tab-annuel');
+  btnM.style.background = tab === 'mensuel' ? 'var(--primary)' : 'white';
+  btnM.style.color = tab === 'mensuel' ? 'white' : 'var(--text-muted)';
+  btnA.style.background = tab === 'annuel' ? 'var(--primary)' : 'white';
+  btnA.style.color = tab === 'annuel' ? 'white' : 'var(--text-muted)';
+  if (tab === 'mensuel') refreshRanking();
+  else refreshRankingAnnuel();
+}
+
+function buildRankData(list) {
+  const byAgence = {};
+  AGENCES.forEach(a => byAgence[a] = { ttc: 0, ht: 0, count: 0 });
+  list.forEach(d => {
+    if (!byAgence[d.agence]) byAgence[d.agence] = { ttc: 0, ht: 0, count: 0 };
+    byAgence[d.agence].ttc += d.ttc || 0;
+    byAgence[d.agence].ht += d.ht || 0;
+    byAgence[d.agence].count++;
+  });
+  return Object.entries(byAgence).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.ht - a.ht);
+}
+
+function renderPodium(containerId, ranked) {
+  const medals = ['🥇','🥈','🥉'];
+  const podiumClasses = ['first','second','third'];
+  document.getElementById(containerId).innerHTML = ranked.slice(0, 3).map((ag, i) => `
+    <div class="podium-card ${podiumClasses[i]}">
+      <div class="podium-medal">${medals[i]}</div>
+      <div class="podium-name">${ag.name}</div>
+      <div class="podium-amount">${fmtEuro(ag.ht)}</div>
+      <div class="podium-ht">CA HT · ${ag.count} dossier(s)</div>
+    </div>`).join('');
+}
+
+function refreshRanking() {
+  const mois = document.getElementById('filter-mois-rank').value;
+  const list = getDossiers({ mois }).filter(d => d.statut === 'SIGNÉ');
+  const ranked = buildRankData(list);
+  const maxHT = ranked[0]?.ht || 1;
+
+  document.getElementById('rank-mensuel-title').textContent = mois ? 'Classement — ' + mois : 'Classement mensuel';
+  renderPodium('podium', ranked);
+
+  document.getElementById('rank-tbody').innerHTML = ranked.map((ag, i) => `
+    <tr class="${i === 0 ? 'highlight-row' : ''}">
+      <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
+      <td><strong>${ag.name}</strong></td>
+      <td style="font-weight:700;color:var(--primary)">${fmtEuro(ag.ht)}</td>
+      <td>${fmtEuro(ag.ttc)}</td>
+      <td>${ag.count}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="progress-bar"><div class="progress-fill" style="width:${(ag.ht/maxHT*100).toFixed(0)}%"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">${(ag.ht/maxHT*100).toFixed(0)}%</span>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function refreshRankingAnnuel() {
+  const annee = document.getElementById('filter-annee-rank').value;
+  const moisDeLannee = getMoisList().filter(m => m.endsWith(annee));
+  const list = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && d.mois && d.mois.endsWith(annee));
+  const ranked = buildRankData(list);
+  const maxHT = ranked[0]?.ht || 1;
+
+  document.getElementById('rank-annuel-title').textContent = 'Classement annuel — ' + annee;
+  renderPodium('podium-annuel', ranked);
+
+  // Tableau principal annuel avec détail mensuel par survol
+  document.getElementById('rank-annuel-tbody').innerHTML = ranked.map((ag, i) => {
+    // Détail mois par mois pour cette agence
+    const detail = moisDeLannee.map(m => {
+      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && d.mois === m && d.agence === ag.name);
+      const htM = dosM.reduce((s, d) => s + (d.ht || 0), 0);
+      return htM > 0 ? `<span style="font-size:11px;background:var(--bg);padding:2px 7px;border-radius:4px;margin:1px">${m.split(' ')[0].substring(0,3)} : ${fmtEuro(htM)}</span>` : '';
+    }).filter(Boolean).join(' ');
+
+    return `<tr class="${i === 0 ? 'highlight-row' : ''}">
+      <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
+      <td><strong>${ag.name}</strong></td>
+      <td style="font-weight:700;color:var(--primary)">${fmtEuro(ag.ht)}</td>
+      <td>${fmtEuro(ag.ttc)}</td>
+      <td>${ag.count}</td>
+      <td style="max-width:320px">${detail || '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="progress-bar"><div class="progress-fill" style="width:${(ag.ht/maxHT*100).toFixed(0)}%"></div></div>
+          <span style="font-size:11px;color:var(--text-muted)">${(ag.ht/maxHT*100).toFixed(0)}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Tableau évolution mensuelle
+  const evTbl = document.getElementById('evolution-table');
+  const thead = evTbl.querySelector('thead');
+  const tbody = evTbl.querySelector('tbody');
+  thead.innerHTML = `<tr>
+    <th style="text-align:left;padding:8px 12px;background:var(--bg);font-size:11px;color:var(--text-muted);text-transform:uppercase;white-space:nowrap">Agence</th>
+    ${moisDeLannee.map(m => `<th style="text-align:right;padding:8px 12px;background:var(--bg);font-size:11px;color:var(--text-muted);text-transform:uppercase;white-space:nowrap">${m.split(' ')[0].substring(0,3)}</th>`).join('')}
+    <th style="text-align:right;padding:8px 12px;background:var(--primary);color:white;font-size:11px;text-transform:uppercase">TOTAL</th>
+  </tr>`;
+
+  // Totaux par mois (pour ligne totaux)
+  const totauxMois = {};
+  moisDeLannee.forEach(m => { totauxMois[m] = 0; });
+
+  tbody.innerHTML = AGENCES.map(ag => {
+    const cells = moisDeLannee.map(m => {
+      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && d.mois === m && d.agence === ag);
+      const htM = dosM.reduce((s, d) => s + (d.ht || 0), 0);
+      totauxMois[m] += htM;
+      return `<td style="text-align:right;padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px">${htM > 0 ? fmtEuro(htM) : '<span style="color:#ccc">—</span>'}</td>`;
+    });
+    const totalAg = moisDeLannee.reduce((s, m) => {
+      return s + getDossiers({}).filter(d => d.statut === 'SIGNÉ' && d.mois === m && d.agence === ag).reduce((ss, d) => ss + (d.ht || 0), 0);
+    }, 0);
+    return `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap">${ag}</td>
+      ${cells.join('')}
+      <td style="text-align:right;padding:8px 12px;border-bottom:1px solid var(--border);font-weight:700;color:var(--primary)">${totalAg > 0 ? fmtEuro(totalAg) : '—'}</td>
+    </tr>`;
+  }).join('') + `<tr style="background:var(--bg)">
+    <td style="padding:8px 12px;font-weight:700;font-family:'Syne',sans-serif">TOTAL</td>
+    ${moisDeLannee.map(m => `<td style="text-align:right;padding:8px 12px;font-weight:700;color:var(--primary)">${totauxMois[m] > 0 ? fmtEuro(totauxMois[m]) : '—'}</td>`).join('')}
+    <td style="text-align:right;padding:8px 12px;font-weight:800;color:var(--primary);font-family:'Syne',sans-serif">${fmtEuro(Object.values(totauxMois).reduce((s,v)=>s+v,0))}</td>
+  </tr>`;
+}
+
+// =====================
+// SAISIE
+// =====================
+let nbAgences = 1;
+
+function changeNbAgences(delta) {
+  nbAgences = Math.max(1, Math.min(6, nbAgences + delta));
+  document.getElementById('nb-agences-display').textContent = nbAgences;
+  renderRepartition();
+}
+
+function onDateActeChange() {
+  const dateActe = document.getElementById('edit-date-acte').value;
+  const butEl = document.getElementById('edit-date-butoire');
+  // Si une date d'acte est saisie, on masque/vide la date butoire
+  if (dateActe) {
+    butEl.style.opacity = '0.35';
+    butEl.style.pointerEvents = 'none';
+    butEl.title = 'L\'acte étant signé, la date butoire n\'est plus applicable';
+  } else {
+    butEl.style.opacity = '1';
+    butEl.style.pointerEvents = '';
+    butEl.title = '';
+  }
+}
+
+function toggleApporteur() {
+  const has = document.getElementById('s-has-apporteur').checked;
+  document.getElementById('apporteur-fields').style.display = has ? 'block' : 'none';
+  calcHT();
+}
+
+function toggleEditApporteur() {
+  const has = document.getElementById('edit-has-apporteur').checked;
+  document.getElementById('edit-apporteur-fields').style.display = has ? 'block' : 'none';
+  calcEditHT();
+}
+
+function getApporteurData() {
+  const has = document.getElementById('s-has-apporteur')?.checked;
+  if (!has) return { hasApporteur: false, nom: '', pct: 0, montantHT: 0 };
+  const sel = document.getElementById('s-apporteur-select').value;
+  const nom = sel === '__nouveau__'
+    ? document.getElementById('s-apporteur-nom').value.trim()
+    : sel;
+  const pct = parseFloat(document.getElementById('s-apporteur-pct').value) || 0;
+  return { hasApporteur: true, nom, pct };
+}
+
+// =====================
+// APPORTEURS — liste & select
+// =====================
+const APPORTEURS_DEFAUT = ['MeilleursAgents', 'Avest'];
+
+function getApporteursList() {
+  return DB.apporteurs && DB.apporteurs.length ? DB.apporteurs : [...APPORTEURS_DEFAUT];
+}
+
+function populateApporteurSelects() {
+  const list = getApporteursList();
+  ['s-apporteur-select', 'edit-apporteur-select'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Sélectionner —</option>';
+    list.forEach(a => {
+      const o = document.createElement('option');
+      o.value = a; o.textContent = a;
+      sel.appendChild(o);
+    });
+    const oNew = document.createElement('option');
+    oNew.value = '__nouveau__'; oNew.textContent = '➕ Autre (nouveau)';
+    sel.appendChild(oNew);
+    if (current) sel.value = current;
+  });
+}
+
+function onApporteurSelectChange(prefix) {
+  const sel = document.getElementById(prefix + '-apporteur-select').value;
+  const nomInput = document.getElementById(prefix + '-apporteur-nom');
+  nomInput.style.display = sel === '__nouveau__' ? 'block' : 'none';
+  if (sel !== '__nouveau__') nomInput.value = '';
+  if (prefix === 's') calcHT(); else calcEditHT();
+}
+
+async function saveNewApporteur() {
+  const nom = document.getElementById('new-apporteur-nom').value.trim();
+  if (!nom) { showToast('Nom requis', 'error'); return; }
+  if (DB.apporteurs.find(a => a.toLowerCase() === nom.toLowerCase())) {
+    showToast('Cet apporteur existe déjà', 'error'); return;
+  }
+  try {
+    await sbInsert('apporteurs', { nom });
+    DB.apporteurs.push(nom);
+    document.getElementById('new-apporteur-nom').value = '';
+    closeModal('modal-add-apporteur');
+    populateApporteurSelects();
+    renderApporteursList();
+    showToast('Apporteur ajouté ✓', 'success');
+  } catch(e) {
+    showToast('Erreur lors de l\'ajout', 'error');
+  }
+}
+
+function openAddApporteur() {
+  document.getElementById('new-apporteur-nom').value = '';
+  document.getElementById('modal-add-apporteur').classList.add('open');
+}
+
+async function deleteApporteur(nom) {
+  try {
+    await sbDelete('apporteurs', 'nom=eq.' + encodeURIComponent(nom));
+    DB.apporteurs = DB.apporteurs.filter(a => a !== nom);
+    populateApporteurSelects();
+    renderApporteursList();
+    refreshApporteurs();
+    showToast('Apporteur supprimé', 'success');
+  } catch(e) {
+    showToast('Erreur lors de la suppression', 'error');
+  }
+}
+
+function renderApporteursList() {
+  const list = getApporteursList();
+  const container = document.getElementById('apporteurs-list');
+  if (!container) return;
+  if (list.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:14px">Aucun apporteur enregistré.</p>';
+    return;
+  }
+  container.innerHTML = list.map(a => {
+    const allDos = DB.dossiers.filter(d => d.hasApporteur && d.apporteurNom === a && d.statut !== 'ANNULÉ');
+    const groupsSeen = new Set();
+    const used = allDos.filter(d => {
+      if (d.groupId) { if (groupsSeen.has(d.groupId)) return false; groupsSeen.add(d.groupId); }
+      return true;
+    }).length;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px"><div><strong style="font-size:14px">' + a + '</strong><span style="font-size:12px;color:var(--text-muted);margin-left:10px">' + used + ' dossier(s) lié(s)</span></div>' +
+      (!APPORTEURS_DEFAUT.includes(a) ? '<button class="btn btn-sm btn-danger" onclick="deleteApporteur(\'' + a + '\')">🗑</button>' : '<span style="font-size:11px;color:var(--text-muted)">par défaut</span>') + '</div>';
+  }).join('');
+}
+
+// =====================
+// PAGE APPORTEURS — stats
+// =====================
+function refreshApporteurs() {
+  
+  const anneeEl = document.getElementById('filter-annee-apporteurs');
+  const moisEl = document.getElementById('filter-mois-apporteurs');
+  if (!anneeEl) return;
+  const annee = anneeEl.value;
+  const moisFiltreRaw = moisEl ? moisEl.value : '';
+
+  // Si un mois est sélectionné, on synchronise l'année
+  if (moisFiltreRaw) {
+    const anneeFromMois = moisFiltreRaw.split(' ')[1];
+    if (anneeEl.value !== anneeFromMois) { anneeEl.value = anneeFromMois; }
+  }
+
+  const moisFiltre = moisFiltreRaw; // '' = vue annuelle
+
+  // Tous dossiers avec apporteur sur la période (tous statuts sauf ANNULÉ)
+  const dossiersBruts = DB.dossiers.filter(d =>
+    d.statut !== 'ANNULÉ' && d.hasApporteur && d.apporteurNom &&
+    (moisFiltre ? d.mois === moisFiltre : (d.mois && d.mois.endsWith(annee)))
+  );
+
+  // Dédoublonnage : pour les ventes partagées (même groupId), on ne garde qu'une ligne
+  // On prend la première occurrence du groupe et on lui remet le CA total + apport total
+  const groupsSeen = new Set();
+  const dossiersSig = [];
+  dossiersBruts.forEach(d => {
+    if (d.groupId) {
+      if (groupsSeen.has(d.groupId)) return; // doublon → on saute
+      groupsSeen.add(d.groupId);
+      // Reconstitue les montants totaux du groupe
+      const allInGroup = dossiersBruts.filter(x => x.groupId === d.groupId);
+      dossiersSig.push({
+        ...d,
+        ttc: d.ttcTotal || d.ttc,
+        apportHT: allInGroup.reduce((s, x) => s + (x.apportHT || 0), 0),
+        ht: allInGroup.reduce((s, x) => s + (x.ht || 0), 0),
+      });
+    } else {
+      dossiersSig.push(d);
+    }
+  });
+
+  // Stats globales
+  const statsGrid = document.getElementById('apporteurs-stats-grid');
+  const totalApport = dossiersSig.reduce((s, d) => s + (d.apportHT || 0), 0);
+  const totalCA = dossiersSig.reduce((s, d) => s + (d.ttcTotal || d.ttc || 0), 0);
+  const nbDossiers = dossiersSig.length;
+  const nbApporteurs = [...new Set(dossiersSig.map(d => d.apporteurNom))].length;
+  const periodeLabel = moisFiltre || annee;
+  statsGrid.innerHTML = `
+    <div class="stat-card"><div class="stat-label">DOSSIERS AVEC APPORTEUR</div><div class="stat-value">${nbDossiers}</div><div class="stat-sub">${periodeLabel}</div></div>
+    <div class="stat-card"><div class="stat-label">CA TTC GÉNÉRÉ</div><div class="stat-value">${fmtEuro(totalCA)}</div><div class="stat-sub">dossiers avec apporteur</div></div>
+    <div class="stat-card"><div class="stat-label">TOTAL REVERSÉ HT</div><div class="stat-value">${fmtEuro(totalApport)}</div><div class="stat-sub">commissions apporteurs</div></div>
+    <div class="stat-card"><div class="stat-label">APPORTEURS ACTIFS</div><div class="stat-value">${nbApporteurs}</div><div class="stat-sub">${periodeLabel}</div></div>
+  `;
+
+  const tableTitle = document.getElementById('apporteurs-table-title');
+  const moisLabel = document.getElementById('apporteurs-mois-label');
+  const thead = document.getElementById('apporteurs-mensuel-head');
+  const tbody = document.getElementById('apporteurs-mensuel-tbody');
+
+  const apporteurs = [...new Set(dossiersSig.map(d => d.apporteurNom))].sort();
+
+  if (apporteurs.length === 0) {
+    tableTitle.textContent = moisFiltre ? `📅 Détail pour ${moisFiltre}` : `📅 Détail annuel ${annee}`;
+    moisLabel.textContent = '';
+    thead.innerHTML = '<tr><th>Apporteur</th><th>Dossiers</th><th>CA TTC</th><th>Reversé HT</th></tr>';
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px">Aucun apporteur actif sur ${periodeLabel}</td></tr>`;
+    renderApporteursList();
+    return;
+  }
+
+  if (moisFiltre) {
+    // ── Mode MENSUEL : tableau simple par apporteur ──
+    tableTitle.textContent = `📅 Détail pour ${moisFiltre}`;
+    moisLabel.textContent = '';
+    thead.innerHTML = `<tr>
+      <th>Apporteur</th>
+      <th style="text-align:center">Dossiers</th>
+      <th>CA TTC</th>
+      <th>CA Net HT</th>
+      <th style="color:#92400e">Reversé HT</th>
+      <th>% moy</th>
+    </tr>`;
+    tbody.innerHTML = apporteurs.map(a => {
+      const dosA = dossiersSig.filter(d => d.apporteurNom === a);
+      const ca = dosA.reduce((s, d) => s + (d.ttcTotal || d.ttc || 0), 0);
+      const caNet = dosA.reduce((s, d) => s + (d.ht || 0), 0);
+      const rev = dosA.reduce((s, d) => s + (d.apportHT || 0), 0);
+      const pctMoy = dosA.length > 0 ? (dosA.reduce((s,d) => s + (d.apporteurPct||0), 0) / dosA.length).toFixed(1) : 0;
+      return `<tr>
+        <td><strong>${a}</strong></td>
+        <td style="text-align:center;font-weight:700">${dosA.length}</td>
+        <td style="font-weight:600;color:var(--primary)">${fmtEuro(ca)}</td>
+        <td style="font-weight:600">${fmtEuro(caNet)}</td>
+        <td style="font-weight:700;color:#92400e">${fmtEuro(rev)}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${pctMoy}%</td>
+      </tr>`;
+    }).join('') + `<tr style="background:#f8f9fa;border-top:2px solid var(--border)">
+      <td style="font-weight:700">TOTAL</td>
+      <td style="text-align:center;font-weight:700">${nbDossiers}</td>
+      <td style="font-weight:700;color:var(--primary)">${fmtEuro(totalCA)}</td>
+      <td style="font-weight:700">${fmtEuro(dossiersSig.reduce((s,d)=>s+(d.ht||0),0))}</td>
+      <td style="font-weight:700;color:#92400e">${fmtEuro(totalApport)}</td>
+      <td></td>
+    </tr>`;
+
+  } else {
+    // ── Mode ANNUEL : colonnes = mois ──
+    tableTitle.textContent = `📅 Détail annuel ${annee}`;
+    moisLabel.textContent = annee;
+    const moisAnnee = getMoisList().filter(m => m.endsWith(annee));
+    thead.innerHTML = `<tr>
+      <th>Apporteur</th>
+      ${moisAnnee.map(m => `<th style="font-size:11px">${m.split(' ')[0].substring(0,3)}</th>`).join('')}
+      <th>Dossiers</th>
+      <th>CA TTC</th>
+      <th style="color:#92400e">Reversé HT</th>
+    </tr>`;
+    tbody.innerHTML = apporteurs.map(a => {
+      const dosA = dossiersSig.filter(d => d.apporteurNom === a);
+      const totalApportA = dosA.reduce((s, d) => s + (d.apportHT || 0), 0);
+      const totalCAA = dosA.reduce((s, d) => s + (d.ttcTotal || d.ttc || 0), 0);
+      const parMois = moisAnnee.map(m => {
+        const dosM = dosA.filter(d => d.mois === m);
+        return dosM.length > 0
+          ? `<td style="text-align:center;font-size:12px">
+              <div style="font-weight:600">${dosM.length}</div>
+              <div style="color:#92400e;font-size:11px">${fmtEuro(dosM.reduce((s,d)=>s+(d.apportHT||0),0))}</div>
+             </td>`
+          : `<td style="text-align:center;color:var(--text-muted);font-size:12px">—</td>`;
+      }).join('');
+      return `<tr>
+        <td><strong>${a}</strong></td>
+        ${parMois}
+        <td style="text-align:center;font-weight:700">${dosA.length}</td>
+        <td style="font-weight:600;color:var(--primary)">${fmtEuro(totalCAA)}</td>
+        <td style="font-weight:700;color:#92400e">${fmtEuro(totalApportA)}</td>
+      </tr>`;
+    }).join('') + `<tr style="background:#f8f9fa;border-top:2px solid var(--border)">
+      <td style="font-weight:700">TOTAL</td>
+      ${moisAnnee.map(m => {
+        const dosM = dossiersSig.filter(d => d.mois === m);
+        return dosM.length > 0
+          ? `<td style="text-align:center;font-size:12px;font-weight:600">${dosM.length}<br><span style="color:#92400e;font-size:11px">${fmtEuro(dosM.reduce((s,d)=>s+(d.apportHT||0),0))}</span></td>`
+          : `<td style="text-align:center;color:var(--text-muted)">—</td>`;
+      }).join('')}
+      <td style="text-align:center;font-weight:700">${nbDossiers}</td>
+      <td style="font-weight:700;color:var(--primary)">${fmtEuro(totalCA)}</td>
+      <td style="font-weight:700;color:#92400e">${fmtEuro(totalApport)}</td>
+    </tr>`;
+  }
+
+  renderApporteursList();
+}
+
+function renderRepartition() {
+  const container = document.getElementById('agences-repartition');
+  const ttc = parseFloat(document.getElementById('s-ttc').value) || 0;
+  
+  const tva = DB.settings.tva / 100;
+  const brutHT = ttc > 0 ? ttc / (1 + tva) : 0;
+  const apporteur = getApporteurData();
+  const apportHT = apporteur.hasApporteur && apporteur.pct > 0 ? brutHT * apporteur.pct / 100 : 0;
+  const netHT = brutHT - apportHT;
+
+  // Mise à jour récap montants
+  const brutEl = document.getElementById('s-brut-ht-display');
+  const apportEl = document.getElementById('s-apport-ht-display');
+  const netEl = document.getElementById('s-ht-display');
+  if (brutEl) brutEl.textContent = brutHT > 0 ? fmtEuro(brutHT) : '—';
+  if (apportEl) apportEl.textContent = apportHT > 0 ? fmtEuro(apportHT) : '—';
+  if (netEl) netEl.textContent = netHT > 0 ? fmtEuro(netHT) : (brutHT > 0 ? fmtEuro(brutHT) : '—');
+
+  // Mise à jour affichage montant apporteur
+  const apportMontantEl = document.getElementById('s-apporteur-montant');
+  if (apportMontantEl) apportMontantEl.textContent = apportHT > 0 ? fmtEuro(apportHT) : '—';
+
+  // Récupérer les valeurs existantes
+  const existing = [];
+  for (let i = 0; i < nbAgences; i++) {
+    const agEl = document.getElementById(`s-agence-${i}`);
+    const pctEl = document.getElementById(`s-pct-${i}`);
+    existing.push({
+      agence: agEl ? agEl.value : '',
+      pct: pctEl ? parseFloat(pctEl.value) || 0 : (nbAgences === 1 ? 100 : 0)
+    });
+  }
+  if (nbAgences === 1 && existing[0].pct === 0) existing[0].pct = 100;
+
+  if (nbAgences === 1) {
+    const htPart = netHT > 0 ? netHT : brutHT;
+    container.innerHTML = `
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label>Agence *</label>
+          <select id="s-agence-0" onchange="updateRepartitionCalc()">
+            <option value="">— Sélectionner —</option>
+            ${AGENCES.map(a => `<option ${existing[0].agence === a ? 'selected' : ''}>${a}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Quote-part nette HT</label>
+          <div class="amount-display">${htPart > 0 ? fmtEuro(htPart) : '—'}</div>
+        </div>
+      </div>`;
+  } else {
+    const htBase = netHT > 0 ? netHT : brutHT;
+    let rows = '';
+    for (let i = 0; i < nbAgences; i++) {
+      const htPart = htBase > 0 && existing[i].pct > 0 ? htBase * existing[i].pct / 100 : 0;
+      rows += `
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;align-items:end;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:10px">
+          <div class="form-group" style="margin:0">
+            <label>Agence ${i+1} *</label>
+            <select id="s-agence-${i}" onchange="updateRepartitionCalc()">
+              <option value="">— Sélectionner —</option>
+              ${AGENCES.map(a => `<option ${existing[i].agence === a ? 'selected' : ''}>${a}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>% de la vente *</label>
+            <input type="number" id="s-pct-${i}" value="${existing[i].pct || ''}" placeholder="ex: 50" min="0" max="100" step="0.01"
+              oninput="updateRepartitionCalc()" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Quote-part nette HT</label>
+            <div class="amount-display" id="s-htpart-${i}" style="font-size:13px">${htPart > 0 ? fmtEuro(htPart) : '—'}</div>
+          </div>
+        </div>`;
+    }
+    container.innerHTML = rows;
+  }
+  updateRepartitionCalc();
+}
+
+function updateRepartitionCalc() {
+  const ttc = parseFloat(document.getElementById('s-ttc').value) || 0;
+  
+  const tva = DB.settings.tva / 100;
+  const brutHT = ttc > 0 ? ttc / (1 + tva) : 0;
+  const apporteur = getApporteurData();
+  const apportHT = apporteur.hasApporteur && apporteur.pct > 0 ? brutHT * apporteur.pct / 100 : 0;
+  const netHT = brutHT - apportHT;
+  const htBase = netHT > 0 ? netHT : brutHT;
+
+  if (nbAgences === 1) return;
+
+  let totalPct = 0;
+  for (let i = 0; i < nbAgences; i++) {
+    const pct = parseFloat(document.getElementById(`s-pct-${i}`)?.value) || 0;
+    totalPct += pct;
+    const htPart = htBase > 0 && pct > 0 ? htBase * pct / 100 : 0;
+    const el = document.getElementById(`s-htpart-${i}`);
+    if (el) el.textContent = htPart > 0 ? fmtEuro(htPart) : '—';
+  }
+
+  const warn = document.getElementById('pct-warning');
+  const rounded = Math.round(totalPct * 100) / 100;
+  if (Math.abs(rounded - 100) < 0.01) {
+    warn.style.display = 'none';
+  } else if (rounded > 100) {
+    warn.style.display = 'block'; warn.style.background = '#fee2e2'; warn.style.color = '#991b1b';
+    warn.textContent = `⚠️ Total : ${rounded}% — dépasse 100%`;
+  } else {
+    warn.style.display = 'block'; warn.style.background = '#fef3c7'; warn.style.color = '#92400e';
+    warn.textContent = `ℹ️ Total : ${rounded}% — il reste ${(100 - rounded).toFixed(2)}% à répartir`;
+  }
+}
+
+function calcHT() {
+  renderRepartition();
+}
+
+function calcEditHT() {
+  
+  const tva = DB.settings.tva / 100;
+  const ttc = parseFloat(document.getElementById('edit-ttc').value) || 0;
+  const brutHT = ttc > 0 ? ttc / (1 + tva) : 0;
+  const hasApporteur = document.getElementById('edit-has-apporteur')?.checked;
+  const apportPct = hasApporteur ? (parseFloat(document.getElementById('edit-apporteur-pct')?.value) || 0) : 0;
+  const apportHT = brutHT * apportPct / 100;
+  const netHT = brutHT - apportHT;
+  document.getElementById('edit-ht-display').textContent = brutHT > 0 ? fmtEuro(netHT) : '—';
+  const montEl = document.getElementById('edit-apporteur-montant');
+  if (montEl) montEl.textContent = apportHT > 0 ? fmtEuro(apportHT) : '—';
+}
+
+async function saveDossier() {
+  const client = document.getElementById('s-client').value.trim().toUpperCase();
+  const ttc = parseFloat(document.getElementById('s-ttc').value) || 0;
+  const statut = document.getElementById('s-statut').value;
+  const date = document.getElementById('s-date').value;
+  const dateButoire = document.getElementById('s-date-butoire').value;
+  const dateActe = document.getElementById('s-date-acte').value;
+  const mois = document.getElementById('s-mois').value;
+  const remarque = document.getElementById('s-remarque').value;
+  const diag = document.getElementById('s-diag').checked;
+
+  if (!client || !mois) { showToast('Veuillez remplir les champs obligatoires', 'error'); return; }
+
+  const tva = DB.settings.tva / 100;
+  const brutHT = ttc > 0 ? +(ttc / (1 + tva)).toFixed(2) : 0;
+
+  // Apporteur
+  const hasApporteur = document.getElementById('s-has-apporteur').checked;
+  const sSel = document.getElementById('s-apporteur-select').value;
+  let apporteurNom = '';
+  if (hasApporteur) {
+    apporteurNom = sSel === '__nouveau__'
+      ? document.getElementById('s-apporteur-nom').value.trim()
+      : sSel;
+    if (sSel === '__nouveau__' && apporteurNom && !DB.apporteurs.includes(apporteurNom)) {
+      await sbInsert('apporteurs', { nom: apporteurNom });
+      DB.apporteurs.push(apporteurNom);
+      populateApporteurSelects();
+    }
+  }
+  const apporteurPct = hasApporteur ? (parseFloat(document.getElementById('s-apporteur-pct').value) || 0) : 0;
+  if (hasApporteur && !apporteurNom) { showToast('Veuillez sélectionner ou saisir l\'apporteur', 'error'); return; }
+  if (hasApporteur && apporteurPct <= 0) { showToast('Veuillez saisir le % de commission de l\'apporteur', 'error'); return; }
+  const apportHT = +(brutHT * apporteurPct / 100).toFixed(2);
+  const netHT = +(brutHT - apportHT).toFixed(2);
+
+  // Agences/parts
+  const parts = [];
+  for (let i = 0; i < nbAgences; i++) {
+    const agence = document.getElementById('s-agence-' + i)?.value || '';
+    const pct = nbAgences === 1 ? 100 : (parseFloat(document.getElementById('s-pct-' + i)?.value) || 0);
+    if (!agence) { showToast('Veuillez sélectionner l\'agence ' + (i+1), 'error'); return; }
+    if (pct <= 0) { showToast('Le % de l\'agence ' + (i+1) + ' doit être > 0', 'error'); return; }
+    parts.push({ agence, pct });
+  }
+  if (nbAgences > 1) {
+    const totalPct = parts.reduce((s, p) => s + p.pct, 0);
+    if (Math.abs(totalPct - 100) > 0.1) { showToast('Total des % : ' + totalPct.toFixed(1) + '% — doit être 100%', 'error'); return; }
+  }
+
+  showLoading(true);
+  try {
+    // Pour les ventes partagées, on insère d'abord le premier pour obtenir un group_id
+    const rows = [];
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      const htPart = +(netHT * p.pct / 100).toFixed(2);
+      const ttcPart = +(ttc * p.pct / 100).toFixed(2);
+      const apportPartHT = +(apportHT * p.pct / 100).toFixed(2);
+      const row = dossierToRow({
+        groupId: null, // sera mis à jour après
+        client, agence: p.agence,
+        ttc: ttcPart, ht: htPart,
+        ttcTotal: ttc, htTotal: netHT,
+        brutHT: +(brutHT * p.pct / 100).toFixed(2),
+        pct: p.pct,
+        nbAgencesGroupe: nbAgences,
+        hasApporteur, apporteurNom, apporteurPct,
+        apportHT: apportPartHT,
+        statut, date, dateButoire, dateActe,
+        diag, mois, remarque,
+        saisi: currentUser.id
+      });
+      rows.push(row);
+    }
+
+    // Insert tous les dossiers
+    const inserted = await sbInsert('dossiers', rows);
+
+    // Si vente partagée, on met à jour le group_id avec l'id du premier dossier inséré
+    if (nbAgences > 1 && inserted.length > 0) {
+      const groupId = inserted[0].id;
+      for (const ins of inserted) {
+        await sbUpdate('dossiers', 'id=eq.' + ins.id, { group_id: groupId });
+      }
+      inserted.forEach(ins => ins.group_id = groupId);
+    }
+
+    // Met à jour le cache local
+    inserted.forEach(ins => DB.dossiers.push(rowToDossier(ins)));
+
+    showLoading(false);
+    showToast(nbAgences > 1 ? 'Dossier partagé enregistré (' + nbAgences + ' agences) ✓' : 'Dossier enregistré ✓', 'success');
+    clearSaisie();
+    populateFilters();
+    refreshMyDossiers();
+    refreshDashboard();
+    refreshRanking();
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur lors de l\'enregistrement', 'error');
+    console.error(e);
+  }
+}
+
+function clearSaisie() {
+  document.getElementById('s-client').value = '';
+  document.getElementById('s-ttc').value = '';
+  document.getElementById('s-statut').value = 'À SIGNER';
+  document.getElementById('s-date').value = '';
+  document.getElementById('s-date-butoire').value = '';
+  document.getElementById('s-date-acte').value = '';
+  document.getElementById('s-remarque').value = '';
+  document.getElementById('s-diag').checked = false;
+  document.getElementById('s-has-apporteur').checked = false;
+  document.getElementById('apporteur-fields').style.display = 'none';
+  document.getElementById('s-apporteur-nom').value = '';
+  document.getElementById('s-apporteur-pct').value = '';
+  nbAgences = 1;
+  document.getElementById('nb-agences-display').textContent = '1';
+  document.getElementById('pct-warning').style.display = 'none';
+  renderRepartition();
+}
+
+function agenceBadge(d) {
+  if (d.nbAgencesGroupe > 1) {
+    return `<span style="background:var(--bg);padding:2px 8px;border-radius:4px;font-size:12px">${d.agence}</span>
+            <span style="background:#e0e7ff;color:#3730a3;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;margin-left:3px" title="Vente partagée entre ${d.nbAgencesGroupe} agences — quote-part : ${d.pct}%">🔀 ${d.pct}%</span>`;
+  }
+  return `<span style="background:var(--bg);padding:2px 8px;border-radius:4px;font-size:12px">${d.agence}</span>`;
+}
+
+function refreshMyDossiers() {
+  
+  const list = DB.dossiers.filter(d => d.saisi === currentUser.id).sort((a, b) => b.id - a.id).slice(0, 20);
+  const tbody = document.getElementById('my-dossiers-tbody');
+  if (!tbody) return;
+  if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Aucun dossier saisi</td></tr>'; return; }
+  tbody.innerHTML = list.map(d => `
+    <tr>
+      <td><strong>${d.client}</strong>${d.groupId ? ` <span style="font-size:10px;color:var(--text-muted)">#G${d.groupId}</span>` : ''}</td>
+      <td>${agenceBadge(d)}</td>
+      <td style="font-size:12px">${d.ttc ? fmtEuro(d.ttc) : '—'}</td>
+      <td style="font-size:11px;color:#92400e">${d.hasApporteur ? `<div style="font-weight:600">${d.apporteurNom}</div><div>${fmtEuro(d.apportHT||0)}</div>` : '—'}</td>
+      <td style="font-weight:600;color:var(--primary)">${d.ht ? fmtEuro(d.ht) : '—'}</td>
+      <td>${statusBadge(d.statut)}</td>
+      <td style="font-size:12px">${d.date ? fmtDate(d.date) : '—'}</td>
+      <td style="font-size:12px;color:${d.dateButoire ? (new Date(d.dateButoire) < new Date() ? '#dc2626' : 'var(--text-muted)') : 'var(--text-muted)'}">${d.dateButoire ? fmtDate(d.dateButoire) : '—'}</td>
+      <td style="font-size:12px;text-align:center">${d.diag ? '✅' : ''}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${d.mois}</td>
+      <td>
+        <button class="btn btn-sm btn-outline" onclick="openEdit(${d.id})">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="openDelete(${d.id})" style="margin-left:4px">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+// =====================
+// TOUS LES DOSSIERS
+// =====================
+function refreshDossiers() {
+  const mois = document.getElementById('filter-mois-dos')?.value || '';
+  const agence = document.getElementById('filter-agence-dos')?.value || '';
+  const statut = document.getElementById('filter-statut-dos')?.value || '';
+  const search = (document.getElementById('search-dos')?.value || '').trim().toLowerCase();
+  let list = getDossiers({ mois, agence, statut }).sort((a, b) => b.id - a.id);
+  if (search) list = list.filter(d => d.client && d.client.toLowerCase().includes(search));
+  const tbody = document.getElementById('dos-tbody');
+  document.getElementById('dos-count').textContent = list.length + ' dossier(s)';
+  const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin';
+  if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier trouvé</td></tr>'; return; }
+  tbody.innerHTML = list.map(d => `
+    <tr>
+      <td><strong>${d.client}</strong>${d.groupId ? ` <span style="font-size:10px;color:var(--text-muted)">#G${d.groupId}</span>` : ''}</td>
+      <td>${agenceBadge(d)}</td>
+      <td style="font-size:12px">${d.ttc ? fmtEuro(d.ttc) : '—'}</td>
+      <td style="font-size:11px;color:#92400e">${d.hasApporteur ? `<div style="font-weight:600">${d.apporteurNom}</div><div>${fmtEuro(d.apportHT||0)}</div>` : '—'}</td>
+      <td style="font-size:11px;color:#92400e">${d.apportHT > 0 ? fmtEuro(d.apportHT) : '—'}</td>
+      <td style="font-weight:600;color:var(--primary)">${d.ht ? fmtEuro(d.ht) : '—'}</td>
+      <td>${statusBadge(d.statut)}</td>
+      <td style="font-size:12px">${d.date ? fmtDate(d.date) : '—'}</td>
+      <td style="font-size:12px;color:${d.dateButoire ? (new Date(d.dateButoire) < new Date() && !d.dateActe ? '#dc2626' : 'var(--text-muted)') : 'var(--text-muted)'}">${d.dateButoire ? fmtDate(d.dateButoire) : '—'}</td>
+      <td style="font-size:12px;text-align:center">${d.diag ? '✅' : ''}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${d.mois}</td>
+      <td style="font-size:12px;color:var(--text-muted);text-transform:capitalize">${d.saisi}</td>
+      <td>
+        ${canEdit ? `<button class="btn btn-sm btn-outline" onclick="openEdit(${d.id})">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="openDelete(${d.id})" style="margin-left:4px">🗑</button>` : '—'}
+      </td>
+    </tr>`).join('');
+}
+
+// =====================
+// EDIT / DELETE
+// =====================
+let pendingDeleteId = null;
+
+function openDelete(id) {
+  pendingDeleteId = id;
+  document.getElementById('modal-delete').classList.add('open');
+  document.getElementById('confirm-delete-btn').onclick = async () => {
+    showLoading(true);
+    try {
+      await sbDelete('dossiers', 'id=eq.' + id);
+      DB.dossiers = DB.dossiers.filter(d => d.id !== id);
+      showLoading(false);
+      closeModal('modal-delete');
+      showToast('Dossier supprimé', 'success');
+      refreshMyDossiers();
+      refreshDossiers();
+      refreshDashboard();
+      refreshRanking();
+    } catch(e) {
+      showLoading(false);
+      showToast('Erreur lors de la suppression', 'error');
+    }
+  };
+}
+
+function openEdit(id) {
+  const d = DB.dossiers.find(d => d.id === id);
+  if (!d) return;
+
+  // Si dossier groupé, on charge le TTC total (pas la quote-part)
+  const ttcToShow = d.groupId ? (d.ttcTotal || d.ttc) : d.ttc;
+
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-client').value = d.client;
+  document.getElementById('edit-agence').value = d.agence;
+  document.getElementById('edit-ttc').value = ttcToShow;
+  document.getElementById('edit-ht-display').textContent = d.ht ? fmtEuro(d.ht) : '—';
+  document.getElementById('edit-statut').value = d.statut;
+  document.getElementById('edit-date').value = d.date || '';
+  document.getElementById('edit-date-butoire').value = d.dateButoire || '';
+  document.getElementById('edit-date-acte').value = d.dateActe || '';
+  document.getElementById('edit-mois').value = d.mois;
+  document.getElementById('edit-remarque').value = d.remarque || '';
+  document.getElementById('edit-diag').checked = d.diag || false;
+  const hasApporteur = d.hasApporteur || false;
+  document.getElementById('edit-has-apporteur').checked = hasApporteur;
+  document.getElementById('edit-apporteur-fields').style.display = hasApporteur ? 'block' : 'none';
+
+  // Pré-sélection apporteur dans le select
+  populateApporteurSelects();
+  const apporteursList = getApporteursList();
+  const editSel = document.getElementById('edit-apporteur-select');
+  const editNomInput = document.getElementById('edit-apporteur-nom');
+  if (d.apporteurNom && apporteursList.includes(d.apporteurNom)) {
+    editSel.value = d.apporteurNom;
+    editNomInput.style.display = 'none';
+    editNomInput.value = '';
+  } else if (d.apporteurNom) {
+    editSel.value = '__nouveau__';
+    editNomInput.style.display = 'block';
+    editNomInput.value = d.apporteurNom;
+  } else {
+    editSel.value = '';
+    editNomInput.style.display = 'none';
+    editNomInput.value = '';
+  }
+
+  document.getElementById('edit-apporteur-pct').value = d.apporteurPct || '';
+  document.getElementById('edit-apporteur-montant').textContent = d.apportHT > 0 ? fmtEuro(d.apportHT * (100 / (d.pct || 100))) : '—';
+
+  // Affiche un bandeau si vente partagée
+  const groupBanner = document.getElementById('edit-group-banner');
+  if (d.groupId) {
+    const siblings = DB.dossiers.filter(s => s.groupId === d.groupId);
+    groupBanner.style.display = 'block';
+    groupBanner.innerHTML = '🔀 <strong>Vente partagée entre ' + d.nbAgencesGroupe + ' agences</strong> — La modification sera appliquée à tous les dossiers liés : ' + siblings.map(s => '<strong>' + s.agence + '</strong> (' + s.pct + '%)').join(', ');
+  } else {
+    groupBanner.style.display = 'none';
+  }
+
+  document.getElementById('modal-edit').classList.add('open');
+  onDateActeChange();
+  calcEditHT();
+}
+
+async function confirmEdit() {
+  const id = parseInt(document.getElementById('edit-id').value);
+  const dossier = DB.dossiers.find(d => d.id === id);
+  if (!dossier) return;
+
+  const tva = DB.settings.tva / 100;
+  const ttcTotal = parseFloat(document.getElementById('edit-ttc').value) || 0;
+  const brutHTTotal = ttcTotal > 0 ? +(ttcTotal / (1 + tva)).toFixed(2) : 0;
+  const hasApporteur = document.getElementById('edit-has-apporteur').checked;
+  const editSel = document.getElementById('edit-apporteur-select').value;
+  let apporteurNom = '';
+  if (hasApporteur) {
+    apporteurNom = editSel === '__nouveau__'
+      ? document.getElementById('edit-apporteur-nom').value.trim()
+      : editSel;
+    if (editSel === '__nouveau__' && apporteurNom && !DB.apporteurs.includes(apporteurNom)) {
+      await sbInsert('apporteurs', { nom: apporteurNom });
+      DB.apporteurs.push(apporteurNom);
+      populateApporteurSelects();
+    }
+  }
+  const apporteurPct = hasApporteur ? (parseFloat(document.getElementById('edit-apporteur-pct').value) || 0) : 0;
+  const apportHTTotal = +(brutHTTotal * apporteurPct / 100).toFixed(2);
+  const netHTTotal = +(brutHTTotal - apportHTTotal).toFixed(2);
+
+  const champsCommuns = {
+    client: document.getElementById('edit-client').value.trim().toUpperCase(),
+    statut: document.getElementById('edit-statut').value,
+    date: document.getElementById('edit-date').value,
+    dateButoire: document.getElementById('edit-date-butoire').value,
+    dateActe: document.getElementById('edit-date-acte').value,
+    mois: document.getElementById('edit-mois').value,
+    remarque: document.getElementById('edit-remarque').value,
+    diag: document.getElementById('edit-diag').checked,
+    hasApporteur, apporteurNom, apporteurPct,
+    ttcTotal, htTotal: netHTTotal
+  };
+
+  const cibles = dossier.groupId
+    ? DB.dossiers.filter(d => d.groupId === dossier.groupId)
+    : [dossier];
+
+  showLoading(true);
+  try {
+    for (const d of cibles) {
+      const pct = d.pct || 100;
+      const ttcPart = +(ttcTotal * pct / 100).toFixed(2);
+      const brutHTPart = +(brutHTTotal * pct / 100).toFixed(2);
+      const apportHTPart = +(apportHTTotal * pct / 100).toFixed(2);
+      const netHTPart = +(netHTTotal * pct / 100).toFixed(2);
+
+      await sbUpdate('dossiers', 'id=eq.' + d.id, dossierToRow({
+        ...d, ...champsCommuns,
+        ttc: ttcPart, brutHT: brutHTPart, ht: netHTPart, apportHT: apportHTPart
+      }));
+
+      const idx = DB.dossiers.findIndex(x => x.id === d.id);
+      if (idx >= 0) DB.dossiers[idx] = { ...DB.dossiers[idx], ...champsCommuns, ttc: ttcPart, brutHT: brutHTPart, ht: netHTPart, apportHT: apportHTPart };
+    }
+    showLoading(false);
+    closeModal('modal-edit');
+    const nb = cibles.length;
+    showToast(nb > 1 ? nb + ' dossiers liés mis à jour ✓' : 'Dossier modifié ✓', 'success');
+    refreshMyDossiers();
+    refreshDossiers();
+    refreshDashboard();
+    refreshRanking();
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur lors de la modification', 'error');
+    console.error(e);
+  }
+}
+
+function clearSearchDos() {
+  const el = document.getElementById('search-dos');
+  if (el) { el.value = ''; refreshDossiers(); }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// =====================
+// PARAMS
+// =====================
+function loadProfile() {
+  const u = DB.users.find(u => u.id === currentUser.id);
+  if (u) document.getElementById('p-email').value = u.email || '';
+}
+
+async function saveProfile() {
+  const email = document.getElementById('p-email').value.trim();
+  const newpass = document.getElementById('p-newpass').value;
+  const confirm = document.getElementById('p-confirmpass').value;
+  if (newpass && newpass !== confirm) { showToast('Les mots de passe ne correspondent pas', 'error'); return; }
+  showLoading(true);
+  try {
+    const updates = {};
+    if (email) updates.email = email;
+    if (newpass) updates.password = newpass;
+    if (Object.keys(updates).length) {
+      await sbUpdate('users', 'id=eq.' + currentUser.id, updates);
+      const u = DB.users.find(u => u.id === currentUser.id);
+      if (u) Object.assign(u, updates);
+      if (newpass) currentUser.password = newpass;
+    }
+    showLoading(false);
+    document.getElementById('p-newpass').value = '';
+    document.getElementById('p-confirmpass').value = '';
+    showToast('Profil mis à jour ✓', 'success');
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur lors de la sauvegarde', 'error');
+  }
+}
+
+async function saveTVA() {
+  const val = parseFloat(document.getElementById('p-tva').value);
+  if (!val || val < 0 || val > 100) { showToast('Taux invalide', 'error'); return; }
+  showLoading(true);
+  try {
+    await sbUpdate('settings', 'key=eq.tva', { value: String(val) });
+    DB.settings.tva = val;
+    // Recalcul de tous les HT en mémoire
+    DB.dossiers.forEach(d => {
+      if (d.ttc) d.ht = +(d.ttc / (1 + val / 100)).toFixed(2);
+    });
+    showLoading(false);
+    document.getElementById('tva-display-val').textContent = val + '%';
+    document.getElementById('p-tva').value = '';
+    showToast('Taux de TVA mis à jour à ' + val + '% ✓', 'success');
+    refreshDashboard();
+    refreshRanking();
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur lors de la sauvegarde', 'error');
+  }
+}
+
+function renderUsersList() {
+  const container = document.getElementById('users-list');
+  if (!container) return;
+  if (DB.users.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:14px">Aucun utilisateur.</p>';
+    return;
+  }
+  const roleLabel = { admin: 'Administrateur', saisie: 'Saisie', agence: 'Agence' };
+  const roleBadge = { admin: 'status-signed', saisie: 'status-pending', agence: 'status-report' };
+  container.innerHTML = '<table style="width:100%"><thead><tr>' +
+    '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--text-muted);text-transform:uppercase">Identifiant</th>' +
+    '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--text-muted);text-transform:uppercase">Nom</th>' +
+    '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--text-muted);text-transform:uppercase">Email</th>' +
+    '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--text-muted);text-transform:uppercase">Rôle</th>' +
+    '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--text-muted);text-transform:uppercase">Agence</th>' +
+    '<th style="padding:8px 12px"></th>' +
+    '</tr></thead><tbody>' +
+    DB.users.map(u => '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:10px 12px;font-weight:600">' + u.id + '</td>' +
+      '<td style="padding:10px 12px">' + u.nom + '</td>' +
+      '<td style="padding:10px 12px;color:var(--text-muted);font-size:12px">' + (u.email || '—') + '</td>' +
+      '<td style="padding:10px 12px"><span class="status-badge ' + (roleBadge[u.role] || 'status-pending') + '">' + (roleLabel[u.role] || u.role) + '</span></td>' +
+      '<td style="padding:10px 12px;font-size:12px;color:var(--text-muted)">' + (u.agence || '—') + '</td>' +
+      '<td style="padding:10px 12px;display:flex;gap:6px">' +
+        '<button class="btn btn-sm btn-outline" onclick="openEditUser(\'' + u.id + '\')">✏️</button>' +
+        (u.id !== currentUser.id ? '<button class="btn btn-sm btn-danger" onclick="openDeleteUser(\'' + u.id + '\')">🗑</button>' : '') +
+      '</td>' +
+    '</tr>').join('') +
+    '</tbody></table>';
+}
+
+function onUserRoleChange() {
+  const role = document.getElementById('user-role').value;
+  document.getElementById('user-agence-group').style.display = role === 'agence' ? 'block' : 'none';
+}
+
+function openAddUser() {
+  document.getElementById('modal-user-title').textContent = 'Ajouter un utilisateur';
+  document.getElementById('user-edit-id').value = '';
+  document.getElementById('user-id').value = '';
+  document.getElementById('user-id').disabled = false;
+  document.getElementById('user-nom').value = '';
+  document.getElementById('user-password').value = '';
+  document.getElementById('user-email').value = '';
+  document.getElementById('user-role').value = 'saisie';
+  document.getElementById('user-agence').value = '';
+  // Populate agence select
+  const selAg = document.getElementById('user-agence');
+  while (selAg.options.length > 1) selAg.remove(1);
+  AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; selAg.appendChild(o); });
+  onUserRoleChange();
+  document.getElementById('modal-user').classList.add('open');
+}
+
+function openEditUser(id) {
+  const u = DB.users.find(u => u.id === id);
+  if (!u) return;
+  document.getElementById('modal-user-title').textContent = 'Modifier l\'utilisateur';
+  document.getElementById('user-edit-id').value = id;
+  document.getElementById('user-id').value = u.id;
+  document.getElementById('user-id').disabled = false; // Identifiant modifiable
+  document.getElementById('user-nom').value = u.nom || '';
+  document.getElementById('user-password').value = u.password || '';
+  document.getElementById('user-email').value = u.email || '';
+  document.getElementById('user-role').value = u.role || 'saisie';
+  // Populate agence select
+  const selAg = document.getElementById('user-agence');
+  while (selAg.options.length > 1) selAg.remove(1);
+  AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; selAg.appendChild(o); });
+  document.getElementById('user-agence').value = u.agence || '';
+  onUserRoleChange();
+  document.getElementById('modal-user').classList.add('open');
+}
+
+async function saveUser() {
+  const editId = document.getElementById('user-edit-id').value;
+  const newId = document.getElementById('user-id').value.trim().toLowerCase();
+  const nom = document.getElementById('user-nom').value.trim();
+  const password = document.getElementById('user-password').value.trim();
+  const email = document.getElementById('user-email').value.trim();
+  const role = document.getElementById('user-role').value;
+  const agence = role === 'agence' ? document.getElementById('user-agence').value : null;
+
+  if (!newId || !nom || !password) { showToast('Identifiant, nom et mot de passe sont requis', 'error'); return; }
+
+  showLoading(true);
+  try {
+    if (editId) {
+      // Modification — si l'identifiant a changé : supprimer l'ancien et recréer
+      if (editId !== newId) {
+        if (DB.users.find(u => u.id === newId)) { showLoading(false); showToast('Cet identifiant existe déjà', 'error'); return; }
+        await sbDelete('users', 'id=eq.' + editId);
+        await sbInsert('users', { id: newId, nom, password, email: email || null, role, agence: agence || null });
+        const idx = DB.users.findIndex(u => u.id === editId);
+        if (idx >= 0) DB.users[idx] = { id: newId, nom, password, email: email || '', role, agence: agence || null };
+      } else {
+        await sbUpdate('users', 'id=eq.' + editId, { nom, password, email: email || null, role, agence: agence || null });
+        const idx = DB.users.findIndex(u => u.id === editId);
+        if (idx >= 0) DB.users[idx] = { ...DB.users[idx], nom, password, email: email || '', role, agence };
+      }
+      showToast('Utilisateur modifié ✓', 'success');
+    } else {
+      // Création
+      if (DB.users.find(u => u.id === newId)) { showLoading(false); showToast('Cet identifiant existe déjà', 'error'); return; }
+      const newUser = { id: newId, nom, password, email: email || null, role, agence: agence || null };
+      await sbInsert('users', newUser);
+      DB.users.push({ ...newUser, email: email || '' });
+      showToast('Utilisateur créé ✓', 'success');
+    }
+    showLoading(false);
+    closeModal('modal-user');
+    renderUsersList();
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur lors de la sauvegarde', 'error');
+    console.error(e);
+  }
+}
+
+function openDeleteUser(id) {
+  document.getElementById('modal-delete-user').classList.add('open');
+  document.getElementById('confirm-delete-user-btn').onclick = async () => {
+    showLoading(true);
+    try {
+      await sbDelete('users', 'id=eq.' + id);
+      DB.users = DB.users.filter(u => u.id !== id);
+      showLoading(false);
+      closeModal('modal-delete-user');
+      showToast('Utilisateur supprimé', 'success');
+      renderUsersList();
+    } catch(e) {
+      showLoading(false);
+      showToast('Erreur lors de la suppression', 'error');
+    }
+  };
+}
+
+// =====================
+// RAPPORT PDF
+// =====================
+function populateRapportFilters() {
+  const selMois = document.getElementById('rapport-mois');
+  const selAg = document.getElementById('rapport-agence');
+  if (!selMois) return;
+  while (selMois.options.length > 1) selMois.remove(1);
+  getMoisList().forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selMois.appendChild(o); });
+  while (selAg.options.length > 1) selAg.remove(1);
+  AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; selAg.appendChild(o); });
+}
+
+function genererRapportPDF() {
+  const mois = document.getElementById('rapport-mois').value;
+  const agenceFiltree = document.getElementById('rapport-agence').value;
+  if (!mois) { showToast('Veuillez choisir un mois', 'error'); return; }
+
+  const agences = agenceFiltree ? [agenceFiltree] : AGENCES;
+  
+  const annee = mois.split(' ')[1];
+  const moisDeLannee = getMoisList().filter(m => m.endsWith(annee));
+
+  agences.forEach((agence, idx) => {
+    setTimeout(() => {
+      const dosMois = DB.dossiers.filter(d => d.mois === mois && d.agence === agence && d.statut === 'SIGNÉ');
+      const dosAnnee = DB.dossiers.filter(d => d.mois && d.mois.endsWith(annee) && d.agence === agence && d.statut === 'SIGNÉ');
+
+      // Classement mensuel
+      const rankMois = buildRankDataRaw(DB.dossiers.filter(d => d.mois === mois && d.statut === 'SIGNÉ'));
+      const rankAnnee = buildRankDataRaw(DB.dossiers.filter(d => d.mois && d.mois.endsWith(annee) && d.statut === 'SIGNÉ'));
+
+      // Frais juridiques de l'agence sur le mois
+      const dosActe = DB.dossiers.filter(d => d.agence === agence && d.dateActe && d.mois === mois);
+      const fraisTotal = dosActe.reduce((s, d) => s + FRAIS_JURIDIQUE * (d.pct || 100) / 100, 0);
+
+      const caHTMois = dosMois.reduce((s, d) => s + (d.ht || 0), 0);
+      const caHTAnnee = dosAnnee.reduce((s, d) => s + (d.ht || 0), 0);
+
+      const positionMois = rankMois.findIndex(r => r.name === agence) + 1;
+      const positionAnnee = rankAnnee.findIndex(r => r.name === agence) + 1;
+      const medals = ['🥇', '🥈', '🥉'];
+
+      const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Rapport ${agence} — ${mois}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@400;500;600&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; color:#1a2530; font-size:13px; padding:32px; background:white; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:20px; border-bottom:3px solid #2D455A; margin-bottom:24px; }
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:#2D455A; }
+  .logo-sub { font-size:12px; color:#6b7f8e; margin-top:2px; }
+  .report-title { text-align:right; }
+  .report-title h1 { font-family:'Syne',sans-serif; font-size:22px; color:#2D455A; }
+  .report-title p { font-size:12px; color:#6b7f8e; margin-top:4px; }
+  .section { margin-bottom:24px; }
+  .section-title { font-family:'Syne',sans-serif; font-weight:700; font-size:15px; color:#2D455A; padding-bottom:8px; border-bottom:1px solid #d8e2ea; margin-bottom:14px; }
+  .stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:20px; }
+  .stat-box { background:#f4f6f8; border-radius:10px; padding:14px; border-left:3px solid #2D455A; }
+  .stat-box.gold { border-color:#E8A838; }
+  .stat-label { font-size:10px; font-weight:600; color:#6b7f8e; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+  .stat-value { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; color:#2D455A; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  thead th { padding:8px 10px; background:#2D455A; color:white; font-size:10px; text-transform:uppercase; letter-spacing:0.3px; text-align:left; }
+  tbody tr:nth-child(even) { background:#f8fafc; }
+  tbody td { padding:8px 10px; border-bottom:1px solid #e8eef3; }
+  .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-weight:700; font-size:11px; }
+  .rank-1 { background:#FFD700; color:#7d6200; }
+  .rank-2 { background:#C0C0C0; color:#4a4a4a; }
+  .rank-3 { background:#CD7F32; color:#5a2c00; }
+  .rank-other { background:#f0f4f8; color:#6b7f8e; }
+  .highlight { background:#fffbeb !important; font-weight:700; }
+  .frais-box { background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; }
+  .frais-amount { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; color:#dc2626; }
+  .footer { margin-top:32px; padding-top:16px; border-top:1px solid #d8e2ea; display:flex; justify-content:space-between; font-size:10px; color:#6b7f8e; }
+  @media print { body { padding:16px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div><div class="logo">Booster Immobilier</div><div class="logo-sub">Réseau de 5 agences</div></div>
+  <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-box"><div class="stat-label">CA net HT — ${mois}</div><div class="stat-value">${fmtEuro(caHTMois)}</div></div>
+  <div class="stat-box ${positionMois <= 3 ? 'gold' : ''}"><div class="stat-label">Classement mensuel</div><div class="stat-value">${medals[positionMois-1] || positionMois + 'ème'}</div></div>
+  <div class="stat-box"><div class="stat-label">CA net HT — ${annee}</div><div class="stat-value">${fmtEuro(caHTAnnee)}</div></div>
+</div>
+
+<div class="section">
+  <div class="section-title">📅 Classement mensuel — ${mois}</div>
+  <table>
+    <thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>Dossiers</th></tr></thead>
+    <tbody>
+      ${rankMois.map((r, i) => `<tr class="${r.name === agence ? 'highlight' : ''}">
+        <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
+        <td>${r.name}</td>
+        <td style="font-weight:600">${fmtEuro(r.ht)}</td>
+        <td>${r.count}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">📆 Classement annuel — ${annee}</div>
+  <table>
+    <thead><tr><th>#</th><th>Agence</th><th>CA HT ${annee}</th><th>Dossiers</th>
+      ${moisDeLannee.map(m => `<th>${m.split(' ')[0].substring(0,3)}</th>`).join('')}
+    </tr></thead>
+    <tbody>
+      ${rankAnnee.map((r, i) => {
+        const moisCells = moisDeLannee.map(m => {
+          const ht = DB.dossiers.filter(d => d.agence === r.name && d.mois === m && d.statut === 'SIGNÉ').reduce((s, d) => s + (d.ht||0), 0);
+          return `<td style="font-size:11px">${ht > 0 ? fmtEuro(ht) : '—'}</td>`;
+        }).join('');
+        return `<tr class="${r.name === agence ? 'highlight' : ''}">
+          <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
+          <td>${r.name}</td>
+          <td style="font-weight:600">${fmtEuro(r.ht)}</td>
+          <td>${r.count}</td>
+          ${moisCells}
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">⚖️ Frais de dossier juridique — ${mois}</div>
+  ${dosActe.length > 0 ? `
+  <table style="margin-bottom:14px">
+    <thead><tr><th>Client</th><th>Date acte</th><th>% vente</th><th>Frais imputés</th></tr></thead>
+    <tbody>
+      ${dosActe.map(d => `<tr>
+        <td>${d.client}</td>
+        <td>${fmtDate(d.dateActe)}</td>
+        <td>${d.pct || 100}%</td>
+        <td style="font-weight:600">${fmtEuro(FRAIS_JURIDIQUE * (d.pct || 100) / 100)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>` : '<p style="color:#6b7f8e;font-size:12px;margin-bottom:12px">Aucun acte authentique signé ce mois.</p>'}
+  <div class="frais-box">
+    <div><div style="font-weight:600;margin-bottom:2px">Total frais juridiques dus</div><div style="font-size:11px;color:#6b7f8e">À régler au service juridique</div></div>
+    <div class="frais-amount">${fmtEuro(fraisTotal)}</div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>Booster Immobilier — Document confidentiel</span>
+  <span>Rapport généré automatiquement • ${new Date().toLocaleDateString('fr-FR', {day:'numeric',month:'long',year:'numeric'})}</span>
+</div>
+
+<script>window.onload = () => { window.print(); }<\/script>
+</body></html>`;
+
+      const win = window.open('', `rapport_${agence}_${mois}`, 'width=900,height=700');
+      win.document.write(html);
+      win.document.close();
+
+      document.getElementById('rapport-status').innerHTML =
+        `<div style="padding:10px 14px;background:#d1fae5;border-radius:8px;color:#065f46;font-size:13px;font-weight:600">
+          ✅ Rapport ouvert pour : ${agences.slice(0, idx+1).join(', ')}
+        </div>`;
+    }, idx * 600);
+  });
+}
+
+function refreshButoires() {
+  
+  const now = new Date();
+  const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const currentMonthStr = monthNames[now.getMonth()] + ' ' + now.getFullYear();
+
+  // Tous les dossiers avec date butoire dans le mois courant, pas encore à l'acte
+  const list = DB.dossiers.filter(d => {
+    if (!d.dateButoire || d.dateActe) return false;
+    const b = new Date(d.dateButoire);
+    return b.getMonth() === now.getMonth() && b.getFullYear() === now.getFullYear();
+  }).sort((a, b) => new Date(a.dateButoire) - new Date(b.dateButoire));
+
+  const tbody = document.getElementById('butoires-tbody');
+  const subtitle = document.getElementById('butoire-subtitle');
+  if (!tbody) return;
+
+  subtitle.textContent = currentMonthStr;
+
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:14px">Aucune date butoire enregistrée pour ${currentMonthStr}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(d => {
+    const butoire = new Date(d.dateButoire);
+    const diffMs = butoire - now;
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    let urgenceStyle, urgenceLabel;
+    if (diffDays < 0) {
+      urgenceStyle = 'background:#fee2e2;color:#991b1b;font-weight:700';
+      urgenceLabel = `⚠️ Dépassée de ${Math.abs(diffDays)}j`;
+    } else if (diffDays <= 7) {
+      urgenceStyle = 'background:#fef3c7;color:#92400e;font-weight:700';
+      urgenceLabel = `🔥 ${diffDays}j restants`;
+    } else if (diffDays <= 30) {
+      urgenceStyle = 'background:#d1fae5;color:#065f46;font-weight:600';
+      urgenceLabel = `${diffDays}j restants`;
+    } else {
+      urgenceStyle = 'color:var(--text-muted)';
+      urgenceLabel = `${diffDays}j restants`;
+    }
+    return `<tr>
+      <td><strong>${d.client}</strong></td>
+      <td>${agenceBadge(d)}</td>
+      <td style="font-weight:600">${fmtDate(d.dateButoire)}</td>
+      <td>${statusBadge(d.statut)}</td>
+      <td><span style="padding:3px 10px;border-radius:20px;font-size:12px;${urgenceStyle}">${urgenceLabel}</span></td>
+      <td><button class="btn btn-sm btn-outline" onclick="openEdit(${d.id})">✏️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function buildRankDataRaw(list) {
+  const byAgence = {};
+  AGENCES.forEach(a => byAgence[a] = { ht: 0, ttc: 0, count: 0 });
+  list.forEach(d => {
+    if (!byAgence[d.agence]) byAgence[d.agence] = { ht: 0, ttc: 0, count: 0 };
+    byAgence[d.agence].ht += d.ht || 0;
+    byAgence[d.agence].ttc += d.ttc || 0;
+    byAgence[d.agence].count++;
+  });
+  return Object.entries(byAgence).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.ht - a.ht);
+}
+
+
+// =====================
+// IA — CONTEXTE DONNÉES
+// =====================
+function buildDataContext(scope, label) {
+  const now = new Date();
+  let dossiers = DB.dossiers.filter(d => d.statut === 'SIGNÉ');
+
+  if (scope === 'annuel') {
+    dossiers = dossiers.filter(d => d.mois && d.mois.endsWith(label));
+  } else if (scope === 'mensuel') {
+    dossiers = dossiers.filter(d => d.mois === label);
+  }
+
+  const totalHT = dossiers.reduce((s, d) => s + (d.ht || 0), 0);
+  const totalTTC = dossiers.reduce((s, d) => s + (d.ttc || 0), 0);
+
+  const byAgence = {};
+  AGENCES.forEach(a => byAgence[a] = { ht: 0, count: 0 });
+  dossiers.forEach(d => {
+    if (byAgence[d.agence]) { byAgence[d.agence].ht += d.ht || 0; byAgence[d.agence].count++; }
+  });
+
+  const scopeLabel = scope === 'histo' ? 'depuis la création de la base' : (scope === 'annuel' ? 'pour l\'année ' + label : 'pour le mois de ' + label);
+
+  return `Tu es l'assistant IA de l'application de suivi des ventes du réseau Booster Immobilier (6 agences à Toulouse : Saint-Cyprien, Minimes, Bonnefoy, Roseraie, Saint-Agne, Côte Pavée). Date du jour : ${now.toLocaleDateString('fr-FR')}.
+
+=== PÉRIMÈTRE D'ANALYSE : ${scopeLabel.toUpperCase()} ===
+- Dossiers signés : ${dossiers.length}
+- CA net HT total : ${fmtEuro(totalHT)}
+- CA TTC brut total : ${fmtEuro(totalTTC)}
+
+=== CA PAR AGENCE ===
+${AGENCES.map(a => a + ' : ' + fmtEuro(byAgence[a].ht) + ' HT (' + byAgence[a].count + ' dossiers)').join('\n')}
+
+=== CONTEXTE RÉSEAU COMPLET ===
+- Total dossiers (tous statuts) : ${DB.dossiers.length}
+- À signer : ${DB.dossiers.filter(d => d.statut === 'À SIGNER').length}
+- En report : ${DB.dossiers.filter(d => d.statut === 'REPORT').length}
+
+Fais une analyse professionnelle et concise ${scopeLabel}. Inclus : bilan global, points forts/faibles par agence, tendances notables, recommandations concrètes, alertes si nécessaire. Sois direct et factuel. Réponds en français.`;
+}
+
+async function callClaudeAPI(messages, system) {
+  const response = await fetch('/.netlify/functions/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: system,
+      messages: messages
+    })
+  });
+  const data = await response.json();
+  return data.content?.[0]?.text || 'Erreur lors de la réponse IA.';
+}
+
+// =====================
+// ENCAISSEMENTS
+// =====================
+let currentEncTab = 'historique';
+
+function initEncaissements() {
+  // Populate filtres
+  const moisList = getMoisList();
+  const years = [...new Set(moisList.map(m => m.split(' ')[1]))].sort();
+
+  ['enc-hist-annee', 'enc-prev-annee'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    while (sel.options.length > 1) sel.remove(1);
+    years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o); });
+  });
+
+  ['enc-hist-mois', 'enc-prev-mois'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    while (sel.options.length > 1) sel.remove(1);
+    MONTH_NAMES.forEach((m, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = m; sel.appendChild(o); });
+  });
+
+  // Filtre agence : selon rôle
+  ['enc-hist-agence', 'enc-prev-agence'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    while (sel.options.length > 1) sel.remove(1);
+    if (currentUser.role === 'agence') {
+      sel.style.display = 'none'; // Agence voit que ses chiffres
+    } else {
+      AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+    }
+  });
+
+  refreshEncHistorique();
+}
+
+function switchEncTab(tab) {
+  currentEncTab = tab;
+  document.getElementById('enc-view-historique').style.display = tab === 'historique' ? 'block' : 'none';
+  document.getElementById('enc-view-previsionnel').style.display = tab === 'previsionnel' ? 'block' : 'none';
+  const btnH = document.getElementById('tab-historique');
+  const btnP = document.getElementById('tab-previsionnel');
+  btnH.style.background = tab === 'historique' ? 'var(--primary)' : 'white';
+  btnH.style.color = tab === 'historique' ? 'white' : 'var(--text-muted)';
+  btnP.style.background = tab === 'previsionnel' ? 'var(--primary)' : 'white';
+  btnP.style.color = tab === 'previsionnel' ? 'white' : 'var(--text-muted)';
+  if (tab === 'historique') refreshEncHistorique();
+  else refreshEncPrevisionnel();
+}
+
+function getEncFiltre(prefix) {
+  const annee = document.getElementById(prefix + '-annee')?.value || '';
+  const moisIdx = document.getElementById(prefix + '-mois')?.value;
+  const agence = currentUser.role === 'agence' ? currentUser.agence : (document.getElementById(prefix + '-agence')?.value || '');
+  return { annee, moisIdx: moisIdx !== '' && moisIdx !== undefined ? parseInt(moisIdx) : null, agence };
+}
+
+function filterByEncFiltre(dossiers, filtre, dateField) {
+  let list = dossiers.filter(d => d[dateField]);
+  if (filtre.agence) list = list.filter(d => d.agence === filtre.agence);
+  if (filtre.annee) list = list.filter(d => new Date(d[dateField]).getFullYear() === parseInt(filtre.annee));
+  if (filtre.moisIdx !== null) list = list.filter(d => new Date(d[dateField]).getMonth() === filtre.moisIdx);
+  return list;
+}
+
+function refreshEncHistorique() {
+  const filtre = getEncFiltre('enc-hist');
+  const list = filterByEncFiltre(DB.dossiers.filter(d => d.statut === 'SIGNÉ'), filtre, 'dateActe')
+    .sort((a, b) => new Date(b.dateActe) - new Date(a.dateActe));
+
+  const totalHT = list.reduce((s, d) => s + (d.ht || 0), 0);
+  const totalTTC = list.reduce((s, d) => s + (d.ttc || 0), 0);
+  const nbAgences = new Set(list.map(d => d.agence)).size;
+
+  document.getElementById('enc-hist-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-label">ACTES SIGNÉS</div><div class="stat-value">' + list.length + '</div><div class="stat-sub">dossiers encaissés</div></div>' +
+    '<div class="stat-card"><div class="stat-label">TOTAL ENCAISSÉ HT</div><div class="stat-value">' + fmtEuro(totalHT) + '</div><div class="stat-sub">net apporteurs</div></div>' +
+    '<div class="stat-card"><div class="stat-label">TOTAL TTC BRUT</div><div class="stat-value">' + fmtEuro(totalTTC) + '</div></div>' +
+    (currentUser.role !== 'agence' ? '<div class="stat-card"><div class="stat-label">AGENCES ACTIVES</div><div class="stat-value">' + nbAgences + '</div><div class="stat-sub">sur ' + AGENCES.length + '</div></div>' : '');
+
+  document.getElementById('enc-hist-count').textContent = list.length + ' encaissement(s)';
+  const tbody = document.getElementById('enc-hist-tbody');
+  if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">Aucun encaissement sur cette période</td></tr>'; return; }
+
+  // Grouper par mois
+  const byMois = {};
+  list.forEach(d => {
+    const dt = new Date(d.dateActe);
+    const key = MONTH_NAMES[dt.getMonth()] + ' ' + dt.getFullYear();
+    if (!byMois[key]) byMois[key] = { label: key, rows: [], total: 0 };
+    byMois[key].rows.push(d);
+    byMois[key].total += d.ht || 0;
+  });
+
+  tbody.innerHTML = Object.values(byMois).map(g =>
+    '<tr style="background:#f0f9ff"><td colspan="4" style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + g.label + '</td><td style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + fmtEuro(g.total) + '</td></tr>' +
+    g.rows.map(d => '<tr><td style="font-size:12px;color:var(--text-muted)">' + d.mois + '</td><td>' + agenceBadge(d) + '</td><td><strong>' + d.client + '</strong></td><td style="font-size:12px">' + fmtDate(d.dateActe) + '</td><td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td></tr>').join('')
+  ).join('');
+}
+
+function refreshEncPrevisionnel() {
+  const filtre = getEncFiltre('enc-prev');
+  const list = filterByEncFiltre(DB.dossiers.filter(d => d.statut === 'SIGNÉ' && !d.dateActe), filtre, 'dateButoire')
+    .sort((a, b) => new Date(a.dateButoire) - new Date(b.dateButoire));
+
+  const totalHT = list.reduce((s, d) => s + (d.ht || 0), 0);
+  const now = new Date();
+  const futurs = list.filter(d => new Date(d.dateButoire) >= now).length;
+  const depasses = list.filter(d => new Date(d.dateButoire) < now).length;
+
+  document.getElementById('enc-prev-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-label">ENCAISSEMENTS PRÉVUS</div><div class="stat-value">' + list.length + '</div><div class="stat-sub">' + futurs + ' à venir · ' + depasses + ' dépassés</div></div>' +
+    '<div class="stat-card"><div class="stat-label">MONTANT PRÉVISIONNEL HT</div><div class="stat-value">' + fmtEuro(totalHT) + '</div><div class="stat-sub">net apporteurs</div></div>';
+
+  document.getElementById('enc-prev-count').textContent = list.length + ' dossier(s)';
+  const tbody = document.getElementById('enc-prev-tbody');
+  if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Aucun prévisionnel sur cette période</td></tr>'; return; }
+
+  const byMois = {};
+  list.forEach(d => {
+    const dt = new Date(d.dateButoire);
+    const key = MONTH_NAMES[dt.getMonth()] + ' ' + dt.getFullYear();
+    if (!byMois[key]) byMois[key] = { label: key, rows: [], total: 0, isPast: dt < now };
+    byMois[key].rows.push(d);
+    byMois[key].total += d.ht || 0;
+  });
+
+  tbody.innerHTML = Object.values(byMois).map(g =>
+    '<tr style="background:' + (g.isPast ? '#fef2f2' : '#f0fdf4') + '"><td colspan="5" style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + (g.isPast ? '⚠️ ' : '📅 ') + g.label + (g.isPast ? ' (dépassé)' : '') + '</td><td style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + fmtEuro(g.total) + '</td></tr>' +
+    g.rows.map(d => '<tr><td style="font-size:12px;color:var(--text-muted)">' + d.mois + '</td><td>' + agenceBadge(d) + '</td><td><strong>' + d.client + '</strong></td><td style="font-size:12px;color:' + (new Date(d.dateButoire) < now ? '#dc2626' : 'var(--text-muted)') + '">' + fmtDate(d.dateButoire) + '</td><td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td><td>' + statusBadge(d.statut) + '</td></tr>').join('')
+  ).join('');
+}
+
+// =====================
+// PERFORMANCES
+// =====================
+let currentPerfTab = 'histo';
+
+function initPerformances() {
+  const moisList = getMoisList();
+  const years = [...new Set(moisList.map(m => m.split(' ')[1]))].sort();
+
+  const selA = document.getElementById('perf-annuel-sel');
+  if (selA) {
+    while (selA.options.length) selA.remove(0);
+    years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; selA.appendChild(o); });
+    const curYear = new Date().getFullYear().toString();
+    for (let opt of selA.options) { if (opt.value === curYear) { opt.selected = true; break; } }
+  }
+
+  const selM = document.getElementById('perf-mensuel-sel');
+  if (selM) {
+    while (selM.options.length) selM.remove(0);
+    moisList.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selM.appendChild(o); });
+    const now = new Date();
+    const cur = MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
+    for (let opt of selM.options) { if (opt.value === cur) { opt.selected = true; break; } }
+  }
+
+  refreshPerfHisto();
+}
+
+function switchPerfTab(tab) {
+  currentPerfTab = tab;
+  ['histo','annuel','mensuel'].forEach(t => {
+    document.getElementById('perf-view-' + t).style.display = t === tab ? 'block' : 'none';
+    const btn = document.getElementById('tab-perf-' + t);
+    btn.style.background = t === tab ? 'var(--primary)' : 'white';
+    btn.style.color = t === tab ? 'white' : 'var(--text-muted)';
+  });
+  if (tab === 'histo') refreshPerfHisto();
+  else if (tab === 'annuel') refreshPerfAnnuel();
+  else refreshPerfMensuel();
+}
+
+function buildPerfStats(dossiers, containerId, titlePrefix) {
+  const signed = dossiers.filter(d => d.statut === 'SIGNÉ');
+  const totalHT = signed.reduce((s, d) => s + (d.ht || 0), 0);
+  const totalTTC = signed.reduce((s, d) => s + (d.ttc || 0), 0);
+  document.getElementById(containerId).innerHTML =
+    '<div class="stat-card"><div class="stat-label">CA NET HT</div><div class="stat-value">' + fmtEuro(totalHT) + '</div><div class="stat-sub">dossiers signés</div></div>' +
+    '<div class="stat-card"><div class="stat-label">CA TTC BRUT</div><div class="stat-value">' + fmtEuro(totalTTC) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">DOSSIERS SIGNÉS</div><div class="stat-value">' + signed.length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">EN COURS</div><div class="stat-value">' + dossiers.filter(d => d.statut === 'À SIGNER').length + '</div><div class="stat-sub">à signer</div></div>';
+}
+
+function buildPerfTable(dossiers, tbodyId) {
+  const signed = dossiers.filter(d => d.statut === 'SIGNÉ');
+  const ranked = AGENCES.map(a => {
+    const dos = signed.filter(d => d.agence === a);
+    return { name: a, ht: dos.reduce((s, d) => s + (d.ht || 0), 0), count: dos.length };
+  }).sort((a, b) => b.ht - a.ht);
+  const maxHT = ranked[0]?.ht || 1;
+  document.getElementById(tbodyId).innerHTML = ranked.map((ag, i) =>
+    '<tr class="' + (i === 0 ? 'highlight-row' : '') + '"><td><span class="rank-badge ' + (i < 3 ? 'rank-' + (i + 1) : 'rank-other') + '">' + (i + 1) + '</span></td>' +
+    '<td><strong>' + ag.name + '</strong></td>' +
+    '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(ag.ht) + '</td>' +
+    '<td>' + ag.count + '</td>' +
+    '<td><div style="display:flex;align-items:center;gap:10px"><div class="progress-bar"><div class="progress-fill" style="width:' + (ag.ht / maxHT * 100).toFixed(0) + '%"></div></div><span style="font-size:11px;color:var(--text-muted)">' + (ag.ht / maxHT * 100).toFixed(0) + '%</span></div></td></tr>'
+  ).join('');
+}
+
+function refreshPerfHisto() {
+  buildPerfStats(DB.dossiers, 'perf-histo-stats', 'Historique');
+  buildPerfTable(DB.dossiers, 'perf-histo-tbody');
+}
+
+function refreshPerfAnnuel() {
+  const annee = document.getElementById('perf-annuel-sel')?.value || '';
+  const dos = DB.dossiers.filter(d => d.mois && d.mois.endsWith(annee));
+  document.getElementById('perf-annuel-title').textContent = 'Classement ' + annee;
+  buildPerfStats(dos, 'perf-annuel-stats', 'Annuel');
+  buildPerfTable(dos, 'perf-annuel-tbody');
+}
+
+function refreshPerfMensuel() {
+  const mois = document.getElementById('perf-mensuel-sel')?.value || '';
+  const dos = DB.dossiers.filter(d => d.mois === mois);
+  document.getElementById('perf-mensuel-title').textContent = 'Classement ' + mois;
+  buildPerfStats(dos, 'perf-mensuel-stats', 'Mensuel');
+  buildPerfTable(dos, 'perf-mensuel-tbody');
+}
+
+async function runPerfAnalysis(tab) {
+  let scope, label;
+  if (tab === 'histo') { scope = 'histo'; label = ''; }
+  else if (tab === 'annuel') { scope = 'annuel'; label = document.getElementById('perf-annuel-sel')?.value || ''; }
+  else { scope = 'mensuel'; label = document.getElementById('perf-mensuel-sel')?.value || ''; }
+
+  const cardId = 'perf-' + tab + '-ai-card';
+  const statusId = 'perf-' + tab + '-ai-status';
+  const contentId = 'perf-' + tab + '-ai-content';
+
+  document.getElementById(cardId).style.display = 'block';
+  document.getElementById(statusId).textContent = '⏳ Analyse en cours...';
+  document.getElementById(contentId).innerHTML = '<div style="text-align:center;padding:20px"><div style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px"></div><div style="color:var(--text-muted)">L\'IA analyse...</div></div>';
+
+  try {
+    const context = buildDataContext(scope, label);
+    const text = await callClaudeAPI([{ role: 'user', content: 'Fais une analyse complète et professionnelle des performances du réseau.' }], context);
+    document.getElementById(statusId).textContent = '✅ Terminé';
+    document.getElementById(contentId).innerHTML = '<div style="padding:20px;line-height:1.7;font-size:14px;white-space:pre-wrap">' + text + '</div>';
+  } catch(e) {
+    document.getElementById(statusId).textContent = '❌ Erreur';
+    document.getElementById(contentId).innerHTML = '<div style="padding:20px;color:#dc2626">Erreur : ' + e.message + '</div>';
+  }
+}
+
+// =====================
+// CHATBOT IA
+// =====================
+let chatHistory = [];
+
+async function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addChatBubble(msg, 'user');
+  document.getElementById('chat-welcome').style.display = 'none';
+  document.getElementById('chat-suggestions').style.display = 'none';
+  await processChat(msg);
+}
+
+function sendSuggestion(text) {
+  document.getElementById('chat-input').value = text;
+  sendChatMessage();
+}
+
+function addChatBubble(text, role) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;' + (role === 'user' ? 'justify-content:flex-end' : 'justify-content:flex-start');
+  const bubble = document.createElement('div');
+  bubble.style.cssText = 'max-width:80%;padding:12px 16px;border-radius:' + (role === 'user' ? '16px 16px 4px 16px;background:var(--primary);color:white' : '16px 16px 16px 4px;background:white;border:1px solid var(--border);color:var(--text)') + ';font-size:14px;line-height:1.6;white-space:pre-wrap';
+  bubble.textContent = text;
+  div.appendChild(bubble);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return bubble;
+}
+
+function addTypingIndicator() {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.id = 'typing-indicator';
+  div.style.cssText = 'display:flex;justify-content:flex-start';
+  div.innerHTML = '<div style="padding:12px 16px;border-radius:16px 16px 16px 4px;background:white;border:1px solid var(--border);color:var(--text-muted);font-size:14px">⏳ L\'IA réfléchit...</div>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+async function processChat(msg) {
+  const sendBtn = document.getElementById('chat-send-btn');
+  const input = document.getElementById('chat-input');
+  sendBtn.disabled = true;
+  input.disabled = true;
+  addTypingIndicator();
+
+  chatHistory.push({ role: 'user', content: msg });
+
+  try {
+    const context = buildDataContext('histo', '');
+    const text = await callClaudeAPI(chatHistory, context);
+    document.getElementById('typing-indicator')?.remove();
+    addChatBubble(text, 'assistant');
+    chatHistory.push({ role: 'assistant', content: text });
+    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+  } catch(e) {
+    document.getElementById('typing-indicator')?.remove();
+    addChatBubble('Désolé, une erreur s\'est produite : ' + e.message, 'assistant');
+  }
+
+  sendBtn.disabled = false;
+  input.disabled = false;
+  input.focus();
+}
+
+function fmtEuro(n) {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('fr-FR'); } catch { return d; }
+}
+function statusBadge(s) {
+  const map = { 'SIGNÉ': 'status-signed', 'REPORT': 'status-report', 'ANNULÉ': 'status-withdrawn', 'À SIGNER': 'status-asigner' };
+  const icons = { 'SIGNÉ': '✅', 'REPORT': '⏳', 'ANNULÉ': '❌', 'À SIGNER': '📋' };
+  return `<span class="status-badge ${map[s] || 'status-pending'}">${icons[s] || ''} ${s}</span>`;
+}
+
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+}
+
+// Allow pressing Enter in auth
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>
