@@ -732,7 +732,7 @@
         </div>
         <div class="nav-section">
           <div class="nav-section-title">Compte</div>
-          <div class="nav-item" onclick="showPage('params', this)">
+          <div class="nav-item" id="nav-params" onclick="showPage('params', this)">
             <span class="nav-icon">⚙️</span> Paramètres
           </div>
           <div class="nav-item" id="nav-rapport" onclick="showPage('rapport', this)">
@@ -2060,10 +2060,21 @@ async function initApp() {
 
   if (currentUser.role === 'admin') {
     document.getElementById('nav-rapport').style.display = 'flex';
+    document.getElementById('nav-params').style.display = 'flex';
     document.getElementById('params-admin-section').style.display = 'block';
+    document.getElementById('nav-saisie-section').style.display = 'block';
     renderUsersList();
+  } else if (currentUser.role === 'agence') {
+    document.getElementById('nav-rapport').style.display = 'none';
+    document.getElementById('nav-params').style.display = 'none';
+    // Agence voit Négociateurs dans Gestion mais pas le reste de la section Gestion
+    document.getElementById('nav-saisie-section').style.display = 'none';
+    // On crée une section Gestion minimale juste pour les négociateurs
+    const negItem = document.querySelector('[onclick="showPage(\'negociateurs\', this)"]');
+    if (negItem) negItem.closest('.nav-section').style.display = 'block';
   } else {
     document.getElementById('nav-rapport').style.display = 'none';
+    document.getElementById('nav-params').style.display = 'flex';
   }
 
   refreshDashboard();
@@ -4562,18 +4573,31 @@ function openAddNegociateur() {
   document.getElementById('neg-statut-emploi').onchange = toggleAvanceField;
   document.getElementById('neg-date-entree').value = '';
   document.getElementById('neg-objectif-ca').value = '';
+  const isAgenceRole = currentUser.role === 'agence';
   const selAg = document.getElementById('neg-agence');
   const selAgPrec = document.getElementById('neg-agence-precedente');
-  const opts = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
-  const optsPrec = '<option value="">— Aucune / Première agence —</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
-  selAg.innerHTML = opts;
-  selAgPrec.innerHTML = optsPrec;
+  if (isAgenceRole) {
+    // Verrouille l'agence sur la sienne
+    selAg.innerHTML = '<option value="' + currentUser.agence + '">' + currentUser.agence + '</option>';
+    selAg.disabled = true;
+  } else {
+    selAg.disabled = false;
+    selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+  }
+  selAgPrec.innerHTML = '<option value="">— Aucune / Première agence —</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
   document.getElementById('modal-negociateur').classList.add('open');
 }
 
 function openEditNegociateur(id) {
   const n = DB.negociateurs.find(n => n.id === id);
   if (!n) return;
+
+  // Rôle agence : bloque si pas son collab
+  if (currentUser.role === 'agence' && n.agence !== currentUser.agence) {
+    showToast('Accès refusé — ce collaborateur n\'est pas dans votre agence', 'error');
+    return;
+  }
+
   document.getElementById('modal-neg-title').textContent = 'Modifier le négociateur';
   document.getElementById('neg-edit-id').value = id;
   document.getElementById('neg-nom').value = n.nom;
@@ -4586,9 +4610,18 @@ function openEditNegociateur(id) {
   toggleAvanceField();
   document.getElementById('neg-date-entree').value = n.date_entree || '';
   document.getElementById('neg-objectif-ca').value = n.objectif_ca || '';
+
   const selAg = document.getElementById('neg-agence');
   const selAgPrec = document.getElementById('neg-agence-precedente');
-  selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === n.agence ? ' selected' : '') + '>' + a + '</option>').join('');
+
+  if (currentUser.role === 'agence') {
+    // Responsable : agence verrouillée sur la sienne
+    selAg.innerHTML = '<option value="' + n.agence + '">' + n.agence + '</option>';
+    selAg.disabled = true;
+  } else {
+    selAg.disabled = false;
+    selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === n.agence ? ' selected' : '') + '>' + a + '</option>').join('');
+  }
   selAgPrec.innerHTML = '<option value="">— Aucune / Première agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === n.agence_precedente ? ' selected' : '') + '>' + a + '</option>').join('');
   document.getElementById('modal-negociateur').classList.add('open');
 }
@@ -4606,6 +4639,24 @@ async function saveNegociateur() {
   const objectif_ca = parseFloat(document.getElementById('neg-objectif-ca').value) || 0;
   const agence_precedente = document.getElementById('neg-agence-precedente').value || null;
   if (!nom || !agence) { showToast('Nom et agence requis', 'error'); return; }
+
+  // Détection changement d'agence — confirmation obligatoire
+  if (editId) {
+    const existing = DB.negociateurs.find(n => n.id === parseInt(editId));
+    if (existing && existing.agence !== agence) {
+      const confirmed = confirm(
+        '⚠️ CHANGEMENT D\'AGENCE DÉTECTÉ\n\n' +
+        existing.nom + ' va passer de ' + existing.agence + ' vers ' + agence + '.\n\n' +
+        'En confirmant :\n' +
+        '• Vous perdrez définitivement la main sur ce collaborateur\n' +
+        '• Seul le responsable de ' + agence + ' pourra modifier sa fiche\n' +
+        '• Cette action est IRRÉVERSIBLE\n\n' +
+        'Confirmer le transfert ?'
+      );
+      if (!confirmed) return;
+    }
+  }
+
   const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca, agence_precedente, email, avance_commission };
   showLoading(true);
   try {
