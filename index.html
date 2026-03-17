@@ -3037,12 +3037,12 @@ function openEdit(id) {
   calcEditHT();
 
   // Charge les négociateurs du dossier (et du groupe si intercabinet)
-  const dossiersGroupe = d.groupId ? DB.dossiers.filter(x => x.groupId === d.groupId) : [d];
+  const dossiersGroupe = d.groupId ? DB.dossiers.filter(x => x.groupId === d.groupId).sort((a,b) => a.id - b.id) : [d];
   const dossierIds = dossiersGroupe.map(x => x.id);
   const negRows = (DB.dossierNeg || []).filter(r => dossierIds.includes(r.dossier_id));
   negLignesEdit = {};
   const agencesGroupe = dossiersGroupe.map(x => x.agence);
-  renderNegociateursEdit(negRows.length > 0 ? negRows : agencesGroupe.map(a => ({ agence: a })));
+  renderNegociateursEdit(agencesGroupe, negRows);
 }
 
 async function confirmEdit() {
@@ -4100,27 +4100,21 @@ function collectNegociateursSaisie(agenceParts) {
 // Rendu négociateurs dans la modal édition
 let negLignesEdit = {}; // même structure que negLignesSaisie
 
-function renderNegociateursEdit(dossierNegRows) {
+// agencesGroupe = liste ordonnée des agences du groupe
+// dossierNegRows = lignes existantes de dossier_negociateurs
+function renderNegociateursEdit(agencesGroupe, dossierNegRows) {
   const container = document.getElementById('edit-negociateurs-container');
   if (!container) return;
 
-  // Récupère les agences du dossier édité
-  // Pour un dossier solo : une agence. Pour un groupe : toutes les agences du groupe
-  const agencesNeg = [...new Set(dossierNegRows.map(r => r.agence))];
-  if (agencesNeg.length === 0) {
-    // Pas encore de négociateurs, on affiche le dossier courant
-    container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucun négociateur assigné — sauvegardez pour en ajouter</div>';
-    return;
-  }
-
   negLignesEdit = {};
-  agencesNeg.forEach((agence, idx) => {
+  agencesGroupe.forEach((agence, idx) => {
     const lignesAgence = dossierNegRows.filter(r => r.agence === agence);
-    negLignesEdit[idx] = lignesAgence.map(r => ({ negId: r.negociateur_id, pct: r.pct_ca, rowId: r.id }));
-    if (negLignesEdit[idx].length === 0) negLignesEdit[idx] = [{ negId: '', pct: '' }];
+    negLignesEdit[idx] = lignesAgence.length > 0
+      ? lignesAgence.map(r => ({ negId: r.negociateur_id, pct: r.pct_ca, rowId: r.id }))
+      : [{ negId: '', pct: '' }];
   });
 
-  container.innerHTML = agencesNeg.map((agence, idx) => {
+  container.innerHTML = agencesGroupe.map((agence, idx) => {
     const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif);
     const lignesHtml = negLignesEdit[idx].map((ligne, li) => buildNegLigneEdit(idx, li, agence, negsAgence, ligne)).join('');
     return '<div style="margin-bottom:14px;padding:12px;background:var(--bg);border-radius:10px">' +
@@ -4156,9 +4150,16 @@ function addNegLigneEdit(agenceIdx, agence) {
 function removeNegLigneEdit(agenceIdx, ligneIdx) {
   if (negLignesEdit[agenceIdx]) negLignesEdit[agenceIdx].splice(ligneIdx, 1);
   if (!negLignesEdit[agenceIdx] || negLignesEdit[agenceIdx].length === 0) negLignesEdit[agenceIdx] = [{ negId: '', pct: '' }];
-  const agence = Object.keys(negLignesEdit)[agenceIdx];
-  // Re-render
-  renderNegociateursEdit([]); // placeholder — on re-render depuis le cache
+  // Re-render le bloc de cette agence uniquement
+  const editId = parseInt(document.getElementById('edit-id')?.value);
+  const d = DB.dossiers.find(x => x.id === editId);
+  if (!d) return;
+  const dossiersGroupe = d.groupId ? DB.dossiers.filter(x => x.groupId === d.groupId).sort((a,b) => a.id - b.id) : [d];
+  const agence = dossiersGroupe[agenceIdx]?.agence;
+  if (!agence) return;
+  const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif);
+  const container = document.getElementById('neg-edit-lignes-' + agenceIdx);
+  if (container) container.innerHTML = negLignesEdit[agenceIdx].map((l, li) => buildNegLigneEdit(agenceIdx, li, agence, negsAgence, l)).join('');
 }
 
 function onEditPctChange(changedIdx, siblingIds) {
