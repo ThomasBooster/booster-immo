@@ -1400,8 +1400,16 @@
               <input type="date" id="neg-date-entree">
             </div>
             <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="neg-email" placeholder="ex: sophie@booster-immobilier.com">
+            </div>
+            <div class="form-group">
               <label>Objectif CA mensuel (HT)</label>
               <input type="number" id="neg-objectif-ca" placeholder="ex: 8000" min="0">
+            </div>
+            <div class="form-group" id="neg-avance-group" style="display:none">
+              <label>Avance sur commission (€/mois)</label>
+              <input type="number" id="neg-avance" placeholder="ex: 1500" min="0">
             </div>
             <div class="form-group">
               <label>Agence précédente</label>
@@ -1420,6 +1428,71 @@
           <div class="modal-footer">
             <button class="btn btn-outline" onclick="closeModal('modal-negociateur')">Annuler</button>
             <button class="btn btn-accent" onclick="saveNegociateur()">💾 Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FICHE STATS COLLABORATEUR -->
+      <div class="page" id="page-fiche-collab">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <button class="btn btn-outline btn-sm" onclick="goBackFromFiche()">← Retour</button>
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--primary)" id="fiche-collab-titre">—</div>
+            <div style="font-size:13px;color:var(--text-muted)" id="fiche-collab-sous-titre">—</div>
+          </div>
+        </div>
+
+        <!-- Stats rapides -->
+        <div class="stats-grid" id="fiche-collab-stats" style="margin-bottom:20px"></div>
+
+        <!-- 10 dernières ventes -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">📋 10 dernières ventes</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>Jours depuis SSP</th><th>CA HT (part)</th><th>Statut</th></tr></thead>
+              <tbody id="fiche-collab-ventes"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Moyenne mensuelle -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">📈 Moyenne mensuelle</span>
+            <select class="filter-select" id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" style="font-size:12px"></select>
+          </div>
+          <div id="fiche-collab-moyenne" style="padding:20px;display:flex;gap:30px;flex-wrap:wrap"></div>
+        </div>
+
+        <!-- Tableau année en cours -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title" id="fiche-annee-titre">📊 Année en cours</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table id="fiche-tableau-annee"></table>
+          </div>
+        </div>
+
+        <!-- Tableau N-1 -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title" id="fiche-annee-n1-titre">📊 Année N-1</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table id="fiche-tableau-n1"></table>
+          </div>
+        </div>
+
+        <!-- Autres stats à venir -->
+        <div class="card" style="background:linear-gradient(135deg,#f8f7ff,#ede9fe);border:1px solid #c4b5fd">
+          <div style="padding:24px;text-align:center">
+            <div style="font-size:32px;margin-bottom:10px">🚀</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:#4c1d95;margin-bottom:6px">Autres stats à venir</div>
+            <div style="font-size:13px;color:#6d28d9">Taux de transformation, suivi des rentrées, comparaisons réseau, assistance paie...</div>
           </div>
         </div>
       </div>
@@ -2083,7 +2156,7 @@ function showPage(name, navEl) {
   document.getElementById('page-' + name).classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
+  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
   document.getElementById('topbar-title').textContent = titles[name] || name;
 
   if (name === 'dashboard') refreshDashboard();
@@ -4078,12 +4151,173 @@ async function processChat(msg) {
 }
 
 // =====================
-// NÉGOCIATEURS
+// FICHE STATS COLLABORATEUR
 // =====================
+let ficheCollabId = null;
+let ficheCollabFromPage = 'negociateurs';
+
+function openFicheCollab(negId, fromPage) {
+  ficheCollabId = negId;
+  ficheCollabFromPage = fromPage || 'negociateurs';
+  const n = DB.negociateurs.find(x => x.id === negId);
+  if (!n) return;
+
+  // Vérif droits : agence ne peut voir que ses collabs
+  if (currentUser.role === 'agence' && n.agence !== currentUser.agence) return;
+
+  document.getElementById('fiche-collab-titre').textContent = n.nom;
+  document.getElementById('fiche-collab-sous-titre').textContent = n.agence + ' · ' + (n.poste || 'négociateur') + ' · ' + (n.statut_emploi || '');
+
+  refreshFicheCollab(n);
+  showPage('fiche-collab', null);
+}
+
+function goBackFromFiche() {
+  showPage(ficheCollabFromPage, null);
+}
+
+function refreshFicheCollab(n) {
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const n1Year = curYear - 1;
+
+  // Données du collab
+  const dosNeg = (DB.dossierNeg || []).filter(l => l.negociateur_id === n.id);
+  const dossiersVentes = dosNeg.map(l => {
+    const d = DB.dossiers.find(x => x.id === l.dossier_id && x.statut === 'SIGNÉ');
+    if (!d) return null;
+    return { ...d, caCollab: (d.ht || 0) * (l.pct_ca / 100), pctCollab: l.pct_ca };
+  }).filter(Boolean).sort((a, b) => new Date(b.date || '2000-01-01') - new Date(a.date || '2000-01-01'));
+
+  const totalCASortie = dossiersVentes.reduce((s, d) => s + d.caCollab, 0);
+  const dosRent = (DB.dossierRent || []).filter(l => l.negociateur_id === n.id);
+  const totalCARentree = dosRent.reduce((s, l) => s + (l.ca_rentree || 0), 0);
+
+  // Stats rapides
+  document.getElementById('fiche-collab-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-label">CA SORTIE TOTAL</div><div class="stat-value">' + fmtEuro(totalCASortie) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">CA RENTRÉE TOTAL</div><div class="stat-value" style="color:#10b981">' + fmtEuro(totalCARentree) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">VENTES SIGNÉES</div><div class="stat-value">' + dossiersVentes.length + '</div></div>' +
+    (n.objectif_ca ? '<div class="stat-card"><div class="stat-label">OBJECTIF MENSUEL</div><div class="stat-value">' + fmtEuro(n.objectif_ca) + '</div></div>' : '');
+
+  // 10 dernières ventes
+  const tbody = document.getElementById('fiche-collab-ventes');
+  const last10 = dossiersVentes.slice(0, 10);
+  if (last10.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>';
+  } else {
+    tbody.innerHTML = last10.map(d => {
+      const joursSsp = d.date ? Math.floor((now - new Date(d.date)) / 86400000) : '—';
+      return '<tr>' +
+        '<td><strong>' + d.client + '</strong></td>' +
+        '<td>' + d.agence + '</td>' +
+        '<td>' + fmtDate(d.date) + '</td>' +
+        '<td style="font-weight:600;color:' + (joursSsp > 90 ? '#dc2626' : joursSsp > 30 ? '#f59e0b' : '#10b981') + '">' + (joursSsp !== '—' ? joursSsp + 'j' : '—') + '</td>' +
+        '<td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.caCollab) + '</td>' +
+        '<td>' + statusBadge(d.statut) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  // Sélecteur d'année pour moyenne
+  const selAnnee = document.getElementById('fiche-collab-annee-moy');
+  const years = [...new Set(dossiersVentes.map(d => d.date ? new Date(d.date).getFullYear() : null).filter(Boolean))].sort();
+  selAnnee.innerHTML = '<option value="">Depuis arrivée</option>' + years.map(y => '<option value="' + y + '">' + y + '</option>').join('');
+  refreshFicheMoyenne();
+
+  // Tableaux annuels
+  refreshFicheTableau(dossiersVentes, curYear, 'fiche-tableau-annee', 'fiche-annee-titre');
+  refreshFicheTableau(dossiersVentes, n1Year, 'fiche-tableau-n1', 'fiche-annee-n1-titre');
+}
+
+function refreshFicheMoyenne() {
+  const n = DB.negociateurs.find(x => x.id === ficheCollabId);
+  if (!n) return;
+  const annee = document.getElementById('fiche-collab-annee-moy')?.value || '';
+  const dosNeg = (DB.dossierNeg || []).filter(l => l.negociateur_id === n.id);
+  let ventes = dosNeg.map(l => {
+    const d = DB.dossiers.find(x => x.id === l.dossier_id && x.statut === 'SIGNÉ');
+    if (!d) return null;
+    return { ...d, caCollab: (d.ht || 0) * (l.pct_ca / 100) };
+  }).filter(Boolean);
+
+  if (annee) {
+    ventes = ventes.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(annee));
+  }
+
+  // Calcul nb mois
+  let nbMois;
+  if (annee) {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    nbMois = parseInt(annee) === curYear ? now.getMonth() + 1 : 12;
+  } else {
+    // Depuis arrivée dans l'agence
+    if (n.date_entree) {
+      const entree = new Date(n.date_entree);
+      const now = new Date();
+      nbMois = Math.max(1, Math.floor((now - entree) / (30.44 * 86400000)));
+    } else {
+      nbMois = 12;
+    }
+  }
+
+  const totalCA = ventes.reduce((s, d) => s + d.caCollab, 0);
+  const moyCA = nbMois > 0 ? totalCA / nbMois : 0;
+  const moyVentes = nbMois > 0 ? ventes.length / nbMois : 0;
+
+  document.getElementById('fiche-collab-moyenne').innerHTML =
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)">' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">CA MOYEN / MOIS</div>' +
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + fmtEuro(moyCA) + '</div>' +
+    (n.objectif_ca ? '<div style="font-size:11px;color:' + (moyCA >= n.objectif_ca ? '#10b981' : '#f59e0b') + ';margin-top:4px">' + (moyCA >= n.objectif_ca ? '✅' : '⚠️') + ' Objectif : ' + fmtEuro(n.objectif_ca) + '</div>' : '') +
+    '</div>' +
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)">' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">VENTES MOYENNES / MOIS</div>' +
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + moyVentes.toFixed(1) + '</div>' +
+    '</div>' +
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)">' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">PÉRIODE ANALYSÉE</div>' +
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + nbMois + ' mois</div>' +
+    '</div>';
+}
+
+function refreshFicheTableau(dossiersVentes, annee, tableId, titleId) {
+  document.getElementById(titleId).textContent = '📊 ' + annee;
+  const ventesAnnee = dossiersVentes.filter(d => d.date && new Date(d.date).getFullYear() === annee);
+
+  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
+
+  const caParMois = MONTH_NAMES.map((_, mi) => ventesAnnee.filter(d => new Date(d.date).getMonth() === mi).reduce((s, d) => s + d.caCollab, 0));
+  const nbParMois = MONTH_NAMES.map((_, mi) => ventesAnnee.filter(d => new Date(d.date).getMonth() === mi).length);
+  const moyParMois = caParMois.map((ca, i) => nbParMois[i] > 0 ? ca / nbParMois[i] : 0);
+
+  const totalCA = caParMois.reduce((s, v) => s + v, 0);
+  const totalNb = nbParMois.reduce((s, v) => s + v, 0);
+  const totalMoy = totalNb > 0 ? totalCA / totalNb : 0;
+
+  const fmtCell = (v, isCa) => isCa ? (v > 0 ? fmtEuro(v) : '—') : (v > 0 ? v : '—');
+
+  const body = '<tbody>' +
+    '<tr><td style="font-weight:600;font-size:12px">CA HT (part)</td>' + caParMois.map(v => '<td style="font-size:12px;color:' + (v > 0 ? 'var(--primary)' : 'var(--text-muted)') + ';font-weight:' + (v > 0 ? '600' : '400') + '">' + fmtCell(v, true) + '</td>').join('') + '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(totalCA) + '</td></tr>' +
+    '<tr><td style="font-weight:600;font-size:12px">Nb ventes</td>' + nbParMois.map(v => '<td style="font-size:12px">' + fmtCell(v, false) + '</td>').join('') + '<td style="font-weight:700">' + totalNb + '</td></tr>' +
+    '<tr><td style="font-weight:600;font-size:12px">CA moyen/vente</td>' + moyParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + fmtCell(v, true) + '</td>').join('') + '<td style="font-weight:700;color:var(--text-muted)">' + fmtEuro(totalMoy) + '</td></tr>' +
+    '</tbody>';
+
+  document.getElementById(tableId).innerHTML = header + body;
+}
+
+
 
 // Cache négociateurs et liaisons dossier-négociateurs
 // DB.negociateurs = [{id, nom, agence, actif}]
 // DB.dossierNeg = [{id, dossier_id, negociateur_id, agence, pct_ca}]
+
+function toggleAvanceField() {
+  const statut = document.getElementById('neg-statut-emploi')?.value;
+  const avanceGroup = document.getElementById('neg-avance-group');
+  if (avanceGroup) avanceGroup.style.display = ['salarié','responsable'].includes(statut) ? 'block' : 'none';
+}
 
 async function loadNegociateurs() {
   try {
@@ -4322,7 +4556,10 @@ function openAddNegociateur() {
   document.getElementById('neg-nom').value = '';
   document.getElementById('neg-actif').value = 'true';
   document.getElementById('neg-poste').value = 'négociateur';
-  document.getElementById('neg-statut-emploi').value = 'agent-co';
+  document.getElementById('neg-email').value = '';
+  document.getElementById('neg-avance').value = '';
+  document.getElementById('neg-avance-group').style.display = 'none';
+  document.getElementById('neg-statut-emploi').onchange = toggleAvanceField;
   document.getElementById('neg-date-entree').value = '';
   document.getElementById('neg-objectif-ca').value = '';
   const selAg = document.getElementById('neg-agence');
@@ -4343,6 +4580,10 @@ function openEditNegociateur(id) {
   document.getElementById('neg-actif').value = String(n.actif);
   document.getElementById('neg-poste').value = n.poste || 'négociateur';
   document.getElementById('neg-statut-emploi').value = n.statut_emploi || 'agent-co';
+  document.getElementById('neg-email').value = n.email || '';
+  document.getElementById('neg-avance').value = n.avance_commission || '';
+  document.getElementById('neg-statut-emploi').onchange = toggleAvanceField;
+  toggleAvanceField();
   document.getElementById('neg-date-entree').value = n.date_entree || '';
   document.getElementById('neg-objectif-ca').value = n.objectif_ca || '';
   const selAg = document.getElementById('neg-agence');
@@ -4359,11 +4600,13 @@ async function saveNegociateur() {
   const actif = document.getElementById('neg-actif').value === 'true';
   const poste = document.getElementById('neg-poste').value;
   const statut_emploi = document.getElementById('neg-statut-emploi').value;
+  const email = document.getElementById('neg-email').value.trim() || null;
+  const avance_commission = ['salarié','responsable'].includes(statut_emploi) ? (parseFloat(document.getElementById('neg-avance').value) || 0) : 0;
   const date_entree = document.getElementById('neg-date-entree').value || null;
   const objectif_ca = parseFloat(document.getElementById('neg-objectif-ca').value) || 0;
   const agence_precedente = document.getElementById('neg-agence-precedente').value || null;
   if (!nom || !agence) { showToast('Nom et agence requis', 'error'); return; }
-  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca, agence_precedente };
+  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca, agence_precedente, email, avance_commission };
   showLoading(true);
   try {
     if (editId) {
@@ -4404,7 +4647,9 @@ function renderNegociateursList() {
     return '<span style="background:var(--bg);padding:2px 8px;border-radius:4px;font-size:11px">' + (labels[s] || s || '—') + '</span>';
   };
 
-  tbody.innerHTML = negs.map(n => {
+  tbody.innerHTML = negs
+    .filter(n => currentUser.role !== 'agence' || n.agence === currentUser.agence)
+    .map(n => {
     // CA sortie (négociateur)
     const dosNeg = (DB.dossierNeg || []).filter(d => d.negociateur_id === n.id);
     const caSortie = dosNeg.reduce((s, l) => {
@@ -4416,7 +4661,7 @@ function renderNegociateursList() {
     const caRentree = dosRent.reduce((s, l) => s + (l.ca_rentree || 0), 0);
 
     return '<tr>' +
-      '<td><strong>' + n.nom + '</strong>' + (n.agence_precedente ? '<div style="font-size:11px;color:var(--text-muted)">ex ' + n.agence_precedente + '</div>' : '') + '</td>' +
+      '<td><span style="cursor:pointer;color:var(--primary);font-weight:700;text-decoration:underline" onclick="openFicheCollab(' + n.id + ',\'negociateurs\')">' + n.nom + '</span>' + (n.agence_precedente ? '<div style="font-size:11px;color:var(--text-muted)">ex ' + n.agence_precedente + '</div>' : '') + '</td>' +
       '<td>' + n.agence + '</td>' +
       '<td>' + posteBadge(n.poste) + '</td>' +
       '<td>' + statutBadge(n.statut_emploi) + '</td>' +
@@ -4631,15 +4876,19 @@ function renderNegRankingTable(ranked, tbodyId, podiumId, titleId, titre) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Aucune donnée</td></tr>';
     return;
   }
-  tbody.innerHTML = ranked.map((r, i) =>
-    '<tr><td><span class="rank-badge ' + (i < 3 ? 'rank-' + (i+1) : 'rank-other') + '">' + (i+1) + '</span></td>' +
-    '<td><strong>' + r.neg.nom + '</strong></td>' +
-    '<td style="font-size:12px;color:var(--text-muted)">' + r.neg.agence + '</td>' +
-    '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(r.ca) + '</td>' +
-    '<td>' + fmtCount(r.count) + '</td>' +
-    '<td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar"><div class="progress-fill" style="width:' + (r.ca/maxCA*100).toFixed(0) + '%"></div></div><span style="font-size:11px;color:var(--text-muted)">' + (r.ca/maxCA*100).toFixed(0) + '%</span></div></td>' +
-    '</tr>'
-  ).join('');
+  tbody.innerHTML = ranked.map((r, i) => {
+    const canClick = currentUser.role !== 'agence' || r.neg.agence === currentUser.agence;
+    const nameHtml = canClick
+      ? '<span style="cursor:pointer;color:var(--primary);font-weight:700;text-decoration:underline" onclick="openFicheCollab(' + r.neg.id + ',\'negociateurs-classement\')">' + r.neg.nom + '</span>'
+      : '<strong style="color:var(--text-muted)">' + r.neg.nom + '</strong>';
+    return '<tr><td><span class="rank-badge ' + (i < 3 ? 'rank-' + (i+1) : 'rank-other') + '">' + (i+1) + '</span></td>' +
+      '<td>' + nameHtml + '</td>' +
+      '<td style="font-size:12px;color:var(--text-muted)">' + r.neg.agence + '</td>' +
+      '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(r.ca) + '</td>' +
+      '<td>' + fmtCount(r.count) + '</td>' +
+      '<td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar"><div class="progress-fill" style="width:' + (r.ca/maxCA*100).toFixed(0) + '%"></div></div><span style="font-size:11px;color:var(--text-muted)">' + (r.ca/maxCA*100).toFixed(0) + '%</span></div></td>' +
+      '</tr>';
+  }).join('');
 }
 
 function refreshNegClassement() {
