@@ -1539,6 +1539,12 @@
     <input type="hidden" id="edit-id">
     <!-- Bandeau vente partagée -->
     <div id="edit-group-banner" style="display:none;margin-bottom:16px;padding:10px 14px;background:#ede9fe;border:1px solid #c4b5fd;border-radius:10px;font-size:13px;color:#4c1d95;line-height:1.5"></div>
+    <!-- Répartition intercabinet (visible si vente partagée) -->
+    <div id="edit-repartition-section" style="display:none;margin-bottom:16px;padding:14px;background:#f8f9fa;border:1px solid var(--border);border-radius:10px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:10px">🔀 Répartition entre agences</div>
+      <div id="edit-repartition-lignes"></div>
+      <div id="edit-pct-warning" style="display:none;margin-top:8px;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600"></div>
+    </div>
     <div class="form-grid">
       <div class="form-group">
         <label>Client</label>
@@ -1650,12 +1656,43 @@ const MONTH_NAMES = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet',
 // - mois présents dans les dossiers en base
 // - + le mois courant toujours inclus
 // - triés chronologiquement
+// Extrait "Janvier 2026" depuis une date "2026-01-15"
+function dateToMoisStr(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  return MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+// Extrait l'année depuis une date "2026-01-15"
+function dateToAnnee(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  return String(d.getFullYear());
+}
+
+// Vérifie si la date SSP correspond au mois "Janvier 2026"
+function matchMois(dossier, moisStr) {
+  return dateToMoisStr(dossier.date) === moisStr;
+}
+
+// Vérifie si la date SSP correspond à l'année "2026"
+function matchAnnee(dossier, annee) {
+  return dateToAnnee(dossier.date) === annee;
+}
+
 function getMoisList() {
   const now = new Date();
   const currentMonthStr = MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
   const moisSet = new Set([currentMonthStr]);
-  DB.dossiers.forEach(d => { if (d.mois) moisSet.add(d.mois); });
-  // Tri chronologique
+  // Basé sur la date de signature SSP
+  DB.dossiers.forEach(d => {
+    const m = dateToMoisStr(d.date);
+    if (m) moisSet.add(m);
+    // Garde aussi le champ mois pour les dossiers sans date de signature
+    else if (d.mois) moisSet.add(d.mois);
+  });
   return [...moisSet].sort((a, b) => {
     const [ma, ya] = a.split(' ');
     const [mb, yb] = b.split(' ');
@@ -2017,7 +2054,7 @@ function showPage(name, navEl) {
 function getDossiers(filters = {}) {
   
   let list = DB.dossiers;
-  if (filters.mois) list = list.filter(d => d.mois === filters.mois);
+  if (filters.mois) list = list.filter(d => matchMois(d, filters.mois) || (!d.date && d.mois === filters.mois));
   if (filters.agence) list = list.filter(d => d.agence === filters.agence);
   if (filters.statut) list = list.filter(d => d.statut === filters.statut);
   if (filters.saisi) list = list.filter(d => d.saisi === filters.saisi);
@@ -2075,7 +2112,7 @@ function refreshJuridique(moisFilter) {
   // Dossiers avec acte authentique signé (dateActe renseignée), filtrés par mois si sélectionné
   
   let list = DB.dossiers.filter(d => d.dateActe);
-  if (moisFilter) list = list.filter(d => d.mois === moisFilter);
+  if (moisFilter) list = list.filter(d => matchMois(d, moisFilter) || (!d.date && d.mois === moisFilter));
 
   const tbody = document.getElementById('juridique-tbody');
   if (!tbody) return;
@@ -2189,7 +2226,7 @@ function refreshRanking() {
 function refreshRankingAnnuel() {
   const annee = document.getElementById('filter-annee-rank').value;
   const moisDeLannee = getMoisList().filter(m => m.endsWith(annee));
-  const list = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && d.mois && d.mois.endsWith(annee));
+  const list = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))));
   const ranked = buildRankData(list);
   const maxHT = ranked[0]?.ht || 1;
 
@@ -2200,7 +2237,7 @@ function refreshRankingAnnuel() {
   document.getElementById('rank-annuel-tbody').innerHTML = ranked.map((ag, i) => {
     // Détail mois par mois pour cette agence
     const detail = moisDeLannee.map(m => {
-      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && d.mois === m && d.agence === ag.name);
+      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag.name);
       const htM = dosM.reduce((s, d) => s + (d.ht || 0), 0);
       return htM > 0 ? `<span style="font-size:11px;background:var(--bg);padding:2px 7px;border-radius:4px;margin:1px">${m.split(' ')[0].substring(0,3)} : ${fmtEuro(htM)}</span>` : '';
     }).filter(Boolean).join(' ');
@@ -2237,13 +2274,13 @@ function refreshRankingAnnuel() {
 
   tbody.innerHTML = AGENCES.map(ag => {
     const cells = moisDeLannee.map(m => {
-      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && d.mois === m && d.agence === ag);
+      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag);
       const htM = dosM.reduce((s, d) => s + (d.ht || 0), 0);
       totauxMois[m] += htM;
       return `<td style="text-align:right;padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px">${htM > 0 ? fmtEuro(htM) : '<span style="color:#ccc">—</span>'}</td>`;
     });
     const totalAg = moisDeLannee.reduce((s, m) => {
-      return s + getDossiers({}).filter(d => d.statut === 'SIGNÉ' && d.mois === m && d.agence === ag).reduce((ss, d) => ss + (d.ht || 0), 0);
+      return s + getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag).reduce((ss, d) => ss + (d.ht || 0), 0);
     }, 0);
     return `<tr>
       <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap">${ag}</td>
@@ -2421,7 +2458,7 @@ function refreshApporteurs() {
   // Tous dossiers avec apporteur sur la période (tous statuts sauf ANNULÉ)
   const dossiersBruts = DB.dossiers.filter(d =>
     d.statut !== 'ANNULÉ' && d.hasApporteur && d.apporteurNom &&
-    (moisFiltre ? d.mois === moisFiltre : (d.mois && d.mois.endsWith(annee)))
+    (moisFiltre ? (matchMois(d, moisFiltre) || (!d.date && d.mois === moisFiltre)) : (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))))
   );
 
   // Dédoublonnage : pour les ventes partagées (même groupId), on ne garde qu'une ligne
@@ -2527,7 +2564,7 @@ function refreshApporteurs() {
       const totalApportA = dosA.reduce((s, d) => s + (d.apportHT || 0), 0);
       const totalCAA = dosA.reduce((s, d) => s + (d.ttcTotal || d.ttc || 0), 0);
       const parMois = moisAnnee.map(m => {
-        const dosM = dosA.filter(d => d.mois === m);
+        const dosM = dosA.filter(d => matchMois(d, m) || (!d.date && d.mois === m));
         return dosM.length > 0
           ? `<td style="text-align:center;font-size:12px">
               <div style="font-weight:600">${dosM.length}</div>
@@ -2545,7 +2582,7 @@ function refreshApporteurs() {
     }).join('') + `<tr style="background:#f8f9fa;border-top:2px solid var(--border)">
       <td style="font-weight:700">TOTAL</td>
       ${moisAnnee.map(m => {
-        const dosM = dossiersSig.filter(d => d.mois === m);
+        const dosM = dossiersSig.filter(d => matchMois(d, m) || (!d.date && d.mois === m));
         return dosM.length > 0
           ? `<td style="text-align:center;font-size:12px;font-weight:600">${dosM.length}<br><span style="color:#92400e;font-size:11px">${fmtEuro(dosM.reduce((s,d)=>s+(d.apportHT||0),0))}</span></td>`
           : `<td style="text-align:center;color:var(--text-muted)">—</td>`;
@@ -2972,14 +3009,27 @@ function openEdit(id) {
   document.getElementById('edit-apporteur-pct').value = d.apporteurPct || '';
   document.getElementById('edit-apporteur-montant').textContent = d.apportHT > 0 ? fmtEuro(d.apportHT * (100 / (d.pct || 100))) : '—';
 
-  // Affiche un bandeau si vente partagée
+  // Affiche un bandeau si vente partagée + section répartition modifiable
   const groupBanner = document.getElementById('edit-group-banner');
+  const repartSection = document.getElementById('edit-repartition-section');
+  const repartLignes = document.getElementById('edit-repartition-lignes');
   if (d.groupId) {
-    const siblings = DB.dossiers.filter(s => s.groupId === d.groupId);
+    const siblings = DB.dossiers.filter(s => s.groupId === d.groupId).sort((a, b) => a.id - b.id);
     groupBanner.style.display = 'block';
-    groupBanner.innerHTML = '🔀 <strong>Vente partagée entre ' + d.nbAgencesGroupe + ' agences</strong> — La modification sera appliquée à tous les dossiers liés : ' + siblings.map(s => '<strong>' + s.agence + '</strong> (' + s.pct + '%)').join(', ');
+    groupBanner.innerHTML = '🔀 <strong>Vente partagée entre ' + d.nbAgencesGroupe + ' agences</strong> — Les champs communs (client, statut, dates, montant) seront appliqués à tous les dossiers liés.';
+    repartSection.style.display = 'block';
+    repartLignes.innerHTML = siblings.map((s, i) =>
+      '<div style="display:grid;grid-template-columns:1fr 120px;gap:10px;align-items:center;margin-bottom:8px">' +
+      '<div style="font-weight:600;font-size:13px">' + s.agence + '</div>' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+      '<input type="number" id="edit-pct-' + s.id + '" value="' + s.pct + '" min="0" max="100" step="1" ' +
+      'style="width:70px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" ' +
+      'oninput="onEditPctChange(' + i + ', [' + siblings.map(x => x.id).join(',') + '])">' +
+      '<span style="font-size:12px;color:var(--text-muted)">%</span></div></div>'
+    ).join('');
   } else {
     groupBanner.style.display = 'none';
+    repartSection.style.display = 'none';
   }
 
   document.getElementById('modal-edit').classList.add('open');
@@ -3040,19 +3090,21 @@ async function confirmEdit() {
   showLoading(true);
   try {
     for (const d of cibles) {
-      const pct = d.pct || 100;
+      // Lit le % depuis le champ de saisie si modifié, sinon garde l'existant
+      const pctEl = document.getElementById('edit-pct-' + d.id);
+      const pct = pctEl ? (parseFloat(pctEl.value) || d.pct || 100) : (d.pct || 100);
       const ttcPart = +(ttcTotal * pct / 100).toFixed(2);
       const brutHTPart = +(brutHTTotal * pct / 100).toFixed(2);
       const apportHTPart = +(apportHTTotal * pct / 100).toFixed(2);
       const netHTPart = +(netHTTotal * pct / 100).toFixed(2);
 
       await sbUpdate('dossiers', 'id=eq.' + d.id, dossierToRow({
-        ...d, ...champsCommuns,
+        ...d, ...champsCommuns, pct,
         ttc: ttcPart, brutHT: brutHTPart, ht: netHTPart, apportHT: apportHTPart
       }));
 
       const idx = DB.dossiers.findIndex(x => x.id === d.id);
-      if (idx >= 0) DB.dossiers[idx] = { ...DB.dossiers[idx], ...champsCommuns, ttc: ttcPart, brutHT: brutHTPart, ht: netHTPart, apportHT: apportHTPart };
+      if (idx >= 0) DB.dossiers[idx] = { ...DB.dossiers[idx], ...champsCommuns, pct, ttc: ttcPart, brutHT: brutHTPart, ht: netHTPart, apportHT: apportHTPart };
     }
 
     // Sauvegarde négociateurs : supprime les anciens et recrée
@@ -3314,12 +3366,12 @@ function genererRapportPDF() {
 
   agences.forEach((agence, idx) => {
     setTimeout(() => {
-      const dosMois = DB.dossiers.filter(d => d.mois === mois && d.agence === agence && d.statut === 'SIGNÉ');
-      const dosAnnee = DB.dossiers.filter(d => d.mois && d.mois.endsWith(annee) && d.agence === agence && d.statut === 'SIGNÉ');
+      const dosMois = DB.dossiers.filter(d => (matchMois(d, mois) || (!d.date && d.mois === mois)) && d.agence === agence && d.statut === 'SIGNÉ');
+      const dosAnnee = DB.dossiers.filter(d => (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))) && d.agence === agence && d.statut === 'SIGNÉ');
 
       // Classement mensuel
-      const rankMois = buildRankDataRaw(DB.dossiers.filter(d => d.mois === mois && d.statut === 'SIGNÉ'));
-      const rankAnnee = buildRankDataRaw(DB.dossiers.filter(d => d.mois && d.mois.endsWith(annee) && d.statut === 'SIGNÉ'));
+      const rankMois = buildRankDataRaw(DB.dossiers.filter(d => (matchMois(d, mois) || (!d.date && d.mois === mois)) && d.statut === 'SIGNÉ'));
+      const rankAnnee = buildRankDataRaw(DB.dossiers.filter(d => (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))) && d.statut === 'SIGNÉ'));
 
       // Frais juridiques de l'agence sur le mois
       const dosActe = DB.dossiers.filter(d => d.agence === agence && d.dateActe && d.mois === mois);
@@ -3406,7 +3458,7 @@ function genererRapportPDF() {
     <tbody>
       ${rankAnnee.map((r, i) => {
         const moisCells = moisDeLannee.map(m => {
-          const ht = DB.dossiers.filter(d => d.agence === r.name && d.mois === m && d.statut === 'SIGNÉ').reduce((s, d) => s + (d.ht||0), 0);
+          const ht = DB.dossiers.filter(d => d.agence === r.name && (matchMois(d, m) || (!d.date && d.mois === m)) && d.statut === 'SIGNÉ').reduce((s, d) => s + (d.ht||0), 0);
           return `<td style="font-size:11px">${ht > 0 ? fmtEuro(ht) : '—'}</td>`;
         }).join('');
         return `<tr class="${r.name === agence ? 'highlight' : ''}">
@@ -3551,9 +3603,9 @@ function buildDataContext(scope, label) {
   let dossiers = DB.dossiers.filter(d => d.statut === 'SIGNÉ');
 
   if (scope === 'annuel') {
-    dossiers = dossiers.filter(d => d.mois && d.mois.endsWith(label));
+    dossiers = dossiers.filter(d => matchAnnee(d, label) || (!d.date && d.mois && d.mois.endsWith(label)));
   } else if (scope === 'mensuel') {
-    dossiers = dossiers.filter(d => d.mois === label);
+    dossiers = dossiers.filter(d => matchMois(d, label) || (!d.date && d.mois === label));
   }
 
   const totalHT = dossiers.reduce((s, d) => s + (d.ht || 0), 0);
@@ -3812,7 +3864,7 @@ function refreshPerfHisto() {
 
 function refreshPerfAnnuel() {
   const annee = document.getElementById('perf-annuel-sel')?.value || '';
-  const dos = DB.dossiers.filter(d => d.mois && d.mois.endsWith(annee));
+  const dos = DB.dossiers.filter(d => matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee)));
   document.getElementById('perf-annuel-title').textContent = 'Classement ' + annee;
   buildPerfStats(dos, 'perf-annuel-stats', 'Annuel');
   buildPerfTable(dos, 'perf-annuel-tbody');
@@ -4106,6 +4158,28 @@ function removeNegLigneEdit(agenceIdx, ligneIdx) {
   renderNegociateursEdit([]); // placeholder — on re-render depuis le cache
 }
 
+function onEditPctChange(changedIdx, siblingIds) {
+  // Auto-calcul si 2 agences : complète à 100%
+  if (siblingIds.length === 2) {
+    const autre = changedIdx === 0 ? 1 : 0;
+    const val = parseFloat(document.getElementById('edit-pct-' + siblingIds[changedIdx])?.value) || 0;
+    const restant = 100 - val;
+    const autreEl = document.getElementById('edit-pct-' + siblingIds[autre]);
+    if (autreEl) autreEl.value = restant >= 0 ? restant : 0;
+  }
+  // Vérif total
+  const total = siblingIds.reduce((s, id) => s + (parseFloat(document.getElementById('edit-pct-' + id)?.value) || 0), 0);
+  const warn = document.getElementById('edit-pct-warning');
+  if (Math.abs(total - 100) < 0.1) {
+    warn.style.display = 'none';
+  } else {
+    warn.style.display = 'block';
+    warn.style.background = total > 100 ? '#fee2e2' : '#fef3c7';
+    warn.style.color = total > 100 ? '#991b1b' : '#92400e';
+    warn.textContent = 'Total : ' + total.toFixed(1) + '% — doit être 100%';
+  }
+}
+
 function onNegEditSelect(agenceIdx, ligneIdx, val) {
   if (negLignesEdit[agenceIdx]) negLignesEdit[agenceIdx][ligneIdx].negId = val;
 }
@@ -4327,7 +4401,7 @@ function refreshNegClassement() {
 function refreshNegClassementAnnuel() {
   const annee = document.getElementById('filter-annee-neg')?.value || '';
   const agence = document.getElementById('filter-agence-neg-annuel')?.value || '';
-  const dossiers = annee ? DB.dossiers.filter(d => d.mois && d.mois.endsWith(annee)) : DB.dossiers;
+  const dossiers = annee ? DB.dossiers.filter(d => matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))) : DB.dossiers;
   const ranked = buildNegRanking(dossiers, agence);
   renderNegRankingTable(ranked, 'neg-tbody-annuel', 'neg-podium-annuel', 'neg-annuel-title',
     'Classement négociateurs' + (annee ? ' — ' + annee : ''));
