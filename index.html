@@ -699,6 +699,9 @@
           <div class="nav-item" onclick="showPage('ranking', this)">
             <span class="nav-icon">🏆</span> Classement
           </div>
+          <div class="nav-item" onclick="showPage('negociateurs-classement', this)">
+            <span class="nav-icon">🥇</span> Classement Négociateurs
+          </div>
         </div>
         <div class="nav-section">
           <div class="nav-section-title">Analyse & Insights</div>
@@ -722,6 +725,9 @@
           </div>
           <div class="nav-item" onclick="showPage('apporteurs', this)">
             <span class="nav-icon">🤝</span> Apporteurs
+          </div>
+          <div class="nav-item" onclick="showPage('negociateurs', this)">
+            <span class="nav-icon">👤</span> Négociateurs
           </div>
         </div>
         <div class="nav-section">
@@ -1009,6 +1015,12 @@
               <div id="pct-warning" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600"></div>
             </div>
 
+            <!-- Négociateurs -->
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:14px">👤 Négociateurs</div>
+              <div id="s-negociateurs-container"></div>
+            </div>
+
             <div style="display:flex;gap:10px;margin-top:20px">
               <button class="btn btn-accent" onclick="saveDossier()">💾 Enregistrer le dossier</button>
               <button class="btn btn-outline" onclick="clearSaisie()">🗑 Effacer</button>
@@ -1274,6 +1286,101 @@
         </div>
       </div>
 
+      <!-- NÉGOCIATEURS - GESTION -->
+      <div class="page" id="page-negociateurs">
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">👤 Négociateurs</span>
+            <button class="btn btn-accent btn-sm" onclick="openAddNegociateur()">+ Ajouter</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Nom</th><th>Agence</th><th>Statut</th><th>CA HT total</th><th>Dossiers</th><th>Actions</th></tr></thead>
+              <tbody id="neg-list-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- NÉGOCIATEURS - CLASSEMENT -->
+      <div class="page" id="page-negociateurs-classement">
+        <div style="display:flex;gap:0;margin-bottom:20px;background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;width:fit-content">
+          <button id="tab-neg-mensuel" onclick="switchNegTab('mensuel')" style="padding:10px 24px;border:none;background:var(--primary);color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">📅 Mensuel</button>
+          <button id="tab-neg-annuel" onclick="switchNegTab('annuel')" style="padding:10px 24px;border:none;background:white;color:var(--text-muted);font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">📆 Annuel</button>
+        </div>
+
+        <!-- Vue mensuelle -->
+        <div id="neg-view-mensuel">
+          <div class="filters">
+            <select class="filter-select" id="filter-mois-neg" onchange="refreshNegClassement()">
+              <option value="">— Choisir un mois —</option>
+            </select>
+            <select class="filter-select" id="filter-agence-neg" onchange="refreshNegClassement()">
+              <option value="">Toutes les agences</option>
+            </select>
+          </div>
+          <div class="ranking-podium" id="neg-podium-mensuel"></div>
+          <div class="card">
+            <div class="card-header"><span class="card-title" id="neg-mensuel-title">Classement mensuel des négociateurs</span></div>
+            <div style="overflow-x:auto">
+              <table>
+                <thead><tr><th>#</th><th>Négociateur</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance</th></tr></thead>
+                <tbody id="neg-tbody-mensuel"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vue annuelle -->
+        <div id="neg-view-annuel" style="display:none">
+          <div class="filters">
+            <select class="filter-select" id="filter-annee-neg" onchange="refreshNegClassementAnnuel()"></select>
+            <select class="filter-select" id="filter-agence-neg-annuel" onchange="refreshNegClassementAnnuel()">
+              <option value="">Toutes les agences</option>
+            </select>
+          </div>
+          <div class="ranking-podium" id="neg-podium-annuel"></div>
+          <div class="card">
+            <div class="card-header"><span class="card-title" id="neg-annuel-title">Classement annuel des négociateurs</span></div>
+            <div style="overflow-x:auto">
+              <table>
+                <thead><tr><th>#</th><th>Négociateur</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance</th></tr></thead>
+                <tbody id="neg-tbody-annuel"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal ajout/édition négociateur -->
+      <div class="modal-overlay" id="modal-negociateur" style="z-index:300">
+        <div class="modal" style="width:440px">
+          <h3 id="modal-neg-title">Ajouter un négociateur</h3>
+          <input type="hidden" id="neg-edit-id">
+          <div class="form-group">
+            <label>Nom *</label>
+            <input type="text" id="neg-nom" placeholder="ex: Sophie Martin">
+          </div>
+          <div class="form-group">
+            <label>Agence *</label>
+            <select id="neg-agence">
+              <option value="">— Sélectionner —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Statut</label>
+            <select id="neg-actif">
+              <option value="true">Actif</option>
+              <option value="false">Inactif</option>
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-negociateur')">Annuler</button>
+            <button class="btn btn-accent" onclick="saveNegociateur()">💾 Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
       <!-- APPORTEURS -->
       <div class="page" id="page-apporteurs">
         <div class="filters">
@@ -1516,6 +1623,11 @@
         </div>
       </div>
     </div>
+    <!-- Négociateurs -->
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:12px">👤 Négociateurs</div>
+      <div id="edit-negociateurs-container"></div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-edit')">Annuler</button>
       <button class="btn btn-accent" onclick="confirmEdit()">💾 Enregistrer</button>
@@ -1553,7 +1665,7 @@ function getMoisList() {
 }
 
 // Cache local (rechargé à chaque login)
-let DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [] };
+let DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [] };
 
 async function sbFetch(table, options = {}) {
   const { method = 'GET', filter = '', body = null, select = '*', order = '' } = options;
@@ -1694,6 +1806,7 @@ async function loadDB() {
     DB.users = users.map(u => ({ id: u.id, password: u.password, email: u.email || '', role: u.role, nom: u.nom, agence: u.agence || null }));
     DB.settings.tva = parseFloat(settingsRows.find(s => s.key === 'tva')?.value || '20');
     DB.apporteurs = apporteurs.map(a => a.nom);
+    await loadNegociateurs();
   } catch(e) {
     showToast('Erreur de connexion à la base de données', 'error');
     console.error(e);
@@ -1884,13 +1997,15 @@ function showPage(name, navEl) {
   document.getElementById('page-' + name).classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
+  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
   document.getElementById('topbar-title').textContent = titles[name] || name;
 
   if (name === 'dashboard') refreshDashboard();
   if (name === 'ranking') { if (currentRankTab === 'mensuel') refreshRanking(); else refreshRankingAnnuel(); }
   if (name === 'saisie') { refreshMyDossiers(); renderRepartition(); populateApporteurSelects(); }
   if (name === 'apporteurs') { refreshApporteurs(); }
+  if (name === 'negociateurs') { renderNegociateursList(); }
+  if (name === 'negociateurs-classement') { initNegClassement(); }
   if (name === 'encaissements') { initEncaissements(); }
   if (name === 'performances') { initPerformances(); }
   if (name === 'rapport') { populateRapportFilters(); }
@@ -2522,6 +2637,8 @@ function renderRepartition() {
     container.innerHTML = rows;
   }
   updateRepartitionCalc();
+  // Met à jour le bloc négociateurs en fonction des agences sélectionnées
+  setTimeout(renderNegociateursSaisie, 0);
 }
 
 function updateRepartitionCalc() {
@@ -2667,6 +2784,20 @@ async function saveDossier() {
     // Met à jour le cache local
     inserted.forEach(ins => DB.dossiers.push(rowToDossier(ins)));
 
+    // Sauvegarde les négociateurs
+    const negRows = collectNegociateursSaisie(parts);
+    if (negRows.length > 0) {
+      // Pour chaque dossier inséré, on associe les négociateurs de son agence
+      for (const ins of inserted) {
+        const negPourAgence = negRows.filter(n => n.agence === ins.agence);
+        if (negPourAgence.length > 0) {
+          const insRows = negPourAgence.map(n => ({ dossier_id: ins.id, negociateur_id: n.negociateur_id, agence: n.agence, pct_ca: n.pct_ca }));
+          const savedNegs = await sbInsert('dossier_negociateurs', insRows);
+          if (savedNegs) DB.dossierNeg = [...(DB.dossierNeg || []), ...savedNegs];
+        }
+      }
+    }
+
     showLoading(false);
     showToast(nbAgences > 1 ? 'Dossier partagé enregistré (' + nbAgences + ' agences) ✓' : 'Dossier enregistré ✓', 'success');
     clearSaisie();
@@ -2695,6 +2826,7 @@ function clearSaisie() {
   document.getElementById('s-apporteur-nom').value = '';
   document.getElementById('s-apporteur-pct').value = '';
   nbAgences = 1;
+  negLignesSaisie = {};
   document.getElementById('nb-agences-display').textContent = '1';
   document.getElementById('pct-warning').style.display = 'none';
   renderRepartition();
@@ -2853,6 +2985,14 @@ function openEdit(id) {
   document.getElementById('modal-edit').classList.add('open');
   onDateActeChange();
   calcEditHT();
+
+  // Charge les négociateurs du dossier (et du groupe si intercabinet)
+  const dossiersGroupe = d.groupId ? DB.dossiers.filter(x => x.groupId === d.groupId) : [d];
+  const dossierIds = dossiersGroupe.map(x => x.id);
+  const negRows = (DB.dossierNeg || []).filter(r => dossierIds.includes(r.dossier_id));
+  negLignesEdit = {};
+  const agencesGroupe = dossiersGroupe.map(x => x.agence);
+  renderNegociateursEdit(negRows.length > 0 ? negRows : agencesGroupe.map(a => ({ agence: a })));
 }
 
 async function confirmEdit() {
@@ -2914,6 +3054,25 @@ async function confirmEdit() {
       const idx = DB.dossiers.findIndex(x => x.id === d.id);
       if (idx >= 0) DB.dossiers[idx] = { ...DB.dossiers[idx], ...champsCommuns, ttc: ttcPart, brutHT: brutHTPart, ht: netHTPart, apportHT: apportHTPart };
     }
+
+    // Sauvegarde négociateurs : supprime les anciens et recrée
+    const agencesGroupe = cibles.map(d => d.agence);
+    const negToSave = collectNegociateursEdit(agencesGroupe);
+    for (const d of cibles) {
+      await sbDelete('dossier_negociateurs', 'dossier_id=eq.' + d.id);
+      DB.dossierNeg = (DB.dossierNeg || []).filter(r => r.dossier_id !== d.id);
+    }
+    if (negToSave.length > 0) {
+      for (const d of cibles) {
+        const negPourAgence = negToSave.filter(n => n.agence === d.agence);
+        if (negPourAgence.length > 0) {
+          const rows = negPourAgence.map(n => ({ dossier_id: d.id, negociateur_id: n.negociateur_id, agence: n.agence, pct_ca: n.pct_ca }));
+          const saved = await sbInsert('dossier_negociateurs', rows);
+          if (saved) DB.dossierNeg = [...DB.dossierNeg, ...saved];
+        }
+      }
+    }
+
     showLoading(false);
     closeModal('modal-edit');
     const nb = cibles.length;
@@ -3760,6 +3919,418 @@ async function processChat(msg) {
   sendBtn.disabled = false;
   input.disabled = false;
   input.focus();
+}
+
+// =====================
+// NÉGOCIATEURS
+// =====================
+
+// Cache négociateurs et liaisons dossier-négociateurs
+// DB.negociateurs = [{id, nom, agence, actif}]
+// DB.dossierNeg = [{id, dossier_id, negociateur_id, agence, pct_ca}]
+
+async function loadNegociateurs() {
+  try {
+    const [negs, dossierNegs] = await Promise.all([
+      sbFetch('negociateurs', { order: 'agence.asc,nom.asc' }),
+      sbFetch('dossier_negociateurs')
+    ]);
+    DB.negociateurs = negs;
+    DB.dossierNeg = dossierNegs;
+  } catch(e) {
+    DB.negociateurs = [];
+    DB.dossierNeg = [];
+  }
+}
+
+// Rendu du bloc négociateurs dans la saisie
+function renderNegociateursSaisie() {
+  const container = document.getElementById('s-negociateurs-container');
+  if (!container) return;
+
+  // Récupère les agences sélectionnées dans la répartition
+  const agencesSelectionnees = [];
+  for (let i = 0; i < nbAgences; i++) {
+    const agEl = document.getElementById('s-agence-' + i);
+    if (agEl && agEl.value) agencesSelectionnees.push({ idx: i, agence: agEl.value });
+  }
+
+  if (agencesSelectionnees.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Sélectionnez d\'abord les agences ci-dessus</div>';
+    return;
+  }
+
+  container.innerHTML = agencesSelectionnees.map(({ idx, agence }) => {
+    const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif);
+    const lignesActuelles = getNegLignesSaisie(idx);
+    const lignesHtml = lignesActuelles.map((ligne, li) => buildNegLigneSaisie(idx, li, agence, negsAgence, ligne)).join('');
+    return '<div style="margin-bottom:16px;padding:14px;background:var(--bg);border-radius:10px">' +
+      '<div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:10px">🏢 ' + agence + '</div>' +
+      '<div id="neg-lignes-' + idx + '">' + lignesHtml + '</div>' +
+      '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="addNegLigne(' + idx + ',\'' + agence + '\')">+ Ajouter un négociateur</button>' +
+      '</div>';
+  }).join('');
+}
+
+// État des lignes négociateurs par agence (saisie)
+let negLignesSaisie = {}; // { agenceIdx: [{negId, pct}] }
+
+function getNegLignesSaisie(agenceIdx) {
+  if (!negLignesSaisie[agenceIdx]) negLignesSaisie[agenceIdx] = [{ negId: '', pct: '' }];
+  return negLignesSaisie[agenceIdx];
+}
+
+function buildNegLigneSaisie(agenceIdx, ligneIdx, agence, negsAgence, ligne) {
+  const selectOptions = '<option value="">— Négociateur —</option>' +
+    negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
+  return '<div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px" id="neg-ligne-' + agenceIdx + '-' + ligneIdx + '">' +
+    '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onNegSelectChange(' + agenceIdx + ',' + ligneIdx + ',this.value)">' + selectOptions + '</select>' +
+    '<div style="display:flex;align-items:center;gap:4px">' +
+    '<input type="number" min="0" max="100" step="1" placeholder="%" value="' + (ligne.pct || '') + '" style="width:70px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onNegPctChange(' + agenceIdx + ',' + ligneIdx + ',this.value)">' +
+    '<span style="font-size:12px;color:var(--text-muted)">%</span></div>' +
+    (ligneIdx > 0 ? '<button class="btn btn-sm btn-danger" onclick="removeNegLigne(' + agenceIdx + ',' + ligneIdx + ')">✕</button>' : '<div></div>') +
+    '</div>';
+}
+
+function addNegLigne(agenceIdx, agence) {
+  if (!negLignesSaisie[agenceIdx]) negLignesSaisie[agenceIdx] = [];
+  // Calcule le % restant
+  const totalPct = negLignesSaisie[agenceIdx].reduce((s, l) => s + (parseFloat(l.pct) || 0), 0);
+  const restant = Math.max(0, 100 - totalPct);
+  negLignesSaisie[agenceIdx].push({ negId: '', pct: restant > 0 ? restant : '' });
+  renderNegociateursSaisie();
+}
+
+function removeNegLigne(agenceIdx, ligneIdx) {
+  if (negLignesSaisie[agenceIdx]) {
+    negLignesSaisie[agenceIdx].splice(ligneIdx, 1);
+    if (negLignesSaisie[agenceIdx].length === 0) negLignesSaisie[agenceIdx] = [{ negId: '', pct: '' }];
+  }
+  renderNegociateursSaisie();
+}
+
+function onNegSelectChange(agenceIdx, ligneIdx, val) {
+  if (!negLignesSaisie[agenceIdx]) return;
+  negLignesSaisie[agenceIdx][ligneIdx].negId = val;
+}
+
+function onNegPctChange(agenceIdx, ligneIdx, val) {
+  if (!negLignesSaisie[agenceIdx]) return;
+  negLignesSaisie[agenceIdx][ligneIdx].pct = val;
+  // Auto-remplissage si 2 négociateurs
+  const lignes = negLignesSaisie[agenceIdx];
+  if (lignes.length === 2) {
+    const autre = ligneIdx === 0 ? 1 : 0;
+    const pctSaisi = parseFloat(val) || 0;
+    const restant = 100 - pctSaisi;
+    lignes[autre].pct = restant >= 0 ? restant : '';
+    renderNegociateursSaisie();
+  }
+}
+
+function collectNegociateursSaisie(agenceParts) {
+  // Retourne [{negociateur_id, agence, pct_ca}]
+  const result = [];
+  agenceParts.forEach((p, idx) => {
+    const lignes = negLignesSaisie[idx] || [];
+    lignes.forEach(l => {
+      if (l.negId) {
+        result.push({ negociateur_id: parseInt(l.negId), agence: p.agence, pct_ca: parseFloat(l.pct) || 0 });
+      }
+    });
+  });
+  return result;
+}
+
+// Rendu négociateurs dans la modal édition
+let negLignesEdit = {}; // même structure que negLignesSaisie
+
+function renderNegociateursEdit(dossierNegRows) {
+  const container = document.getElementById('edit-negociateurs-container');
+  if (!container) return;
+
+  // Récupère les agences du dossier édité
+  // Pour un dossier solo : une agence. Pour un groupe : toutes les agences du groupe
+  const agencesNeg = [...new Set(dossierNegRows.map(r => r.agence))];
+  if (agencesNeg.length === 0) {
+    // Pas encore de négociateurs, on affiche le dossier courant
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucun négociateur assigné — sauvegardez pour en ajouter</div>';
+    return;
+  }
+
+  negLignesEdit = {};
+  agencesNeg.forEach((agence, idx) => {
+    const lignesAgence = dossierNegRows.filter(r => r.agence === agence);
+    negLignesEdit[idx] = lignesAgence.map(r => ({ negId: r.negociateur_id, pct: r.pct_ca, rowId: r.id }));
+    if (negLignesEdit[idx].length === 0) negLignesEdit[idx] = [{ negId: '', pct: '' }];
+  });
+
+  container.innerHTML = agencesNeg.map((agence, idx) => {
+    const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif);
+    const lignesHtml = negLignesEdit[idx].map((ligne, li) => buildNegLigneEdit(idx, li, agence, negsAgence, ligne)).join('');
+    return '<div style="margin-bottom:14px;padding:12px;background:var(--bg);border-radius:10px">' +
+      '<div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:8px">🏢 ' + agence + '</div>' +
+      '<div id="neg-edit-lignes-' + idx + '">' + lignesHtml + '</div>' +
+      '<button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="addNegLigneEdit(' + idx + ',\'' + agence + '\')">+ Ajouter</button>' +
+      '</div>';
+  }).join('');
+}
+
+function buildNegLigneEdit(agenceIdx, ligneIdx, agence, negsAgence, ligne) {
+  const selectOptions = '<option value="">— Négociateur —</option>' +
+    negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
+  return '<div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px">' +
+    '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onNegEditSelect(' + agenceIdx + ',' + ligneIdx + ',this.value)">' + selectOptions + '</select>' +
+    '<div style="display:flex;align-items:center;gap:4px">' +
+    '<input type="number" min="0" max="100" step="1" placeholder="%" value="' + (ligne.pct || '') + '" style="width:70px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onNegEditPct(' + agenceIdx + ',' + ligneIdx + ',this.value)">' +
+    '<span style="font-size:12px;color:var(--text-muted)">%</span></div>' +
+    (ligneIdx > 0 ? '<button class="btn btn-sm btn-danger" onclick="removeNegLigneEdit(' + agenceIdx + ',' + ligneIdx + ')">✕</button>' : '<div></div>') +
+    '</div>';
+}
+
+function addNegLigneEdit(agenceIdx, agence) {
+  if (!negLignesEdit[agenceIdx]) negLignesEdit[agenceIdx] = [];
+  const totalPct = negLignesEdit[agenceIdx].reduce((s, l) => s + (parseFloat(l.pct) || 0), 0);
+  negLignesEdit[agenceIdx].push({ negId: '', pct: Math.max(0, 100 - totalPct) || '' });
+  // Re-render juste ce bloc
+  const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif);
+  const container = document.getElementById('neg-edit-lignes-' + agenceIdx);
+  if (container) container.innerHTML = negLignesEdit[agenceIdx].map((l, li) => buildNegLigneEdit(agenceIdx, li, agence, negsAgence, l)).join('');
+}
+
+function removeNegLigneEdit(agenceIdx, ligneIdx) {
+  if (negLignesEdit[agenceIdx]) negLignesEdit[agenceIdx].splice(ligneIdx, 1);
+  if (!negLignesEdit[agenceIdx] || negLignesEdit[agenceIdx].length === 0) negLignesEdit[agenceIdx] = [{ negId: '', pct: '' }];
+  const agence = Object.keys(negLignesEdit)[agenceIdx];
+  // Re-render
+  renderNegociateursEdit([]); // placeholder — on re-render depuis le cache
+}
+
+function onNegEditSelect(agenceIdx, ligneIdx, val) {
+  if (negLignesEdit[agenceIdx]) negLignesEdit[agenceIdx][ligneIdx].negId = val;
+}
+
+function onNegEditPct(agenceIdx, ligneIdx, val) {
+  if (!negLignesEdit[agenceIdx]) return;
+  negLignesEdit[agenceIdx][ligneIdx].pct = val;
+  const lignes = negLignesEdit[agenceIdx];
+  if (lignes.length === 2) {
+    const autre = ligneIdx === 0 ? 1 : 0;
+    lignes[autre].pct = Math.max(0, 100 - (parseFloat(val) || 0));
+  }
+}
+
+function collectNegociateursEdit(agencesduGroupe) {
+  const result = [];
+  agencesduGroupe.forEach((agence, idx) => {
+    const lignes = negLignesEdit[idx] || [];
+    lignes.forEach(l => {
+      if (l.negId) result.push({ negociateur_id: parseInt(l.negId), agence, pct_ca: parseFloat(l.pct) || 0 });
+    });
+  });
+  return result;
+}
+
+// =====================
+// GESTION NÉGOCIATEURS (CRUD)
+// =====================
+function openAddNegociateur() {
+  document.getElementById('modal-neg-title').textContent = 'Ajouter un négociateur';
+  document.getElementById('neg-edit-id').value = '';
+  document.getElementById('neg-nom').value = '';
+  document.getElementById('neg-actif').value = 'true';
+  const selAg = document.getElementById('neg-agence');
+  selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+  document.getElementById('modal-negociateur').classList.add('open');
+}
+
+function openEditNegociateur(id) {
+  const n = DB.negociateurs.find(n => n.id === id);
+  if (!n) return;
+  document.getElementById('modal-neg-title').textContent = 'Modifier le négociateur';
+  document.getElementById('neg-edit-id').value = id;
+  document.getElementById('neg-nom').value = n.nom;
+  document.getElementById('neg-actif').value = String(n.actif);
+  const selAg = document.getElementById('neg-agence');
+  selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === n.agence ? ' selected' : '') + '>' + a + '</option>').join('');
+  document.getElementById('modal-negociateur').classList.add('open');
+}
+
+async function saveNegociateur() {
+  const editId = document.getElementById('neg-edit-id').value;
+  const nom = document.getElementById('neg-nom').value.trim();
+  const agence = document.getElementById('neg-agence').value;
+  const actif = document.getElementById('neg-actif').value === 'true';
+  if (!nom || !agence) { showToast('Nom et agence requis', 'error'); return; }
+  showLoading(true);
+  try {
+    if (editId) {
+      await sbUpdate('negociateurs', 'id=eq.' + editId, { nom, agence, actif });
+      const idx = DB.negociateurs.findIndex(n => n.id === parseInt(editId));
+      if (idx >= 0) DB.negociateurs[idx] = { ...DB.negociateurs[idx], nom, agence, actif };
+      showToast('Négociateur modifié ✓', 'success');
+    } else {
+      const rows = await sbInsert('negociateurs', { nom, agence, actif });
+      if (rows && rows[0]) DB.negociateurs.push(rows[0]);
+      showToast('Négociateur ajouté ✓', 'success');
+    }
+    showLoading(false);
+    closeModal('modal-negociateur');
+    renderNegociateursList();
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur : ' + e.message, 'error');
+  }
+}
+
+function renderNegociateursList() {
+  const tbody = document.getElementById('neg-list-tbody');
+  if (!tbody) return;
+  const negs = DB.negociateurs || [];
+  if (negs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px">Aucun négociateur</td></tr>';
+    return;
+  }
+  tbody.innerHTML = negs.map(n => {
+    const dosNeg = (DB.dossierNeg || []).filter(d => d.negociateur_id === n.id);
+    const dossierIds = [...new Set(dosNeg.map(d => d.dossier_id))];
+    const ca = dossierIds.reduce((s, did) => {
+      const d = DB.dossiers.find(x => x.id === did && x.statut === 'SIGNÉ');
+      const lien = dosNeg.find(l => l.dossier_id === did);
+      return s + (d ? (d.ht || 0) * (lien.pct_ca / 100) : 0);
+    }, 0);
+    return '<tr>' +
+      '<td><strong>' + n.nom + '</strong></td>' +
+      '<td>' + n.agence + '</td>' +
+      '<td><span class="status-badge ' + (n.actif ? 'status-signed' : 'status-withdrawn') + '">' + (n.actif ? 'Actif' : 'Inactif') + '</span></td>' +
+      '<td style="font-weight:600;color:var(--primary)">' + fmtEuro(ca) + '</td>' +
+      '<td>' + fmtCount(dossierIds.length) + '</td>' +
+      '<td><button class="btn btn-sm btn-outline" onclick="openEditNegociateur(' + n.id + ')">✏️</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+// =====================
+// CLASSEMENT NÉGOCIATEURS
+// =====================
+let currentNegTab = 'mensuel';
+
+function initNegClassement() {
+  const moisList = getMoisList();
+  const now = new Date();
+  const curMonth = MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
+
+  const selM = document.getElementById('filter-mois-neg');
+  if (selM) {
+    while (selM.options.length > 1) selM.remove(1);
+    moisList.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selM.appendChild(o); });
+    for (let opt of selM.options) { if (opt.value === curMonth) { opt.selected = true; break; } }
+  }
+
+  const years = [...new Set(moisList.map(m => m.split(' ')[1]))].sort();
+  const selA = document.getElementById('filter-annee-neg');
+  if (selA) {
+    while (selA.options.length) selA.remove(0);
+    years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; selA.appendChild(o); });
+    const curYear = now.getFullYear().toString();
+    for (let opt of selA.options) { if (opt.value === curYear) { opt.selected = true; break; } }
+  }
+
+  [document.getElementById('filter-agence-neg'), document.getElementById('filter-agence-neg-annuel')].forEach(sel => {
+    if (!sel) return;
+    while (sel.options.length > 1) sel.remove(1);
+    AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+  });
+
+  refreshNegClassement();
+}
+
+function switchNegTab(tab) {
+  currentNegTab = tab;
+  document.getElementById('neg-view-mensuel').style.display = tab === 'mensuel' ? 'block' : 'none';
+  document.getElementById('neg-view-annuel').style.display = tab === 'annuel' ? 'block' : 'none';
+  const btnM = document.getElementById('tab-neg-mensuel');
+  const btnA = document.getElementById('tab-neg-annuel');
+  btnM.style.background = tab === 'mensuel' ? 'var(--primary)' : 'white';
+  btnM.style.color = tab === 'mensuel' ? 'white' : 'var(--text-muted)';
+  btnA.style.background = tab === 'annuel' ? 'var(--primary)' : 'white';
+  btnA.style.color = tab === 'annuel' ? 'white' : 'var(--text-muted)';
+  if (tab === 'mensuel') refreshNegClassement();
+  else refreshNegClassementAnnuel();
+}
+
+function buildNegRanking(dossiersFiltres, agenceFiltree) {
+  const negs = DB.negociateurs || [];
+  const dossierNeg = DB.dossierNeg || [];
+  const result = {};
+
+  dossiersFiltres.filter(d => d.statut === 'SIGNÉ').forEach(d => {
+    const liens = dossierNeg.filter(l => l.dossier_id === d.id);
+    liens.forEach(l => {
+      const neg = negs.find(n => n.id === l.negociateur_id);
+      if (!neg) return;
+      if (agenceFiltree && neg.agence !== agenceFiltree) return;
+      const ca = (d.ht || 0) * (l.pct_ca / 100);
+      const nbDos = d.nbAgencesGroupe > 1 ? (1 / d.nbAgencesGroupe) * (l.pct_ca / 100) : (l.pct_ca / 100);
+      if (!result[neg.id]) result[neg.id] = { neg, ca: 0, count: 0 };
+      result[neg.id].ca += ca;
+      result[neg.id].count += nbDos;
+    });
+  });
+
+  return Object.values(result).sort((a, b) => b.ca - a.ca);
+}
+
+function renderNegRankingTable(ranked, tbodyId, podiumId, titleId, titre) {
+  if (titleId) document.getElementById(titleId).textContent = titre;
+  const maxCA = ranked[0]?.ca || 1;
+
+  if (podiumId) {
+    const medals = ['🥇','🥈','🥉'];
+    const podiumClasses = ['first','second','third'];
+    document.getElementById(podiumId).innerHTML = ranked.slice(0, 3).map((r, i) =>
+      '<div class="podium-card ' + podiumClasses[i] + '">' +
+      '<div class="podium-medal">' + medals[i] + '</div>' +
+      '<div class="podium-name">' + r.neg.nom + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">' + r.neg.agence + '</div>' +
+      '<div class="podium-amount">' + fmtEuro(r.ca) + '</div>' +
+      '<div class="podium-ht">' + fmtCount(r.count) + ' dossier(s)</div>' +
+      '</div>'
+    ).join('');
+  }
+
+  const tbody = document.getElementById(tbodyId);
+  if (ranked.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Aucune donnée</td></tr>';
+    return;
+  }
+  tbody.innerHTML = ranked.map((r, i) =>
+    '<tr><td><span class="rank-badge ' + (i < 3 ? 'rank-' + (i+1) : 'rank-other') + '">' + (i+1) + '</span></td>' +
+    '<td><strong>' + r.neg.nom + '</strong></td>' +
+    '<td style="font-size:12px;color:var(--text-muted)">' + r.neg.agence + '</td>' +
+    '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(r.ca) + '</td>' +
+    '<td>' + fmtCount(r.count) + '</td>' +
+    '<td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar"><div class="progress-fill" style="width:' + (r.ca/maxCA*100).toFixed(0) + '%"></div></div><span style="font-size:11px;color:var(--text-muted)">' + (r.ca/maxCA*100).toFixed(0) + '%</span></div></td>' +
+    '</tr>'
+  ).join('');
+}
+
+function refreshNegClassement() {
+  const mois = document.getElementById('filter-mois-neg')?.value || '';
+  const agence = document.getElementById('filter-agence-neg')?.value || '';
+  const dossiers = mois ? DB.dossiers.filter(d => d.mois === mois) : DB.dossiers;
+  const ranked = buildNegRanking(dossiers, agence);
+  renderNegRankingTable(ranked, 'neg-tbody-mensuel', 'neg-podium-mensuel', 'neg-mensuel-title',
+    'Classement négociateurs' + (mois ? ' — ' + mois : ''));
+}
+
+function refreshNegClassementAnnuel() {
+  const annee = document.getElementById('filter-annee-neg')?.value || '';
+  const agence = document.getElementById('filter-agence-neg-annuel')?.value || '';
+  const dossiers = annee ? DB.dossiers.filter(d => d.mois && d.mois.endsWith(annee)) : DB.dossiers;
+  const ranked = buildNegRanking(dossiers, agence);
+  renderNegRankingTable(ranked, 'neg-tbody-annuel', 'neg-podium-annuel', 'neg-annuel-title',
+    'Classement négociateurs' + (annee ? ' — ' + annee : ''));
 }
 
 function fmtCount(n) {
