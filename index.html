@@ -4447,7 +4447,7 @@ function renderRentreursSaisie() {
 
 function buildRentreurLigneSaisie(idx, ligne) {
   const agenceOpts = '<option value="">— Agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === ligne.agence ? ' selected' : '') + '>' + a + '</option>').join('');
-  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif && (n.poste === 'rentreur' || n.poste === 'les deux')) : [];
+  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
   return '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px">' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurAgenceChange(' + idx + ',this.value)">' + agenceOpts + '</select>' +
@@ -4508,7 +4508,7 @@ function renderRentreursEdit(rentRows, agencesGroupe) {
 
 function buildRentreurLigneEdit(idx, ligne) {
   const agenceOpts = '<option value="">— Agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === ligne.agence ? ' selected' : '') + '>' + a + '</option>').join('');
-  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif && (n.poste === 'rentreur' || n.poste === 'les deux')) : [];
+  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
   return '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px">' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurEditAgence(' + idx + ',this.value)">' + agenceOpts + '</select>' +
