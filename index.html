@@ -770,7 +770,7 @@
         <!-- Dates butoire du mois -->
         <div class="card" id="card-butoires" style="margin-bottom:20px">
           <div class="card-header">
-            <span class="card-title">⏰ Dates butoire — mois en cours</span>
+            <span class="card-title">⏰ Dates butoire à surveiller</span>
             <span style="font-size:12px;color:var(--text-muted)" id="butoire-subtitle"></span>
           </div>
           <div style="overflow-x:auto">
@@ -1917,14 +1917,14 @@ function refreshDashboard() {
 
   const totalTTC = signed.reduce((s, d) => s + (d.ttc || 0), 0);
   const totalHT = signed.reduce((s, d) => s + (d.ht || 0), 0);
-  const nbSigned = signed.length;
+  const nbSigned = signed.reduce((s, d) => s + (d.nbAgencesGroupe > 1 ? 1 / d.nbAgencesGroupe : 1), 0);
   const nbReport = list.filter(d => d.statut === 'REPORT').length;
   const nbAnnule = list.filter(d => d.statut === 'ANNULÉ').length;
 
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-label">CA TTC brut (signés)</div><div class="stat-value">${fmtEuro(totalTTC)}</div><div class="stat-sub">Hors reports et annulés</div></div>
     <div class="stat-card"><div class="stat-label">CA net HT (signés)</div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
-    <div class="stat-card"><div class="stat-label">Dossiers signés</div><div class="stat-value">${nbSigned}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
+    <div class="stat-card"><div class="stat-label">Dossiers signés</div><div class="stat-value">${fmtCount(nbSigned)}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
     <div class="stat-card"><div class="stat-label">Agences actives</div><div class="stat-value">${new Set(signed.map(d => d.agence)).size}</div><div class="stat-sub">sur ${AGENCES.length} agences</div></div>
   `;
 
@@ -1973,7 +1973,7 @@ function refreshJuridique(moisFilter) {
     const pct = d.pct || 100;
     const fraisPart = +(FRAIS_JURIDIQUE * pct / 100).toFixed(2);
     if (!byAgence[d.agence]) byAgence[d.agence] = { count: 0, frais: 0, dossiers: [] };
-    byAgence[d.agence].count++;
+    byAgence[d.agence].count += d.nbAgencesGroupe > 1 ? (1 / d.nbAgencesGroupe) : 1;
     byAgence[d.agence].frais += fraisPart;
     byAgence[d.agence].dossiers.push({ client: d.client, frais: fraisPart, dateActe: d.dateActe, pct });
   });
@@ -1992,7 +1992,7 @@ function refreshJuridique(moisFilter) {
     ).join(' ');
     return `<tr>
       <td><strong>${a}</strong></td>
-      <td style="text-align:center">${ag.count}</td>
+      <td style="text-align:center">${fmtCount(ag.count)}</td>
       <td style="font-weight:700;color:#dc2626">${fmtEuro(ag.frais)}</td>
       <td style="max-width:300px">${detail}</td>
     </tr>`;
@@ -2029,7 +2029,7 @@ function buildRankData(list) {
     if (!byAgence[d.agence]) byAgence[d.agence] = { ttc: 0, ht: 0, count: 0 };
     byAgence[d.agence].ttc += d.ttc || 0;
     byAgence[d.agence].ht += d.ht || 0;
-    byAgence[d.agence].count++;
+    byAgence[d.agence].count += d.nbAgencesGroupe > 1 ? (1 / d.nbAgencesGroupe) : 1;
   });
   return Object.entries(byAgence).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.ht - a.ht);
 }
@@ -2042,7 +2042,7 @@ function renderPodium(containerId, ranked) {
       <div class="podium-medal">${medals[i]}</div>
       <div class="podium-name">${ag.name}</div>
       <div class="podium-amount">${fmtEuro(ag.ht)}</div>
-      <div class="podium-ht">CA HT · ${ag.count} dossier(s)</div>
+      <div class="podium-ht">CA HT · ${fmtCount(ag.count)} dossier(s)</div>
     </div>`).join('');
 }
 
@@ -2061,7 +2061,7 @@ function refreshRanking() {
       <td><strong>${ag.name}</strong></td>
       <td style="font-weight:700;color:var(--primary)">${fmtEuro(ag.ht)}</td>
       <td>${fmtEuro(ag.ttc)}</td>
-      <td>${ag.count}</td>
+      <td>${fmtCount(ag.count)}</td>
       <td>
         <div style="display:flex;align-items:center;gap:10px">
           <div class="progress-bar"><div class="progress-fill" style="width:${(ag.ht/maxHT*100).toFixed(0)}%"></div></div>
@@ -2095,7 +2095,7 @@ function refreshRankingAnnuel() {
       <td><strong>${ag.name}</strong></td>
       <td style="font-weight:700;color:var(--primary)">${fmtEuro(ag.ht)}</td>
       <td>${fmtEuro(ag.ttc)}</td>
-      <td>${ag.count}</td>
+      <td>${fmtCount(ag.count)}</td>
       <td style="max-width:320px">${detail || '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
       <td>
         <div style="display:flex;align-items:center;gap:10px">
@@ -3232,7 +3232,7 @@ function genererRapportPDF() {
         <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
         <td>${r.name}</td>
         <td style="font-weight:600">${fmtEuro(r.ht)}</td>
-        <td>${r.count}</td>
+        <td>${fmtCount(r.count)}</td>
       </tr>`).join('')}
     </tbody>
   </table>
@@ -3254,7 +3254,7 @@ function genererRapportPDF() {
           <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
           <td>${r.name}</td>
           <td style="font-weight:600">${fmtEuro(r.ht)}</td>
-          <td>${r.count}</td>
+          <td>${fmtCount(r.count)}</td>
           ${moisCells}
         </tr>`;
       }).join('')}
@@ -3303,26 +3303,37 @@ function genererRapportPDF() {
 }
 
 function refreshButoires() {
-  
   const now = new Date();
   const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const currentMonthStr = monthNames[now.getMonth()] + ' ' + now.getFullYear();
 
-  // Tous les dossiers avec date butoire dans le mois courant, pas encore à l'acte
+  // Tous les dossiers sans acte signé avec date butoire :
+  // - du mois courant
+  // - OU des mois passés (retards)
+  // Dédoublonnage : pour les ventes partagées, on prend une seule ligne (la première)
+  const groupsSeen = new Set();
   const list = DB.dossiers.filter(d => {
     if (!d.dateButoire || d.dateActe) return false;
     const b = new Date(d.dateButoire);
-    return b.getMonth() === now.getMonth() && b.getFullYear() === now.getFullYear();
+    const isCurrentOrPast = b <= new Date(now.getFullYear(), now.getMonth() + 1, 0); // <= fin du mois courant
+    if (!isCurrentOrPast) return false;
+    // Dédoublonnage groupId
+    if (d.groupId) {
+      if (groupsSeen.has(d.groupId)) return false;
+      groupsSeen.add(d.groupId);
+    }
+    return true;
   }).sort((a, b) => new Date(a.dateButoire) - new Date(b.dateButoire));
 
   const tbody = document.getElementById('butoires-tbody');
   const subtitle = document.getElementById('butoire-subtitle');
   if (!tbody) return;
 
-  subtitle.textContent = currentMonthStr;
+  const nbRetards = list.filter(d => new Date(d.dateButoire) < new Date(now.getFullYear(), now.getMonth(), 1)).length;
+  subtitle.textContent = currentMonthStr + (nbRetards > 0 ? ` · ${nbRetards} retard(s)` : '');
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:14px">Aucune date butoire enregistrée pour ${currentMonthStr}</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:14px">Aucune date butoire à surveiller</td></tr>';
     return;
   }
 
@@ -3330,28 +3341,33 @@ function refreshButoires() {
     const butoire = new Date(d.dateButoire);
     const diffMs = butoire - now;
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    let urgenceStyle, urgenceLabel;
-    if (diffDays < 0) {
+    const isRetard = butoire < new Date(now.getFullYear(), now.getMonth(), 1);
+    let urgenceStyle, urgenceLabel, rowStyle = '';
+    if (isRetard) {
+      urgenceStyle = 'background:#dc2626;color:white;font-weight:700';
+      urgenceLabel = '🚨 Retard ' + Math.abs(diffDays) + 'j';
+      rowStyle = 'background:#fff5f5';
+    } else if (diffDays < 0) {
       urgenceStyle = 'background:#fee2e2;color:#991b1b;font-weight:700';
-      urgenceLabel = `⚠️ Dépassée de ${Math.abs(diffDays)}j`;
+      urgenceLabel = '⚠️ Dépassée de ' + Math.abs(diffDays) + 'j';
     } else if (diffDays <= 7) {
       urgenceStyle = 'background:#fef3c7;color:#92400e;font-weight:700';
-      urgenceLabel = `🔥 ${diffDays}j restants`;
+      urgenceLabel = '🔥 ' + diffDays + 'j restants';
     } else if (diffDays <= 30) {
       urgenceStyle = 'background:#d1fae5;color:#065f46;font-weight:600';
-      urgenceLabel = `${diffDays}j restants`;
+      urgenceLabel = diffDays + 'j restants';
     } else {
       urgenceStyle = 'color:var(--text-muted)';
-      urgenceLabel = `${diffDays}j restants`;
+      urgenceLabel = diffDays + 'j restants';
     }
-    return `<tr>
-      <td><strong>${d.client}</strong></td>
-      <td>${agenceBadge(d)}</td>
-      <td style="font-weight:600">${fmtDate(d.dateButoire)}</td>
-      <td>${statusBadge(d.statut)}</td>
-      <td><span style="padding:3px 10px;border-radius:20px;font-size:12px;${urgenceStyle}">${urgenceLabel}</span></td>
-      <td><button class="btn btn-sm btn-outline" onclick="openEdit(${d.id})">✏️</button></td>
-    </tr>`;
+    return '<tr style="' + rowStyle + '">' +
+      '<td><strong>' + d.client + '</strong></td>' +
+      '<td>' + agenceBadge(d) + '</td>' +
+      '<td style="font-weight:600;color:' + (isRetard ? '#dc2626' : 'inherit') + '">' + fmtDate(d.dateButoire) + '</td>' +
+      '<td>' + statusBadge(d.statut) + '</td>' +
+      '<td><span style="padding:3px 10px;border-radius:20px;font-size:12px;' + urgenceStyle + '">' + urgenceLabel + '</span></td>' +
+      '<td><button class="btn btn-sm btn-outline" onclick="openEdit(' + d.id + ')">✏️</button></td>' +
+      '</tr>';
   }).join('');
 }
 
@@ -3362,7 +3378,7 @@ function buildRankDataRaw(list) {
     if (!byAgence[d.agence]) byAgence[d.agence] = { ht: 0, ttc: 0, count: 0 };
     byAgence[d.agence].ht += d.ht || 0;
     byAgence[d.agence].ttc += d.ttc || 0;
-    byAgence[d.agence].count++;
+    byAgence[d.agence].count += d.nbAgencesGroupe > 1 ? (1 / d.nbAgencesGroupe) : 1;
   });
   return Object.entries(byAgence).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.ht - a.ht);
 }
@@ -3387,7 +3403,7 @@ function buildDataContext(scope, label) {
   const byAgence = {};
   AGENCES.forEach(a => byAgence[a] = { ht: 0, count: 0 });
   dossiers.forEach(d => {
-    if (byAgence[d.agence]) { byAgence[d.agence].ht += d.ht || 0; byAgence[d.agence].count++; }
+    if (byAgence[d.agence]) { byAgence[d.agence].ht += d.ht || 0; byAgence[d.agence].count += d.nbAgencesGroupe > 1 ? (1 / d.nbAgencesGroupe) : 1; }
   });
 
   const scopeLabel = scope === 'histo' ? 'depuis la création de la base' : (scope === 'annuel' ? 'pour l\'année ' + label : 'pour le mois de ' + label);
@@ -3744,6 +3760,11 @@ async function processChat(msg) {
   sendBtn.disabled = false;
   input.disabled = false;
   input.focus();
+}
+
+function fmtCount(n) {
+  if (Number.isInteger(n)) return String(n);
+  return n.toFixed(1).replace('.0', '');
 }
 
 function fmtEuro(n) {
