@@ -653,6 +653,36 @@
   .highlight-row { background: #fffbeb !important; }
 
   input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+
+  /* Tooltips info */
+  .info-tip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; border-radius: 50%;
+    background: var(--text-muted); color: white;
+    font-size: 9px; font-weight: 700; cursor: help;
+    margin-left: 5px; opacity: 0.5; transition: opacity .2s;
+    vertical-align: middle; position: relative; flex-shrink: 0;
+  }
+  .info-tip:hover { opacity: 1; }
+  .info-tip::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%);
+    background: #1a2530; color: white;
+    font-size: 11px; font-weight: 400; line-height: 1.5;
+    padding: 7px 10px; border-radius: 7px;
+    white-space: pre-line; width: 220px; text-align: left;
+    pointer-events: none; opacity: 0; transition: opacity .2s;
+    z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .info-tip::before {
+    content: ''; position: absolute; bottom: calc(100% + 1px); left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #1a2530;
+    pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 9999;
+  }
+  .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -878,7 +908,7 @@
             </div>
             <div style="overflow-x:auto">
               <table>
-                <thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>CA TTC</th><th>Dossiers signés</th><th>Performance</th></tr></thead>
+                <thead><tr><th>#</th><th>Agence <span class="info-tip" data-tip="Cliquez sur le nom d&#39;une agence pour ouvrir sa fiche détaillée.&#10;Note : les utilisateurs agence ne voient que leur propre agence.">i</span></th><th>CA HT</th><th>CA TTC</th><th>Dossiers signés</th><th>Performance <span class="info-tip" data-tip="Ratio du CA de l&#39;agence par rapport à l&#39;agence leader du classement (100%). Permet de visualiser l&#39;écart de performance entre les agences.">i</span></th></tr></thead>
                 <tbody id="rank-tbody"></tbody>
               </table>
             </div>
@@ -900,7 +930,7 @@
               <table>
                 <thead>
                   <tr>
-                    <th>#</th><th>Agence</th><th>CA HT annuel</th><th>CA TTC annuel</th><th>Dossiers signés</th>
+                    <th>#</th><th>Agence <span class="info-tip" data-tip="Cliquez sur le nom d&#39;une agence pour ouvrir sa fiche détaillée.&#10;Note : les utilisateurs agence ne voient que leur propre agence.">i</span></th><th>CA HT annuel</th><th>CA TTC annuel</th><th>Dossiers signés</th>
                     <th>Détail mensuel</th>
                     <th>Performance</th>
                   </tr>
@@ -1234,6 +1264,10 @@
 
       <!-- PERFORMANCES -->
       <div class="page" id="page-performances">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+          <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--primary)">Analyse des performances</span>
+          <span class="info-tip" data-tip="L&#39;IA analyse les performances du réseau sur la période choisie et fournit des insights détaillés.&#10;&#10;⚠️ Chaque requête IA est facturée 0,09$ au GIE.">i</span>
+        </div>
         <!-- Onglets -->
         <div style="display:flex;gap:0;margin-bottom:20px;background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;width:fit-content">
           <button id="tab-perf-histo" onclick="switchPerfTab('histo')" style="padding:10px 24px;border:none;background:var(--primary);color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s">📚 Analyse historique</button>
@@ -1253,7 +1287,7 @@
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title">Classement historique des agences</span></div>
-            <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Agence</th><th>CA HT total</th><th>Dossiers signés</th><th>Performance</th></tr></thead><tbody id="perf-histo-tbody"></tbody></table></div>
+            <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Agence</th><th>CA HT total</th><th>Dossiers signés</th><th>Performance <span class="info-tip" data-tip="Ratio du CA de l&#39;agence par rapport à l&#39;agence leader (100%). Indicateur relatif de performance sur la période.">i</span></th></tr></thead><tbody id="perf-histo-tbody"></tbody></table></div>
           </div>
         </div>
 
@@ -1270,7 +1304,7 @@
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title" id="perf-annuel-title">Classement annuel</span></div>
-            <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance</th></tr></thead><tbody id="perf-annuel-tbody"></tbody></table></div>
+            <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance <span class="info-tip" data-tip="Ratio du CA de l&#39;agence par rapport à l&#39;agence leader (100%). Indicateur relatif de performance sur la période.">i</span></th></tr></thead><tbody id="perf-annuel-tbody"></tbody></table></div>
           </div>
         </div>
 
@@ -1287,7 +1321,7 @@
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title" id="perf-mensuel-title">Classement mensuel</span></div>
-            <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance</th></tr></thead><tbody id="perf-mensuel-tbody"></tbody></table></div>
+            <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance <span class="info-tip" data-tip="Ratio du CA de l&#39;agence par rapport à l&#39;agence leader (100%). Indicateur relatif de performance sur la période.">i</span></th></tr></thead><tbody id="perf-mensuel-tbody"></tbody></table></div>
           </div>
         </div>
       </div>
@@ -1296,7 +1330,7 @@
       <div class="page" id="page-chatbot">
         <div style="display:flex;flex-direction:column;height:calc(100vh - 120px);max-height:800px">
           <div style="margin-bottom:16px">
-            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--primary)">💬 Assistant IA</div>
+            <div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--primary)">💬 Assistant IA</div><span class="info-tip" data-tip="L&#39;assistant connaît tous vos dossiers et peut répondre à vos questions métier.&#10;&#10;⚠️ Chaque requête IA est facturée 0,09$ au GIE.">i</span></div>
             <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Posez n'importe quelle question sur vos données</div>
           </div>
 
@@ -1364,7 +1398,7 @@
             <div class="card-header"><span class="card-title" id="neg-mensuel-title">Classement mensuel des négociateurs</span></div>
             <div style="overflow-x:auto">
               <table>
-                <thead><tr><th>#</th><th>Négociateur</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance</th></tr></thead>
+                <thead><tr><th>#</th><th>Négociateur <span class="info-tip" data-tip="Cliquez sur le nom d&#39;un collaborateur pour ouvrir sa fiche individuelle.&#10;Note : les utilisateurs agence ne peuvent accéder qu&#39;aux fiches de leur propre agence.">i</span></th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance <span class="info-tip" data-tip="Ratio du CA du négociateur par rapport au leader (100%). Permet de comparer les performances individuelles.">i</span></th></tr></thead>
                 <tbody id="neg-tbody-mensuel"></tbody>
               </table>
             </div>
@@ -1384,7 +1418,7 @@
             <div class="card-header"><span class="card-title" id="neg-annuel-title">Classement annuel des négociateurs</span></div>
             <div style="overflow-x:auto">
               <table>
-                <thead><tr><th>#</th><th>Négociateur</th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance</th></tr></thead>
+                <thead><tr><th>#</th><th>Négociateur <span class="info-tip" data-tip="Cliquez sur le nom d&#39;un collaborateur pour ouvrir sa fiche individuelle.&#10;Note : les utilisateurs agence ne peuvent accéder qu&#39;aux fiches de leur propre agence.">i</span></th><th>Agence</th><th>CA HT</th><th>Dossiers</th><th>Performance <span class="info-tip" data-tip="Ratio du CA du négociateur par rapport au leader (100%). Permet de comparer les performances individuelles.">i</span></th></tr></thead>
                 <tbody id="neg-tbody-annuel"></tbody>
               </table>
             </div>
@@ -1756,6 +1790,9 @@
           <select class="filter-select" id="filter-annee-apporteurs" onchange="refreshApporteurs()"></select>
           <select class="filter-select" id="filter-mois-apporteurs" onchange="refreshApporteurs()">
             <option value="">— Tous les mois —</option>
+          </select>
+          <select class="filter-select" id="filter-agence-apporteurs" onchange="refreshApporteurs()">
+            <option value="">Toutes les agences</option>
           </select>
         </div>
 
@@ -2415,6 +2452,10 @@ function populateFilters() {
   }
 
   // Filtre mois apporteurs
+  const selAA2 = document.getElementById('filter-agence-apporteurs');
+  if (selAA2) {
+    selAA2.innerHTML = '<option value="">Toutes les agences</option>' + AGENCES.map(a => `<option value="${a}">${a}</option>`).join('');
+  }
   const selMA = document.getElementById('filter-mois-apporteurs');
   if (selMA) {
     while (selMA.options.length > 1) selMA.remove(1);
@@ -2482,10 +2523,10 @@ function refreshDashboard() {
   const nbAnnule = list.filter(d => d.statut === 'ANNULÉ').length;
 
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-label">CA TTC brut (signés)</div><div class="stat-value">${fmtEuro(totalTTC)}</div><div class="stat-sub">Hors reports et annulés</div></div>
-    <div class="stat-card"><div class="stat-label">CA net HT (signés)</div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
-    <div class="stat-card"><div class="stat-label">Dossiers signés</div><div class="stat-value">${fmtCount(nbSigned)}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
-    <div class="stat-card"><div class="stat-label">Agences actives</div><div class="stat-value">${new Set(signed.map(d => d.agence)).size}</div><div class="stat-sub">sur ${AGENCES.length} agences</div></div>
+    <div class="stat-card"><div class="stat-label">CA TTC brut (signés)<span class="info-tip" data-tip="Montant total TTC de toutes les ventes signées sur la période. Ne comprend pas les dossiers en report ou annulés.">i</span></div><div class="stat-value">${fmtEuro(totalTTC)}</div><div class="stat-sub">Hors reports et annulés</div></div>
+    <div class="stat-card"><div class="stat-label">CA net HT (signés)<span class="info-tip" data-tip="CA HT après déduction de la TVA et des commissions versées aux apporteurs d&#39;affaires. C&#39;est le CA réellement encaissé par le réseau.">i</span></div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
+    <div class="stat-card"><div class="stat-label">Dossiers signés<span class="info-tip" data-tip="Nombre de sous-seings privés signés sur la période. Les dossiers en report sont temporairement suspendus, les annulés sont définitivement fermés.">i</span></div><div class="stat-value">${fmtCount(nbSigned)}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
+    <div class="stat-card"><div class="stat-label">Agences actives<span class="info-tip" data-tip="Nombre d&#39;agences du réseau ayant signé au moins un dossier sur la période sélectionnée.">i</span></div><div class="stat-value">${new Set(signed.map(d => d.agence)).size}</div><div class="stat-sub">sur ${AGENCES.length} agences</div></div>
   `;
 
   const tbody = document.getElementById('dash-tbody');
@@ -2851,9 +2892,11 @@ function refreshApporteurs() {
   
   const anneeEl = document.getElementById('filter-annee-apporteurs');
   const moisEl = document.getElementById('filter-mois-apporteurs');
+  const agenceEl = document.getElementById('filter-agence-apporteurs');
   if (!anneeEl) return;
   const annee = anneeEl.value;
   const moisFiltreRaw = moisEl ? moisEl.value : '';
+  const agenceFiltre = agenceEl ? agenceEl.value : '';
 
   // Si un mois est sélectionné, on synchronise l'année
   if (moisFiltreRaw) {
@@ -2866,6 +2909,7 @@ function refreshApporteurs() {
   // Tous dossiers avec apporteur sur la période (tous statuts sauf ANNULÉ)
   const dossiersBruts = DB.dossiers.filter(d =>
     d.statut !== 'ANNULÉ' && d.hasApporteur && d.apporteurNom &&
+    (!agenceFiltre || d.agence === agenceFiltre) &&
     (moisFiltre ? (matchMois(d, moisFiltre) || (!d.date && d.mois === moisFiltre)) : (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))))
   );
 
@@ -2926,6 +2970,7 @@ function refreshApporteurs() {
     moisLabel.textContent = '';
     thead.innerHTML = `<tr>
       <th>Apporteur</th>
+      ${!agenceFiltre ? '<th>Agences</th>' : ''}
       <th style="text-align:center">Dossiers</th>
       <th>CA TTC</th>
       <th>CA Net HT</th>
@@ -2938,6 +2983,10 @@ function refreshApporteurs() {
       const caNet = dosA.reduce((s, d) => s + (d.ht || 0), 0);
       const rev = dosA.reduce((s, d) => s + (d.apportHT || 0), 0);
       const pctMoy = dosA.length > 0 ? (dosA.reduce((s,d) => s + (d.apporteurPct||0), 0) / dosA.length).toFixed(1) : 0;
+      const agencesDetail = !agenceFiltre ? [...new Set(dosA.map(d => d.agence))].map(ag => {
+        const dosAg = dosA.filter(d => d.agence === ag);
+        return `<div style="font-size:11px">${ag} : <strong>${fmtEuro(dosAg.reduce((s,d)=>s+(d.apportHT||0),0))}</strong></div>`;
+      }).join('') : '';
       return `<tr>
         <td><strong>${a}</strong></td>
         <td style="text-align:center;font-weight:700">${dosA.length}</td>
@@ -3069,7 +3118,7 @@ function renderRepartition() {
             </select>
           </div>
           <div class="form-group" style="margin:0">
-            <label>% de la vente *</label>
+            <label>% de la vente * <span class="info-tip" data-tip="Ce pourcentage s&#39;applique sur la quote-part HT perçue par l&#39;agence, pas sur l&#39;intégralité des honoraires.&#10;Exemple : si l&#39;agence touche 50% d&#39;une vente à 10 000€ HT, et que le négo est à 40%, son CA sera 2 000€ (40% × 5 000€).">i</span></label>
             <input type="number" id="s-pct-${i}" value="${existing[i].pct || ''}" placeholder="ex: 50" min="0" max="100" step="0.01"
               oninput="updateRepartitionCalc()" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px">
           </div>
