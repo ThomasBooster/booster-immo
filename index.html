@@ -3818,48 +3818,7 @@ function genererRapportPDF() {
 <body>
 ${pagesHTML}
 \x3Cscript>window.onload = () => { window.print(); }\x3C/script>
-
-  <!-- MODAL AFFAIRES AGENCE -->
-  <div id="modal-affaires-agence" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto">
-    <div style="background:white;max-width:900px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
-      <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-agence-titre">Affaires —</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-affaires-agence-count"></div>
-        </div>
-        <button onclick="closeAffairesAgence()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
-      </div>
-      <div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <select id="filtre-affaires-agence-annee" onchange="refreshAffairesAgence()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
-          <option value="">Toutes les années</option>
-        </select>
-        <select id="filtre-affaires-agence-mois" onchange="refreshAffairesAgence()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
-          <option value="">Tous les mois</option>
-        </select>
-        <select id="filtre-affaires-agence-statut" onchange="refreshAffairesAgence()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
-          <option value="">Tous les statuts</option>
-          <option value="SIGNÉ">Signés</option>
-          <option value="À SIGNER">À signer</option>
-          <option value="ANNULÉ">Annulés</option>
-          <option value="REPORT">Reports</option>
-        </select>
-      </div>
-      <div style="padding:16px 24px;overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-          <thead>
-            <tr style="background:#f8fafc">
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
-              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">CA HT</th>
-              <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Statut</th>
-            </tr>
-          </thead>
-          <tbody id="modal-affaires-agence-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</body></html>`;
+`;
 
   const win = window.open('', 'rapport_scorim_' + mois.replace(' ', '_'), 'width=900,height=700');
   if (!win) { showToast('Popup bloquée par le navigateur — autorise les popups pour ce site', 'error'); return; }
@@ -5684,5 +5643,45 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
     </div>
   </div>
 
+  <!-- MODAL AFFAIRES AGENCE -->
+  <div id="modal-affaires-agence" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto">
+    <div style="background:white;max-width:900px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-agence-titre">Affaires —</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-affaires-agence-count"></div>
+        </div>
+        <button onclick="closeAffairesAgence()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
+      </div>
+      <div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <select id="filtre-affaires-agence-annee" onchange="refreshAffairesAgence()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Toutes les années</option>
+        </select>
+        <select id="filtre-affaires-agence-mois" onchange="refreshAffairesAgence()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Tous les mois</option>
+        </select>
+        <select id="filtre-affaires-agence-statut" onchange="refreshAffairesAgence()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Tous les statuts</option>
+          <option value="SIGNÉ">Signés</option>
+          <option value="À SIGNER">À signer</option>
+          <option value="ANNULÉ">Annulés</option>
+          <option value="REPORT">Reports</option>
+        </select>
+      </div>
+      <div style="padding:16px 24px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#f8fafc">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">CA HT</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Statut</th>
+            </tr>
+          </thead>
+          <tbody id="modal-affaires-agence-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
