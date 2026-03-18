@@ -671,7 +671,8 @@
     background: #1a2530; color: white;
     font-size: 11px; font-weight: 400; line-height: 1.5;
     padding: 7px 10px; border-radius: 7px;
-    white-space: pre-line; width: 220px; text-align: left;
+    white-space: pre-line; width: 200px; max-width: 200px; text-align: left;
+    text-transform: none; letter-spacing: normal;
     pointer-events: none; opacity: 0; transition: opacity .2s;
     z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
@@ -932,7 +933,7 @@
                   <tr>
                     <th>#</th><th>Agence <span class="info-tip" data-tip="Cliquez sur le nom d&#39;une agence pour ouvrir sa fiche détaillée.&#10;Note : les utilisateurs agence ne voient que leur propre agence.">i</span></th><th>CA HT annuel</th><th>CA TTC annuel</th><th>Dossiers signés</th>
                     <th>Détail mensuel</th>
-                    <th>Performance</th>
+                    <th>Performance <span class="info-tip" data-tip="Ratio du CA de l&#39;agence par rapport à l&#39;agence leader du classement (100%). Permet de visualiser l&#39;écart de performance entre les agences.">i</span></th>
                   </tr>
                 </thead>
                 <tbody id="rank-annuel-tbody"></tbody>
