@@ -2269,7 +2269,7 @@ function refreshJuridique(moisFilter) {
   // Dossiers avec acte authentique signé (dateActe renseignée), filtrés par mois si sélectionné
   
   let list = DB.dossiers.filter(d => d.dateActe);
-  if (moisFilter) list = list.filter(d => matchMois(d, moisFilter) || (!d.date && d.mois === moisFilter));
+  if (moisFilter) list = list.filter(d => dateToMoisStr(d.dateActe) === moisFilter);
 
   const tbody = document.getElementById('juridique-tbody');
   if (!tbody) return;
@@ -3572,8 +3572,8 @@ function genererRapportPDF() {
       const rankMois = buildRankDataRaw(DB.dossiers.filter(d => (matchMois(d, mois) || (!d.date && d.mois === mois)) && d.statut === 'SIGNÉ'));
       const rankAnnee = buildRankDataRaw(DB.dossiers.filter(d => (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))) && d.statut === 'SIGNÉ'));
 
-      // Frais juridiques de l'agence sur le mois
-      const dosActe = DB.dossiers.filter(d => d.agence === agence && d.dateActe && d.mois === mois);
+      // Frais juridiques de l'agence sur le mois de l'acte authentique
+      const dosActe = DB.dossiers.filter(d => d.agence === agence && d.dateActe && dateToMoisStr(d.dateActe) === mois);
       const fraisTotal = dosActe.reduce((s, d) => s + FRAIS_JURIDIQUE * (d.pct || 100) / 100, 0);
 
       const caHTMois = dosMois.reduce((s, d) => s + (d.ht || 0), 0);
