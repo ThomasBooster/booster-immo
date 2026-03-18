@@ -3708,61 +3708,6 @@ function genererRapportPDF() {
 ${pagesHTML}
 <script>window.onload = () => { window.print(); }<\/script>
 
-  <!-- MODAL AFFAIRES COLLABORATEUR -->
-  <div id="modal-affaires-collab" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto">
-    <div style="background:white;max-width:1000px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
-      <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-titre">Affaires de —</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-affaires-count"></div>
-        </div>
-        <button onclick="closeAffairesCollab()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
-      </div>
-      <!-- Filtres -->
-      <div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <select id="filtre-affaires-annee" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
-          <option value="">Toutes les années</option>
-        </select>
-        <select id="filtre-affaires-mois" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
-          <option value="">Tous les mois</option>
-        </select>
-        <select id="filtre-affaires-type" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
-          <option value="">Sortie + Rentrée</option>
-          <option value="sortie">CA Sortie uniquement</option>
-          <option value="rentree">CA Rentrée uniquement</option>
-        </select>
-        <select id="filtre-affaires-statut" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
-          <option value="">Tous les statuts</option>
-          <option value="SIGNÉ">Signés</option>
-          <option value="À SIGNER">À signer</option>
-          <option value="ANNULÉ">Annulés</option>
-          <option value="REPORT">Reports</option>
-        </select>
-        <select id="filtre-affaires-agence" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
-          <option value="">Toutes les agences</option>
-        </select>
-        <button onclick="resetFiltresAffaires()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:white;cursor:pointer;color:var(--text-muted)">Réinitialiser</button>
-      </div>
-      <!-- Résumé stats rapides -->
-      <div id="modal-affaires-stats" style="padding:12px 24px;background:#f0f4f8;border-bottom:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap"></div>
-      <!-- Tableau -->
-      <div style="padding:16px 24px;overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-          <thead>
-            <tr style="background:#f8fafc">
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Agence</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Type</th>
-              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">CA HT</th>
-              <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Statut</th>
-            </tr>
-          </thead>
-          <tbody id="modal-affaires-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 </body></html>`;
 
   const win = window.open('', 'rapport_scorim_' + mois.replace(' ', '_'), 'width=900,height=700');
@@ -5243,5 +5188,59 @@ function showToast(msg, type = '') {
 // Allow pressing Enter in auth
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 </script>
+
+  <!-- MODAL AFFAIRES COLLABORATEUR -->
+  <div id="modal-affaires-collab" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto">
+    <div style="background:white;max-width:1000px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-titre">Affaires de —</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-affaires-count"></div>
+        </div>
+        <button onclick="closeAffairesCollab()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
+      </div>
+      <div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <select id="filtre-affaires-annee" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Toutes les années</option>
+        </select>
+        <select id="filtre-affaires-mois" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Tous les mois</option>
+        </select>
+        <select id="filtre-affaires-type" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Sortie + Rentrée</option>
+          <option value="sortie">CA Sortie uniquement</option>
+          <option value="rentree">CA Rentrée uniquement</option>
+        </select>
+        <select id="filtre-affaires-statut" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Tous les statuts</option>
+          <option value="SIGNÉ">Signés</option>
+          <option value="À SIGNER">À signer</option>
+          <option value="ANNULÉ">Annulés</option>
+          <option value="REPORT">Reports</option>
+        </select>
+        <select id="filtre-affaires-agence" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Toutes les agences</option>
+        </select>
+        <button onclick="resetFiltresAffaires()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:white;cursor:pointer;color:var(--text-muted)">Réinitialiser</button>
+      </div>
+      <div id="modal-affaires-stats" style="padding:12px 24px;border-bottom:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap"></div>
+      <div style="padding:16px 24px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#f8fafc">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Agence</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Type</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">CA HT</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Statut</th>
+            </tr>
+          </thead>
+          <tbody id="modal-affaires-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
