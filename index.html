@@ -683,6 +683,7 @@
     pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 9999;
   }
   .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
+  .tr-clickable:hover { background: var(--color-background-secondary, #f8fafc) !important; transition: background .1s; }
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -2534,7 +2535,7 @@ function refreshDashboard() {
   if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier</td></tr>'; return; }
   document.getElementById('dash-count').textContent = list.length + ' dossier(s)';
   tbody.innerHTML = list.sort((a,b) => (b.mois > a.mois ? 1 : -1) || (b.ttc - a.ttc)).map(d => `
-    <tr>
+    <tr class="tr-clickable" style="cursor:pointer" onclick="openEdit(${d.id})">
       <td><strong>${d.client}</strong>${d.groupId ? ` <span style="font-size:10px;color:var(--text-muted)">#G${d.groupId}</span>` : ''}</td>
       <td>${agenceBadge(d)}</td>
       <td style="font-size:12px">${d.ttc ? fmtEuro(d.ttc) : '—'}</td>
@@ -2547,7 +2548,6 @@ function refreshDashboard() {
       <td style="font-size:12px;text-align:center">${d.diag ? '✅' : ''}</td>
       <td style="font-size:12px;color:var(--text-muted)">${d.mois}</td>
       <td style="font-size:12px;color:var(--text-muted);text-transform:capitalize">${d.saisi}</td>
-      <td><button class="btn btn-sm btn-outline" onclick="openEdit(${d.id})">✏️</button></td>
     </tr>`).join('');
 
   // Dates butoire
@@ -2988,7 +2988,7 @@ function refreshApporteurs() {
         const dosAg = dosA.filter(d => d.agence === ag);
         return `<div style="font-size:11px">${ag} : <strong>${fmtEuro(dosAg.reduce((s,d)=>s+(d.apportHT||0),0))}</strong></div>`;
       }).join('') : '';
-      return `<tr>
+      return `<tr class="tr-clickable" style="cursor:pointer" data-nom="${a}" onclick="openAffairesApporteur(this.dataset.nom)">
         <td><strong>${a}</strong></td>
         <td style="text-align:center;font-weight:700">${dosA.length}</td>
         <td style="font-weight:600;color:var(--primary)">${fmtEuro(ca)}</td>
@@ -3030,7 +3030,7 @@ function refreshApporteurs() {
              </td>`
           : `<td style="text-align:center;color:var(--text-muted);font-size:12px">—</td>`;
       }).join('');
-      return `<tr>
+      return `<tr class="tr-clickable" style="cursor:pointer" data-nom="${a}" onclick="openAffairesApporteur(this.dataset.nom)">
         <td><strong>${a}</strong></td>
         ${parMois}
         <td style="text-align:center;font-weight:700">${dosA.length}</td>
@@ -3369,7 +3369,7 @@ function refreshMyDossiers() {
   if (!tbody) return;
   if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Aucun dossier saisi</td></tr>'; return; }
   tbody.innerHTML = list.map(d => `
-    <tr>
+    <tr class="tr-clickable" style="cursor:pointer" onclick="openEdit(${d.id})">
       <td><strong>${d.client}</strong>${d.groupId ? ` <span style="font-size:10px;color:var(--text-muted)">#G${d.groupId}</span>` : ''}</td>
       <td>${agenceBadge(d)}</td>
       <td style="font-size:12px">${d.ttc ? fmtEuro(d.ttc) : '—'}</td>
@@ -3380,9 +3380,8 @@ function refreshMyDossiers() {
       <td style="font-size:12px;color:${d.dateButoire ? (new Date(d.dateButoire) < new Date() ? '#dc2626' : 'var(--text-muted)') : 'var(--text-muted)'}">${d.dateButoire ? fmtDate(d.dateButoire) : '—'}</td>
       <td style="font-size:12px;text-align:center">${d.diag ? '✅' : ''}</td>
       <td style="font-size:12px;color:var(--text-muted)">${d.mois}</td>
-      <td>
-        <button class="btn btn-sm btn-outline" onclick="openEdit(${d.id})">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="openDelete(${d.id})" style="margin-left:4px">🗑</button>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-sm btn-danger" onclick="openDelete(${d.id})">🗑</button>
       </td>
     </tr>`).join('');
 }
@@ -3402,7 +3401,7 @@ function refreshDossiers() {
   const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin';
   if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier trouvé</td></tr>'; return; }
   tbody.innerHTML = list.map(d => `
-    <tr>
+    <tr class="${canEdit ? 'tr-clickable' : ''}" style="${canEdit ? 'cursor:pointer' : ''}" ${canEdit ? `onclick="openEdit(${d.id})"` : ''}>
       <td><strong>${d.client}</strong>${d.groupId ? ` <span style="font-size:10px;color:var(--text-muted)">#G${d.groupId}</span>` : ''}</td>
       <td>${agenceBadge(d)}</td>
       <td style="font-size:12px">${d.ttc ? fmtEuro(d.ttc) : '—'}</td>
@@ -3415,9 +3414,8 @@ function refreshDossiers() {
       <td style="font-size:12px;text-align:center">${d.diag ? '✅' : ''}</td>
       <td style="font-size:12px;color:var(--text-muted)">${d.mois}</td>
       <td style="font-size:12px;color:var(--text-muted);text-transform:capitalize">${d.saisi}</td>
-      <td>
-        ${canEdit ? `<button class="btn btn-sm btn-outline" onclick="openEdit(${d.id})">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="openDelete(${d.id})" style="margin-left:4px">🗑</button>` : '—'}
+      <td onclick="event.stopPropagation()">
+        ${canEdit ? `<button class="btn btn-sm btn-danger" onclick="openDelete(${d.id})">🗑</button>` : '—'}
       </td>
     </tr>`).join('');
 }
@@ -6315,6 +6313,38 @@ function showToast(msg, type = '') {
 
 // Allow pressing Enter in auth
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// =====================
+// AFFAIRES APPORTEUR (modal)
+// =====================
+function openAffairesApporteur(nom) {
+  if (!nom) return;
+  const dos = DB.dossiers.filter(d => d.apporteurNom === nom && d.statut !== 'ANNULÉ')
+    .sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+
+  document.getElementById('modal-apporteur-titre').textContent = nom;
+  const totalCA = dos.reduce((s,d) => s + (d.ttcTotal||d.ttc||0), 0);
+  const totalRev = dos.reduce((s,d) => s + (d.apportHT||0), 0);
+  document.getElementById('modal-apporteur-stats').textContent =
+    dos.length + ' affaire(s) · CA TTC : ' + fmtEuro(totalCA) + ' · Reversé HT : ' + fmtEuro(totalRev);
+
+  const tbody = document.getElementById('modal-apporteur-tbody');
+  tbody.innerHTML = dos.length === 0
+    ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">Aucune affaire</td></tr>'
+    : dos.map((d,i) => '<tr style="border-bottom:1px solid var(--border);' + (i%2===0?'':'background:#f8fafc') + '">' +
+        '<td style="padding:10px 12px;font-weight:600">' + d.client + '</td>' +
+        '<td style="padding:10px 12px;font-size:12px;color:var(--text-muted)">' + d.agence + '</td>' +
+        '<td style="padding:10px 12px;font-size:12px">' + fmtDate(d.date) + '</td>' +
+        '<td style="padding:10px 12px;text-align:right;font-weight:600;color:var(--primary)">' + fmtEuro(d.ttcTotal||d.ttc||0) + '</td>' +
+        '<td style="padding:10px 12px;text-align:right;font-weight:700;color:#92400e">' + fmtEuro(d.apportHT||0) + '</td>' +
+        '<td style="padding:10px 12px;text-align:center;font-size:12px">' + (d.apporteurPct||0) + '%</td>' +
+        '<td style="padding:10px 12px;text-align:center">' + statusBadge(d.statut) + '</td>' +
+        '</tr>').join('');
+
+  document.getElementById('modal-affaires-apporteur').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
 </script>
 
   <!-- MODAL AFFAIRES COLLABORATEUR -->
@@ -6404,6 +6434,34 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
             </tr>
           </thead>
           <tbody id="modal-affaires-agence-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- MODAL AFFAIRES APPORTEUR -->
+  <div id="modal-affaires-apporteur" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto">
+    <div style="background:white;max-width:950px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-apporteur-titre">Affaires de —</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-apporteur-stats"></div>
+        </div>
+        <button onclick="document.getElementById('modal-affaires-apporteur').style.display='none';document.body.style.overflow=''" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
+      </div>
+      <div style="padding:16px 24px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#f8fafc">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Agence</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">CA TTC</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Reversé HT</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">%</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Statut</th>
+            </tr>
+          </thead>
+          <tbody id="modal-apporteur-tbody"></tbody>
         </table>
       </div>
     </div>
