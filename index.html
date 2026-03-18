@@ -1458,10 +1458,13 @@
 
       <!-- FICHE STATS COLLABORATEUR -->
       <div class="page" id="page-fiche-collab">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
           <button class="btn btn-outline btn-sm" onclick="goBackFromFiche()">← Retour</button>
-          <div>
-            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--primary)" id="fiche-collab-titre">—</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--primary)" id="fiche-collab-titre">—</div>
+              <button class="btn btn-sm btn-outline" onclick="openAffairesCollab()" style="font-size:12px;padding:4px 12px">📋 Toutes ses affaires</button>
+            </div>
             <div style="font-size:13px;color:var(--text-muted)" id="fiche-collab-sous-titre">—</div>
           </div>
         </div>
@@ -3307,7 +3310,7 @@ async function confirmEdit() {
     }
     const rentToSave = rentreurLignesEdit.filter(l => l.negId);
     if (rentToSave.length > 0) {
-      // Recalcule le CA_rentrée depuis les % agences
+      // Recalcule le CA_rentrée depuis le % agence × % rentreur
       const totalHT = cibles.reduce((s, d) => s + (d.ht || 0), 0);
       for (const d of cibles) {
         const rentPourAgence = rentToSave.filter(r => r.agence === d.agence);
@@ -3316,7 +3319,7 @@ async function confirmEdit() {
             dossier_id: d.id,
             negociateur_id: parseInt(r.negId),
             agence: r.agence,
-            ca_rentree: totalHT * ((d.pct || 100) / 100)
+            ca_rentree: totalHT * ((d.pct || 100) / 100) * ((r.pct !== undefined ? r.pct : 100) / 100)
           }));
           const saved = await sbInsert('dossier_rentreurs', rows);
           if (saved) DB.dossierRent = [...(DB.dossierRent || []), ...saved];
@@ -3704,6 +3707,62 @@ function genererRapportPDF() {
 <body>
 ${pagesHTML}
 <script>window.onload = () => { window.print(); }<\/script>
+
+  <!-- MODAL AFFAIRES COLLABORATEUR -->
+  <div id="modal-affaires-collab" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto">
+    <div style="background:white;max-width:1000px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-titre">Affaires de —</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-affaires-count"></div>
+        </div>
+        <button onclick="closeAffairesCollab()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
+      </div>
+      <!-- Filtres -->
+      <div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <select id="filtre-affaires-annee" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Toutes les années</option>
+        </select>
+        <select id="filtre-affaires-mois" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Tous les mois</option>
+        </select>
+        <select id="filtre-affaires-type" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Sortie + Rentrée</option>
+          <option value="sortie">CA Sortie uniquement</option>
+          <option value="rentree">CA Rentrée uniquement</option>
+        </select>
+        <select id="filtre-affaires-statut" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Tous les statuts</option>
+          <option value="SIGNÉ">Signés</option>
+          <option value="À SIGNER">À signer</option>
+          <option value="ANNULÉ">Annulés</option>
+          <option value="REPORT">Reports</option>
+        </select>
+        <select id="filtre-affaires-agence" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Toutes les agences</option>
+        </select>
+        <button onclick="resetFiltresAffaires()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:white;cursor:pointer;color:var(--text-muted)">Réinitialiser</button>
+      </div>
+      <!-- Résumé stats rapides -->
+      <div id="modal-affaires-stats" style="padding:12px 24px;background:#f0f4f8;border-bottom:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap"></div>
+      <!-- Tableau -->
+      <div style="padding:16px 24px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#f8fafc">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Agence</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Type</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">CA HT</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Statut</th>
+            </tr>
+          </thead>
+          <tbody id="modal-affaires-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </body></html>`;
 
   const win = window.open('', 'rapport_scorim_' + mois.replace(' ', '_'), 'width=900,height=700');
@@ -4758,7 +4817,7 @@ function renderNegociateursList() {
 // =====================
 // RENTREURS — SAISIE
 // =====================
-let rentreurLignesSaisie = []; // [{agence, negId}]
+let rentreurLignesSaisie = []; // [{agence, negId, pct}]
 
 function renderRentreursSaisie() {
   const container = document.getElementById('s-rentreurs-container');
@@ -4774,21 +4833,33 @@ function buildRentreurLigneSaisie(idx, ligne) {
   const agenceOpts = '<option value="">— Agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === ligne.agence ? ' selected' : '') + '>' + a + '</option>').join('');
   const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
-  return '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px">' +
+  const pct = ligne.pct !== undefined ? ligne.pct : 100;
+  return '<div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurAgenceChange(' + idx + ',this.value)">' + agenceOpts + '</select>' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurNegChange(' + idx + ',this.value)">' + negOpts + '</select>' +
+    '<div style="display:flex;align-items:center;gap:3px">' +
+    '<input type="number" min="1" max="100" step="1" value="' + pct + '" style="width:52px;padding:7px 6px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;text-align:center" onchange="onRentreurPctChange(' + idx + ',this.value)" oninput="onRentreurPctChange(' + idx + ',this.value)">' +
+    '<span style="font-size:12px;color:var(--text-muted)">%</span></div>' +
     '<button class="btn btn-sm btn-danger" onclick="removeRentreurLigne(' + idx + ')">✕</button>' +
     '</div>';
 }
 
 function addRentreurLigne() {
-  rentreurLignesSaisie.push({ agence: '', negId: '' });
+  const nb = rentreurLignesSaisie.length + 1;
+  const pctEgal = Math.round(100 / nb);
+  rentreurLignesSaisie.forEach(l => l.pct = pctEgal);
+  rentreurLignesSaisie.push({ agence: '', negId: '', pct: 100 - pctEgal * (nb - 1) });
   renderRentreursSaisie();
 }
 
 function removeRentreurLigne(idx) {
   rentreurLignesSaisie.splice(idx, 1);
+  if (rentreurLignesSaisie.length === 1) rentreurLignesSaisie[0].pct = 100;
   renderRentreursSaisie();
+}
+
+function onRentreurPctChange(idx, val) {
+  rentreurLignesSaisie[idx].pct = parseFloat(val) || 0;
 }
 
 function onRentreurAgenceChange(idx, val) {
@@ -4802,15 +4873,15 @@ function onRentreurNegChange(idx, val) {
 }
 
 function collectRentreursSaisie(parts) {
-  // Calcule le CA_rentrée = % agence du rentreur × CA net HT total
+  // Calcule le CA_rentrée = % rentreur × % agence × CA net HT total
   const totalHT = parts.reduce((s, p) => s + (p.ht || 0), 0);
   return rentreurLignesSaisie
     .filter(l => l.negId)
     .map(l => {
-      const neg = DB.negociateurs.find(n => n.id === parseInt(l.negId));
       const part = parts.find(p => p.agence === l.agence);
       const pctAgence = part ? (part.pct / 100) : 1;
-      const caRentree = totalHT * pctAgence;
+      const pctRentreur = (l.pct !== undefined ? l.pct : 100) / 100;
+      const caRentree = totalHT * pctAgence * pctRentreur;
       return { negociateur_id: parseInt(l.negId), agence: l.agence, ca_rentree: caRentree };
     });
 }
@@ -4823,7 +4894,12 @@ let rentreurLignesEdit = [];
 function renderRentreursEdit(rentRows, agencesGroupe) {
   const container = document.getElementById('edit-rentreurs-container');
   if (!container) return;
-  rentreurLignesEdit = rentRows.map(r => ({ agence: r.agence, negId: r.negociateur_id, rowId: r.id, caRentree: r.ca_rentree }));
+  // Calculer le total pour déduire les % si pas fournis
+  const totalCARent = rentRows.reduce((s, r) => s + (r.ca_rentree || 0), 0);
+  rentreurLignesEdit = rentRows.map(r => {
+    let pct = r.pct !== undefined ? r.pct : (totalCARent > 0 ? Math.round((r.ca_rentree || 0) / totalCARent * 100) : Math.round(100 / rentRows.length));
+    return { agence: r.agence, negId: r.negociateur_id, rowId: r.id, caRentree: r.ca_rentree, pct };
+  });
   if (rentreurLignesEdit.length === 0) {
     container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucun rentreur</div>';
     return;
@@ -4835,21 +4911,33 @@ function buildRentreurLigneEdit(idx, ligne) {
   const agenceOpts = '<option value="">— Agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === ligne.agence ? ' selected' : '') + '>' + a + '</option>').join('');
   const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
-  return '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px">' +
+  const pct = ligne.pct !== undefined ? ligne.pct : 100;
+  return '<div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurEditAgence(' + idx + ',this.value)">' + agenceOpts + '</select>' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurEditNeg(' + idx + ',this.value)">' + negOpts + '</select>' +
+    '<div style="display:flex;align-items:center;gap:3px">' +
+    '<input type="number" min="1" max="100" step="1" value="' + pct + '" style="width:52px;padding:7px 6px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;text-align:center" onchange="onRentreurEditPct(' + idx + ',this.value)" oninput="onRentreurEditPct(' + idx + ',this.value)">' +
+    '<span style="font-size:12px;color:var(--text-muted)">%</span></div>' +
     '<button class="btn btn-sm btn-danger" onclick="removeRentreurLigneEdit(' + idx + ')">✕</button>' +
     '</div>';
 }
 
 function addRentreurLigneEdit() {
-  rentreurLignesEdit.push({ agence: '', negId: '' });
-  renderRentreursEdit(rentreurLignesEdit.map(l => ({ agence: l.agence, negociateur_id: l.negId, id: l.rowId, ca_rentree: l.caRentree })), []);
+  const nb = rentreurLignesEdit.length + 1;
+  const pctEgal = Math.round(100 / nb);
+  rentreurLignesEdit.forEach(l => l.pct = pctEgal);
+  rentreurLignesEdit.push({ agence: '', negId: '', pct: 100 - pctEgal * (nb - 1) });
+  renderRentreursEdit(rentreurLignesEdit.map(l => ({ agence: l.agence, negociateur_id: l.negId, id: l.rowId, ca_rentree: l.caRentree, pct: l.pct })), []);
 }
 
 function removeRentreurLigneEdit(idx) {
   rentreurLignesEdit.splice(idx, 1);
-  renderRentreursEdit(rentreurLignesEdit.map(l => ({ agence: l.agence, negociateur_id: l.negId, id: l.rowId, ca_rentree: l.caRentree })), []);
+  if (rentreurLignesEdit.length === 1) rentreurLignesEdit[0].pct = 100;
+  renderRentreursEdit(rentreurLignesEdit.map(l => ({ agence: l.agence, negociateur_id: l.negId, id: l.rowId, ca_rentree: l.caRentree, pct: l.pct })), []);
+}
+
+function onRentreurEditPct(idx, val) {
+  rentreurLignesEdit[idx].pct = parseFloat(val) || 0;
 }
 
 function onRentreurEditAgence(idx, val) {
@@ -4860,6 +4948,142 @@ function onRentreurEditAgence(idx, val) {
 
 function onRentreurEditNeg(idx, val) {
   rentreurLignesEdit[idx].negId = val;
+}
+
+
+// =====================
+// AFFAIRES COLLABORATEUR
+// =====================
+function openAffairesCollab() {
+  const n = DB.negociateurs.find(x => x.id === ficheCollabId);
+  if (!n) return;
+
+  document.getElementById('modal-affaires-titre').textContent = 'Affaires de ' + n.nom;
+
+  // Remplir le filtre agences
+  const selAg = document.getElementById('filtre-affaires-agence');
+  selAg.innerHTML = '<option value="">Toutes les agences</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+
+  // Remplir le filtre années
+  const dosNeg = (DB.dossierNeg || []).filter(l => l.negociateur_id === n.id);
+  const dosRent = (DB.dossierRent || []).filter(l => l.negociateur_id === n.id);
+  const allDossierIds = [...new Set([...dosNeg.map(l => l.dossier_id), ...dosRent.map(l => l.dossier_id)])];
+  const allDossiers = allDossierIds.map(id => DB.dossiers.find(d => d.id === id)).filter(Boolean);
+  const years = [...new Set(allDossiers.map(d => d.date ? new Date(d.date).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
+  const selAnnee = document.getElementById('filtre-affaires-annee');
+  selAnnee.innerHTML = '<option value="">Toutes les années</option>' + years.map(y => '<option value="' + y + '">' + y + '</option>').join('');
+
+  // Reset filtres
+  document.getElementById('filtre-affaires-mois').value = '';
+  document.getElementById('filtre-affaires-type').value = '';
+  document.getElementById('filtre-affaires-statut').value = '';
+
+  document.getElementById('modal-affaires-collab').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  refreshAffairesCollab();
+}
+
+function closeAffairesCollab() {
+  document.getElementById('modal-affaires-collab').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function resetFiltresAffaires() {
+  document.getElementById('filtre-affaires-annee').value = '';
+  document.getElementById('filtre-affaires-mois').value = '';
+  document.getElementById('filtre-affaires-type').value = '';
+  document.getElementById('filtre-affaires-statut').value = '';
+  document.getElementById('filtre-affaires-agence').value = '';
+  refreshAffairesCollab();
+}
+
+function refreshAffairesCollab() {
+  const n = DB.negociateurs.find(x => x.id === ficheCollabId);
+  if (!n) return;
+
+  const filtAnnee = document.getElementById('filtre-affaires-annee').value;
+  const filtMois = document.getElementById('filtre-affaires-mois').value;
+  const filtType = document.getElementById('filtre-affaires-type').value;
+  const filtStatut = document.getElementById('filtre-affaires-statut').value;
+  const filtAgence = document.getElementById('filtre-affaires-agence').value;
+
+  // Mettre à jour filtre mois selon année
+  const selMois = document.getElementById('filtre-affaires-mois');
+  const moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  if (filtAnnee) {
+    selMois.innerHTML = '<option value="">Tous les mois</option>' + moisNoms.map((m,i) => '<option value="' + m + ' ' + filtAnnee + '"' + (filtMois === m + ' ' + filtAnnee ? ' selected' : '') + '>' + m + '</option>').join('');
+  } else {
+    selMois.innerHTML = '<option value="">Tous les mois</option>';
+  }
+
+  // Collecter les lignes sortie
+  const lignesSortie = filtType !== 'rentree' ? (DB.dossierNeg || [])
+    .filter(l => l.negociateur_id === n.id)
+    .map(l => {
+      const d = DB.dossiers.find(x => x.id === l.dossier_id);
+      if (!d) return null;
+      return { ...d, caCollab: (d.ht || 0) * (l.pct_ca / 100), pctCollab: l.pct_ca, typeCA: 'sortie' };
+    }).filter(Boolean) : [];
+
+  // Collecter les lignes rentrée
+  const lignesRentree = filtType !== 'sortie' ? (DB.dossierRent || [])
+    .filter(l => l.negociateur_id === n.id)
+    .map(l => {
+      const d = DB.dossiers.find(x => x.id === l.dossier_id);
+      if (!d) return null;
+      return { ...d, caCollab: l.ca_rentree || 0, pctCollab: null, typeCA: 'rentree' };
+    }).filter(Boolean) : [];
+
+  let rows = [...lignesSortie, ...lignesRentree];
+
+  // Appliquer filtres
+  if (filtAnnee) rows = rows.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(filtAnnee));
+  if (filtMois) rows = rows.filter(d => matchMois(d, filtMois) || (!d.date && d.mois === filtMois));
+  if (filtStatut) rows = rows.filter(d => d.statut === filtStatut);
+  if (filtAgence) rows = rows.filter(d => d.agence === filtAgence);
+
+  // Trier par date décroissante
+  rows.sort((a, b) => new Date(b.date || '2000-01-01') - new Date(a.date || '2000-01-01'));
+
+  // Stats rapides
+  const totalSortie = rows.filter(r => r.typeCA === 'sortie').reduce((s, r) => s + r.caCollab, 0);
+  const totalRentree = rows.filter(r => r.typeCA === 'rentree').reduce((s, r) => s + r.caCollab, 0);
+  const nbSortie = rows.filter(r => r.typeCA === 'sortie').length;
+  const nbRentree = rows.filter(r => r.typeCA === 'rentree').length;
+
+  document.getElementById('modal-affaires-count').textContent = rows.length + ' affaire(s) trouvée(s)';
+  document.getElementById('modal-affaires-stats').innerHTML =
+    '<div style="font-size:12px"><div style="color:rgba(255,255,255,0.6);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">CA Sortie</div><div style="font-weight:700;color:white;font-size:15px">' + fmtEuro(totalSortie) + '</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">' + nbSortie + ' affaire(s)</div></div>' +
+    '<div style="width:1px;background:rgba(255,255,255,0.2)"></div>' +
+    '<div style="font-size:12px"><div style="color:rgba(255,255,255,0.6);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">CA Rentrée</div><div style="font-weight:700;color:#34d399;font-size:15px">' + fmtEuro(totalRentree) + '</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">' + nbRentree + ' affaire(s)</div></div>' +
+    '<div style="width:1px;background:rgba(255,255,255,0.2)"></div>' +
+    '<div style="font-size:12px"><div style="color:rgba(255,255,255,0.6);font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Total CA</div><div style="font-weight:700;color:white;font-size:15px">' + fmtEuro(totalSortie + totalRentree) + '</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">' + rows.length + ' affaire(s)</div></div>';
+
+  // Remettre le style stats en fond primaire
+  document.getElementById('modal-affaires-stats').style.background = 'var(--primary)';
+  document.getElementById('modal-affaires-stats').style.padding = '12px 24px';
+
+  // Tableau
+  const tbody = document.getElementById('modal-affaires-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">Aucune affaire pour ces critères</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map((d, i) => {
+    const typeBadge = d.typeCA === 'sortie'
+      ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">Sortie</span>'
+      : '<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">Rentrée</span>';
+    const caColor = d.typeCA === 'sortie' ? 'var(--primary)' : '#10b981';
+    return '<tr style="border-bottom:1px solid var(--border);' + (i % 2 === 0 ? '' : 'background:#f8fafc') + '">' +
+      '<td style="padding:10px 12px;font-weight:600">' + d.client + '</td>' +
+      '<td style="padding:10px 12px;color:var(--text-muted);font-size:12px">' + d.agence + '</td>' +
+      '<td style="padding:10px 12px;font-size:12px">' + fmtDate(d.date) + '</td>' +
+      '<td style="padding:10px 12px">' + typeBadge + '</td>' +
+      '<td style="padding:10px 12px;text-align:right;font-weight:700;color:' + caColor + '">' + fmtEuro(d.caCollab) + '</td>' +
+      '<td style="padding:10px 12px;text-align:center">' + statusBadge(d.statut) + '</td>' +
+      '</tr>';
+  }).join('');
 }
 
 // =====================
