@@ -654,6 +654,7 @@
 
   input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -1524,6 +1525,116 @@
         </div>
       </div>
 
+
+      <!-- FICHE STATS AGENCE -->
+      <div class="page" id="page-fiche-agence">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="goBackFromFicheAgence()">← Retour</button>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--primary)" id="fiche-agence-titre">—</div>
+              <button class="btn btn-sm btn-outline" onclick="openAffairesAgence()" style="font-size:12px;padding:4px 12px">📋 Toutes les affaires</button>
+            </div>
+            <div style="font-size:13px;color:var(--text-muted)" id="fiche-agence-sous-titre">—</div>
+          </div>
+        </div>
+
+        <!-- Stats rapides -->
+        <div class="stats-grid" id="fiche-agence-stats" style="margin-bottom:20px"></div>
+
+        <!-- 10 dernières ventes -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Client</th><th>Négociateur</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead>
+              <tbody id="fiche-agence-ventes"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Moyennes mensuelles -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">📈 Moyenne mensuelle</span>
+            <select class="filter-select" id="fiche-agence-annee-moy" onchange="refreshFicheAgenceMoyenne()" style="font-size:12px"></select>
+          </div>
+          <div id="fiche-agence-moyenne" style="padding:20px;display:flex;gap:30px;flex-wrap:wrap"></div>
+        </div>
+
+        <!-- Tableau année N -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 Année en cours</span></div>
+          <div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div>
+        </div>
+
+        <!-- Tableau année N-1 -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 Année N-1</span></div>
+          <div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div>
+        </div>
+
+        <!-- Graphique CA -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">📊 Évolution du CA HT par mois</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="filter-select" id="fiche-agence-graph-annee" onchange="refreshFicheAgenceGraphs()" style="font-size:12px"></select>
+              <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="checkbox" id="fiche-agence-graph-all" onchange="refreshFicheAgenceGraphs()"> Toutes les années
+              </label>
+            </div>
+          </div>
+          <div style="padding:16px"><canvas id="fiche-agence-chart-ca" height="120"></canvas></div>
+        </div>
+
+        <!-- Graphique nb ventes -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">🏠 Évolution du nombre de ventes par mois</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="filter-select" id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" style="font-size:12px"></select>
+              <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()"> Toutes les années
+              </label>
+            </div>
+          </div>
+          <div style="padding:16px"><canvas id="fiche-agence-chart-nb" height="120"></canvas></div>
+        </div>
+
+        <!-- Apporteurs -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">🤝 Affaires avec apporteurs</span>
+            <select class="filter-select" id="fiche-agence-filtre-apporteur" onchange="refreshFicheAgenceApporteurs()" style="font-size:12px">
+              <option value="">Tous les apporteurs</option>
+            </select>
+          </div>
+          <div id="fiche-agence-apporteurs-stats" style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap;background:#f8fafc;border-bottom:1px solid var(--border)"></div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Client</th><th>Apporteur</th><th>Date SSP</th><th>CA HT total</th><th>Apport HT</th><th>% apport</th><th>Statut</th></tr></thead>
+              <tbody id="fiche-agence-apporteurs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Équipe -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title">👥 Équipe</span></div>
+          <div id="fiche-agence-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div>
+        </div>
+
+        <!-- Autres stats -->
+        <div class="card" style="background:linear-gradient(135deg,#f8f7ff,#ede9fe);border:1px solid #c4b5fd">
+          <div style="padding:24px;text-align:center">
+            <div style="font-size:32px;margin-bottom:10px">🚀</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:#4c1d95;margin-bottom:6px">Autres stats à venir</div>
+            <div style="font-size:13px;color:#6d28d9">Taux de transformation, suivi des rentrées, comparaisons inter-agences...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- APPORTEURS -->
       <div class="page" id="page-apporteurs">
         <div class="filters">
@@ -2194,7 +2305,7 @@ function showPage(name, navEl) {
   document.getElementById('page-' + name).classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
+  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', 'fiche-agence':'Fiche agence', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
   document.getElementById('topbar-title').textContent = titles[name] || name;
 
   if (name === 'dashboard') refreshDashboard();
@@ -2370,7 +2481,7 @@ function refreshRanking() {
   document.getElementById('rank-tbody').innerHTML = ranked.map((ag, i) => `
     <tr class="${i === 0 ? 'highlight-row' : ''}">
       <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
-      <td><strong>${ag.name}</strong></td>
+      <td><strong style="cursor:pointer;color:var(--primary);text-decoration:underline" onclick="openFicheAgence('${ag.name}','ranking')">${ag.name}</strong></td>
       <td style="font-weight:700;color:var(--primary)">${fmtEuro(ag.ht)}</td>
       <td>${fmtEuro(ag.ttc)}</td>
       <td>${fmtCount(ag.count)}</td>
@@ -2404,7 +2515,7 @@ function refreshRankingAnnuel() {
 
     return `<tr class="${i === 0 ? 'highlight-row' : ''}">
       <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
-      <td><strong>${ag.name}</strong></td>
+      <td><strong style="cursor:pointer;color:var(--primary);text-decoration:underline" onclick="openFicheAgence('${ag.name}','ranking')">${ag.name}</strong></td>
       <td style="font-weight:700;color:var(--primary)">${fmtEuro(ag.ht)}</td>
       <td>${fmtEuro(ag.ttc)}</td>
       <td>${fmtCount(ag.count)}</td>
@@ -3708,6 +3819,46 @@ function genererRapportPDF() {
 ${pagesHTML}
 <script>window.onload = () => { window.print(); }<\/script>
 
+  <!-- MODAL AFFAIRES AGENCE -->
+  <div id="modal-affaires-agence" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto">
+    <div style="background:white;max-width:900px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-agence-titre">Affaires —</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-affaires-agence-count"></div>
+        </div>
+        <button onclick="closeAffairesAgence()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
+      </div>
+      <div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <select id="filtre-affaires-agence-annee" onchange="refreshAffairesAgence()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Toutes les années</option>
+        </select>
+        <select id="filtre-affaires-agence-mois" onchange="refreshAffairesAgence()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Tous les mois</option>
+        </select>
+        <select id="filtre-affaires-agence-statut" onchange="refreshAffairesAgence()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Tous les statuts</option>
+          <option value="SIGNÉ">Signés</option>
+          <option value="À SIGNER">À signer</option>
+          <option value="ANNULÉ">Annulés</option>
+          <option value="REPORT">Reports</option>
+        </select>
+      </div>
+      <div style="padding:16px 24px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#f8fafc">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">CA HT</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Statut</th>
+            </tr>
+          </thead>
+          <tbody id="modal-affaires-agence-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </body></html>`;
 
   const win = window.open('', 'rapport_scorim_' + mois.replace(' ', '_'), 'width=900,height=700');
@@ -4896,6 +5047,306 @@ function onRentreurEditNeg(idx, val) {
 }
 
 
+
+// =====================
+// FICHE STATS AGENCE
+// =====================
+let ficheAgenceNom = null;
+let ficheAgenceFromPage = 'ranking';
+let ficheAgenceChartCA = null;
+let ficheAgenceChartNb = null;
+
+function openFicheAgence(agence, fromPage) {
+  ficheAgenceNom = agence;
+  ficheAgenceFromPage = fromPage || 'ranking';
+  document.getElementById('fiche-agence-titre').textContent = agence;
+  const dosAgence = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ');
+  document.getElementById('fiche-agence-sous-titre').textContent = dosAgence.length + ' ventes signées au total';
+  refreshFicheAgence();
+  showPage('fiche-agence', null);
+}
+
+function goBackFromFicheAgence() {
+  showPage(ficheAgenceFromPage, null);
+}
+
+function refreshFicheAgence() {
+  const agence = ficheAgenceNom;
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const n1Year = curYear - 1;
+
+  const dosAgence = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ').sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+  const totalCA = dosAgence.reduce((s, d) => s + (d.ht || 0), 0);
+
+  // Stats rapides
+  document.getElementById('fiche-agence-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-label">CA HT TOTAL</div><div class="stat-value">' + fmtEuro(totalCA) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">VENTES SIGNÉES</div><div class="stat-value">' + dosAgence.length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">CA ' + curYear + '</div><div class="stat-value">' + fmtEuro(dosAgence.filter(d => d.date && new Date(d.date).getFullYear() === curYear).reduce((s,d) => s + (d.ht||0), 0)) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">CA ' + n1Year + '</div><div class="stat-value">' + fmtEuro(dosAgence.filter(d => d.date && new Date(d.date).getFullYear() === n1Year).reduce((s,d) => s + (d.ht||0), 0)) + '</div></div>';
+
+  // 10 dernières ventes
+  const tbody = document.getElementById('fiche-agence-ventes');
+  const last10 = dosAgence.slice(0, 10);
+  if (last10.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>';
+  } else {
+    tbody.innerHTML = last10.map(d => {
+      const negs = (DB.dossierNeg || []).filter(l => l.dossier_id === d.id && l.agence === agence).map(l => {
+        const n = (DB.negociateurs || []).find(x => x.id === l.negociateur_id);
+        return n ? n.nom : '?';
+      }).join(', ');
+      return '<tr>' +
+        '<td><strong>' + d.client + '</strong></td>' +
+        '<td style="font-size:12px;color:var(--text-muted)">' + (negs || '—') + '</td>' +
+        '<td>' + fmtDate(d.date) + '</td>' +
+        '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td>' +
+        '<td>' + statusBadge(d.statut) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  // Sélecteur années pour moyennes et graphiques
+  const years = [...new Set(dosAgence.map(d => d.date ? new Date(d.date).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
+  const yearOpts = '<option value="">Depuis ouverture</option>' + years.map(y => '<option value="' + y + '">' + y + '</option>').join('');
+  document.getElementById('fiche-agence-annee-moy').innerHTML = yearOpts;
+  document.getElementById('fiche-agence-graph-annee').innerHTML = yearOpts;
+  document.getElementById('fiche-agence-graph-annee-nb').innerHTML = yearOpts;
+
+  refreshFicheAgenceMoyenne();
+  refreshFicheAgenceTableau(dosAgence, curYear, 'fiche-agence-tableau-annee', 'fiche-agence-annee-titre');
+  refreshFicheAgenceTableau(dosAgence, n1Year, 'fiche-agence-tableau-n1', 'fiche-agence-annee-n1-titre');
+  refreshFicheAgenceGraphs();
+  refreshFicheAgenceGraphNb();
+  refreshFicheAgenceApporteurs();
+  refreshFicheAgenceEquipe();
+}
+
+function refreshFicheAgenceMoyenne() {
+  const agence = ficheAgenceNom;
+  const annee = document.getElementById('fiche-agence-annee-moy')?.value || '';
+  let dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ');
+  if (annee) dos = dos.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(annee));
+
+  const now = new Date();
+  let nbMois;
+  if (annee) {
+    nbMois = parseInt(annee) === now.getFullYear() ? now.getMonth() + 1 : 12;
+  } else {
+    // Depuis la 1ère vente
+    const dates = dos.map(d => new Date(d.date)).filter(Boolean).sort((a,b) => a-b);
+    if (dates.length > 0) {
+      nbMois = Math.max(1, Math.floor((now - dates[0]) / (30.44 * 86400000)));
+    } else { nbMois = 12; }
+  }
+
+  const totalCA = dos.reduce((s, d) => s + (d.ht || 0), 0);
+  const moyCA = nbMois > 0 ? totalCA / nbMois : 0;
+  const moyVentes = nbMois > 0 ? dos.length / nbMois : 0;
+
+  document.getElementById('fiche-agence-moyenne').innerHTML =
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)">' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">CA MOYEN / MOIS</div>' +
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + fmtEuro(moyCA) + '</div></div>' +
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)">' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">VENTES MOYENNES / MOIS</div>' +
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + moyVentes.toFixed(1) + '</div></div>' +
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)">' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">PÉRIODE ANALYSÉE</div>' +
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + nbMois + ' mois</div></div>';
+}
+
+function refreshFicheAgenceTableau(dossiersAgence, annee, tableId, titleId) {
+  document.getElementById(titleId).textContent = '📊 ' + annee;
+  const ventesAnnee = dossiersAgence.filter(d => d.date && new Date(d.date).getFullYear() === annee);
+  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
+  const caParMois = MONTH_NAMES.map((_, mi) => ventesAnnee.filter(d => new Date(d.date).getMonth() === mi).reduce((s, d) => s + (d.ht||0), 0));
+  const nbParMois = MONTH_NAMES.map((_, mi) => ventesAnnee.filter(d => new Date(d.date).getMonth() === mi).length);
+  const moyParMois = caParMois.map((ca, i) => nbParMois[i] > 0 ? ca / nbParMois[i] : 0);
+  const totalCA = caParMois.reduce((s,v) => s+v, 0);
+  const totalNb = nbParMois.reduce((s,v) => s+v, 0);
+  const totalMoy = totalNb > 0 ? totalCA / totalNb : 0;
+  const fmtCell = (v, isCa) => isCa ? (v > 0 ? fmtEuro(v) : '—') : (v > 0 ? v : '—');
+  document.getElementById(tableId).innerHTML = header + '<tbody>' +
+    '<tr><td style="font-weight:600;font-size:12px">CA HT</td>' + caParMois.map(v => '<td style="font-size:12px;color:' + (v > 0 ? 'var(--primary)' : 'var(--text-muted)') + ';font-weight:' + (v > 0 ? '600' : '400') + '">' + fmtCell(v, true) + '</td>').join('') + '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(totalCA) + '</td></tr>' +
+    '<tr><td style="font-weight:600;font-size:12px">Nb ventes</td>' + nbParMois.map(v => '<td style="font-size:12px">' + fmtCell(v, false) + '</td>').join('') + '<td style="font-weight:700">' + totalNb + '</td></tr>' +
+    '<tr><td style="font-weight:600;font-size:12px">CA moyen/vente</td>' + moyParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + fmtCell(v, true) + '</td>').join('') + '<td style="font-weight:700;color:var(--text-muted)">' + fmtEuro(totalMoy) + '</td></tr>' +
+    '</tbody>';
+}
+
+function refreshFicheAgenceGraphs() {
+  const agence = ficheAgenceNom;
+  const anneeSelect = document.getElementById('fiche-agence-graph-annee')?.value || '';
+  const allYears = document.getElementById('fiche-agence-graph-all')?.checked || false;
+  const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
+  const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
+
+  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+
+  let datasets = [];
+  const yearsToShow = allYears ? years : (anneeSelect ? [parseInt(anneeSelect)] : [new Date().getFullYear()]);
+
+  yearsToShow.forEach((y, yi) => {
+    const ca = MONTH_NAMES.map((_, mi) => dos.filter(d => new Date(d.date).getFullYear() === y && new Date(d.date).getMonth() === mi).reduce((s, d) => s + (d.ht||0), 0));
+    datasets.push({ label: String(y), data: ca, borderColor: palette[yi % palette.length], backgroundColor: palette[yi % palette.length] + '22', tension: 0.3, fill: false, pointRadius: 4 });
+  });
+
+  const ctx = document.getElementById('fiche-agence-chart-ca');
+  if (!ctx) return;
+  if (ficheAgenceChartCA) ficheAgenceChartCA.destroy();
+  ficheAgenceChartCA = new Chart(ctx, {
+    type: 'line',
+    data: { labels: MONTH_NAMES.map(m => m.substring(0,3)), datasets },
+    options: { responsive: true, plugins: { legend: { display: yearsToShow.length > 1 } }, scales: { y: { ticks: { callback: v => fmtEuro(v) }, beginAtZero: true } } }
+  });
+}
+
+function refreshFicheAgenceGraphNb() {
+  const agence = ficheAgenceNom;
+  const anneeSelect = document.getElementById('fiche-agence-graph-annee-nb')?.value || '';
+  const allYears = document.getElementById('fiche-agence-graph-all-nb')?.checked || false;
+  const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
+  const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
+  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+
+  const yearsToShow = allYears ? years : (anneeSelect ? [parseInt(anneeSelect)] : [new Date().getFullYear()]);
+  const datasets = yearsToShow.map((y, yi) => ({
+    label: String(y),
+    data: MONTH_NAMES.map((_, mi) => dos.filter(d => new Date(d.date).getFullYear() === y && new Date(d.date).getMonth() === mi).length),
+    borderColor: palette[yi % palette.length], backgroundColor: palette[yi % palette.length] + '22', tension: 0.3, fill: false, pointRadius: 4
+  }));
+
+  const ctx = document.getElementById('fiche-agence-chart-nb');
+  if (!ctx) return;
+  if (ficheAgenceChartNb) ficheAgenceChartNb.destroy();
+  ficheAgenceChartNb = new Chart(ctx, {
+    type: 'line',
+    data: { labels: MONTH_NAMES.map(m => m.substring(0,3)), datasets },
+    options: { responsive: true, plugins: { legend: { display: yearsToShow.length > 1 } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+}
+
+function refreshFicheAgenceApporteurs() {
+  const agence = ficheAgenceNom;
+  const filtApporteur = document.getElementById('fiche-agence-filtre-apporteur')?.value || '';
+
+  const dosAvecApport = DB.dossiers.filter(d => d.agence === agence && d.has_apporteur && d.apporteur_nom);
+
+  // Peupler le select apporteurs
+  const apporteurs = [...new Set(dosAvecApport.map(d => d.apporteur_nom))].sort();
+  const sel = document.getElementById('fiche-agence-filtre-apporteur');
+  sel.innerHTML = '<option value="">Tous les apporteurs</option>' + apporteurs.map(a => '<option value="' + a + '"' + (a === filtApporteur ? ' selected' : '') + '>' + a + '</option>').join('');
+
+  let dos = filtApporteur ? dosAvecApport.filter(d => d.apporteur_nom === filtApporteur) : dosAvecApport;
+  dos = dos.sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+
+  const totalCA = dos.reduce((s,d) => s + (d.ht||0), 0);
+  const totalApport = dos.reduce((s,d) => s + (d.apport_ht||0), 0);
+
+  document.getElementById('fiche-agence-apporteurs-stats').innerHTML =
+    '<div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600">Dossiers</div><div style="font-weight:700;font-size:16px;color:var(--primary)">' + dos.length + '</div></div>' +
+    '<div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600">CA HT total</div><div style="font-weight:700;font-size:16px;color:var(--primary)">' + fmtEuro(totalCA) + '</div></div>' +
+    '<div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600">Apports HT versés</div><div style="font-weight:700;font-size:16px;color:#f59e0b">' + fmtEuro(totalApport) + '</div></div>' +
+    '<div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600">% moyen d'apport</div><div style="font-weight:700;font-size:16px;color:#f59e0b">' + (totalCA > 0 ? (totalApport/totalCA*100).toFixed(1) + ' %' : '—') + '</div></div>';
+
+  const tbody = document.getElementById('fiche-agence-apporteurs-tbody');
+  if (dos.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Aucune affaire avec apporteur' + (filtApporteur ? ' pour cet apporteur' : '') + '</td></tr>';
+    return;
+  }
+  tbody.innerHTML = dos.map(d => '<tr>' +
+    '<td><strong>' + d.client + '</strong></td>' +
+    '<td style="font-size:12px">' + (d.apporteur_nom || '—') + '</td>' +
+    '<td>' + fmtDate(d.date) + '</td>' +
+    '<td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td>' +
+    '<td style="font-weight:600;color:#f59e0b">' + fmtEuro(d.apport_ht||0) + '</td>' +
+    '<td style="font-size:12px">' + (d.apporteur_pct||0) + ' %</td>' +
+    '<td>' + statusBadge(d.statut) + '</td>' +
+    '</tr>').join('');
+}
+
+function refreshFicheAgenceEquipe() {
+  const agence = ficheAgenceNom;
+  const equipe = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif && !n.virtuel);
+  const container = document.getElementById('fiche-agence-equipe');
+  if (equipe.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucun collaborateur actif</div>';
+    return;
+  }
+  container.innerHTML = equipe.map(n => {
+    const dosNeg = (DB.dossierNeg || []).filter(l => l.negociateur_id === n.id);
+    const nbVentes = dosNeg.filter(l => { const d = DB.dossiers.find(x => x.id === l.dossier_id); return d && d.statut === 'SIGNÉ'; }).length;
+    const initiales = n.nom.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+    return '<div style="cursor:pointer;padding:16px;border:1.5px solid var(--border);border-radius:12px;min-width:140px;text-align:center;transition:all 0.2s" onclick="openFicheCollab(' + n.id + ',\'fiche-agence\')" onmouseover="this.style.borderColor=\'var(--primary)\';this.style.background=\'#f0f4f8\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.background=\'\'">' +
+      '<div style="width:44px;height:44px;border-radius:50%;background:var(--primary);color:white;font-family:Syne,sans-serif;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">' + initiales + '</div>' +
+      '<div style="font-weight:600;font-size:13px">' + n.nom + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + (n.poste || 'négociateur') + '</div>' +
+      '<div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:6px">' + nbVentes + ' vente(s)</div>' +
+      '</div>';
+  }).join('');
+}
+
+// =====================
+// AFFAIRES AGENCE (modal)
+// =====================
+function openAffairesAgence() {
+  const agence = ficheAgenceNom;
+  if (!agence) return;
+
+  document.getElementById('modal-affaires-agence-titre').textContent = 'Affaires de ' + agence;
+  const dos = DB.dossiers.filter(d => d.agence === agence);
+  const years = [...new Set(dos.map(d => d.date ? new Date(d.date).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
+  document.getElementById('filtre-affaires-agence-annee').innerHTML = '<option value="">Toutes les années</option>' + years.map(y => '<option value="' + y + '">' + y + '</option>').join('');
+  document.getElementById('filtre-affaires-agence-mois').value = '';
+  document.getElementById('filtre-affaires-agence-statut').value = '';
+  document.getElementById('modal-affaires-agence').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  refreshAffairesAgence();
+}
+
+function closeAffairesAgence() {
+  document.getElementById('modal-affaires-agence').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function refreshAffairesAgence() {
+  const agence = ficheAgenceNom;
+  const filtAnnee = document.getElementById('filtre-affaires-agence-annee').value;
+  const filtMois = document.getElementById('filtre-affaires-agence-mois').value;
+  const filtStatut = document.getElementById('filtre-affaires-agence-statut').value;
+
+  const selMois = document.getElementById('filtre-affaires-agence-mois');
+  const moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  if (filtAnnee) {
+    selMois.innerHTML = '<option value="">Tous les mois</option>' + moisNoms.map((m,i) => '<option value="' + m + ' ' + filtAnnee + '"' + (filtMois === m + ' ' + filtAnnee ? ' selected' : '') + '>' + m + '</option>').join('');
+  } else {
+    selMois.innerHTML = '<option value="">Tous les mois</option>';
+  }
+
+  let rows = DB.dossiers.filter(d => d.agence === agence);
+  if (filtAnnee) rows = rows.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(filtAnnee));
+  if (filtMois) rows = rows.filter(d => matchMois(d, filtMois) || (!d.date && d.mois === filtMois));
+  if (filtStatut) rows = rows.filter(d => d.statut === filtStatut);
+  rows.sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+
+  const totalCA = rows.filter(d => d.statut === 'SIGNÉ').reduce((s,d) => s + (d.ht||0), 0);
+  document.getElementById('modal-affaires-agence-count').textContent = rows.length + ' affaire(s) — CA signé : ' + fmtEuro(totalCA);
+
+  const tbody = document.getElementById('modal-affaires-agence-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">Aucune affaire</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((d, i) => '<tr style="border-bottom:1px solid var(--border);' + (i%2===0?'':'background:#f8fafc') + '">' +
+    '<td style="padding:10px 12px;font-weight:600">' + d.client + '</td>' +
+    '<td style="padding:10px 12px;font-size:12px;color:var(--text-muted)">' + fmtDate(d.date) + '</td>' +
+    '<td style="padding:10px 12px;text-align:right;font-weight:700;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td>' +
+    '<td style="padding:10px 12px;text-align:center">' + statusBadge(d.statut) + '</td>' +
+    '</tr>').join('');
+}
+
+
 // =====================
 // AFFAIRES COLLABORATEUR
 // =====================
@@ -4904,10 +5355,6 @@ function openAffairesCollab() {
   if (!n) return;
 
   document.getElementById('modal-affaires-titre').textContent = 'Affaires de ' + n.nom;
-
-  // Remplir le filtre agences
-  const selAg = document.getElementById('filtre-affaires-agence');
-  selAg.innerHTML = '<option value="">Toutes les agences</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
 
   // Remplir le filtre années
   const dosNeg = (DB.dossierNeg || []).filter(l => l.negociateur_id === n.id);
@@ -4938,7 +5385,6 @@ function resetFiltresAffaires() {
   document.getElementById('filtre-affaires-mois').value = '';
   document.getElementById('filtre-affaires-type').value = '';
   document.getElementById('filtre-affaires-statut').value = '';
-  document.getElementById('filtre-affaires-agence').value = '';
   refreshAffairesCollab();
 }
 
@@ -4950,7 +5396,6 @@ function refreshAffairesCollab() {
   const filtMois = document.getElementById('filtre-affaires-mois').value;
   const filtType = document.getElementById('filtre-affaires-type').value;
   const filtStatut = document.getElementById('filtre-affaires-statut').value;
-  const filtAgence = document.getElementById('filtre-affaires-agence').value;
 
   // Mettre à jour filtre mois selon année
   const selMois = document.getElementById('filtre-affaires-mois');
@@ -4985,7 +5430,6 @@ function refreshAffairesCollab() {
   if (filtAnnee) rows = rows.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(filtAnnee));
   if (filtMois) rows = rows.filter(d => matchMois(d, filtMois) || (!d.date && d.mois === filtMois));
   if (filtStatut) rows = rows.filter(d => d.statut === filtStatut);
-  if (filtAgence) rows = rows.filter(d => d.agence === filtAgence);
 
   // Trier par date décroissante
   rows.sort((a, b) => new Date(b.date || '2000-01-01') - new Date(a.date || '2000-01-01'));
@@ -5218,9 +5662,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
           <option value="ANNULÉ">Annulés</option>
           <option value="REPORT">Reports</option>
         </select>
-        <select id="filtre-affaires-agence" onchange="refreshAffairesCollab()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
-          <option value="">Toutes les agences</option>
-        </select>
+
         <button onclick="resetFiltresAffaires()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:white;cursor:pointer;color:var(--text-muted)">Réinitialiser</button>
       </div>
       <div id="modal-affaires-stats" style="padding:12px 24px;border-bottom:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap"></div>
