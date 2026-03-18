@@ -3096,7 +3096,7 @@ function updateRepartitionCalc() {
   const netHT = brutHT - apportHT;
   const htBase = netHT > 0 ? netHT : brutHT;
 
-  if (nbAgences === 1) return;
+  if (nbAgences === 1) { renderNegociateursSaisie(); return; }
 
   let totalPct = 0;
   for (let i = 0; i < nbAgences; i++) {
@@ -3118,6 +3118,7 @@ function updateRepartitionCalc() {
     warn.style.display = 'block'; warn.style.background = '#fef3c7'; warn.style.color = '#92400e';
     warn.textContent = `ℹ️ Total : ${rounded}% — il reste ${(100 - rounded).toFixed(2)}% à répartir`;
   }
+  renderNegociateursSaisie();
 }
 
 function calcHT() {
