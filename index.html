@@ -1159,6 +1159,12 @@
           <div id="users-list"></div>
           <button class="btn btn-accent" onclick="openAddUser()" style="margin-top:16px">+ Ajouter un utilisateur</button>
         </div>
+
+        <div class="params-section" id="params-reseau-section" style="display:none">
+          <h3>🏢 Réseau Booster Immobilier</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Gérez les sociétés, agences et gérants du réseau.</p>
+          <div id="reseau-tree"></div>
+        </div>
       </div>
 
       <!-- ENCAISSEMENTS -->
@@ -1525,6 +1531,106 @@
         </div>
       </div>
 
+
+
+      <!-- FICHE STATS SOCIÉTÉ -->
+      <div class="page" id="page-fiche-societe">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="goBackFromFicheSociete()">← Retour</button>
+          <div style="flex:1">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--primary)" id="fiche-societe-titre">—</div>
+            <div style="font-size:13px;color:var(--text-muted)" id="fiche-societe-sous-titre">—</div>
+          </div>
+        </div>
+
+        <!-- Stats rapides -->
+        <div class="stats-grid" id="fiche-societe-stats" style="margin-bottom:20px"></div>
+
+        <!-- Agences de la société -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title">🏠 Agences</span></div>
+          <div id="fiche-societe-agences" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div>
+        </div>
+
+        <!-- 10 dernières ventes consolidées -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title">📋 10 dernières ventes (toutes agences)</span></div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead>
+              <tbody id="fiche-societe-ventes"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Moyennes -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">📈 Moyennes consolidées</span>
+            <select class="filter-select" id="fiche-societe-annee-moy" onchange="refreshFicheSocieteMoyenne()" style="font-size:12px"></select>
+          </div>
+          <div id="fiche-societe-moyenne" style="padding:20px;display:flex;gap:30px;flex-wrap:wrap"></div>
+        </div>
+
+        <!-- Tableaux annuels -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 Année en cours</span></div>
+          <div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div>
+        </div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 Année N-1</span></div>
+          <div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div>
+        </div>
+
+        <!-- Graphiques côte à côte -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="font-size:13px">📊 CA HT / mois</span>
+              <div style="display:flex;gap:6px;align-items:center">
+                <select class="filter-select" id="fiche-societe-graph-annee" onchange="refreshFicheSocieteGraphs()" style="font-size:11px;padding:3px 6px"></select>
+                <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap">
+                  <input type="checkbox" id="fiche-societe-graph-all" onchange="refreshFicheSocieteGraphs()"> Toutes
+                </label>
+              </div>
+            </div>
+            <div style="padding:10px 12px"><canvas id="fiche-societe-chart-ca" height="90"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span>
+              <div style="display:flex;gap:6px;align-items:center">
+                <select class="filter-select" id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" style="font-size:11px;padding:3px 6px"></select>
+                <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap">
+                  <input type="checkbox" id="fiche-societe-graph-all-nb" onchange="refreshFicheSocieteGraphNb()"> Toutes
+                </label>
+              </div>
+            </div>
+            <div style="padding:10px 12px"><canvas id="fiche-societe-chart-nb" height="90"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Graphique glissant -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">📈 CA cumulé sur 12 mois glissants</span>
+            <span style="font-size:11px;color:var(--text-muted)">Toutes agences consolidées</span>
+          </div>
+          <div style="padding:10px 16px"><canvas id="fiche-societe-chart-glissant" height="70"></canvas></div>
+        </div>
+
+        <!-- Collaborateurs -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title">👥 Collaborateurs</span></div>
+          <div id="fiche-societe-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div>
+        </div>
+
+        <!-- Gérants -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title">⚖️ Gérants</span></div>
+          <div id="fiche-societe-gerants" style="padding:16px;display:flex;gap:10px;flex-wrap:wrap"></div>
+        </div>
+      </div>
 
       <!-- FICHE STATS AGENCE -->
       <div class="page" id="page-fiche-agence">
@@ -1918,7 +2024,12 @@
 // =====================
 const SUPABASE_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
-const AGENCES = ['Saint-Cyprien','Minimes','Bonnefoy','Roseraie','Saint-Agne','Côte Pavée'];
+const AGENCES_STATIC = ['Saint-Cyprien','Minimes','Bonnefoy','Roseraie','Saint-Agne','Côte Pavée'];
+// AGENCES est dynamique : utilise Supabase si chargé, sinon fallback statique
+Object.defineProperty(window, 'AGENCES', {
+  get() { return window._AGENCES_DYNAMIC || AGENCES_STATIC; },
+  configurable: true
+});
 const MONTH_NAMES = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
 // Génère la liste des mois dynamiquement :
@@ -1971,7 +2082,7 @@ function getMoisList() {
 }
 
 // Cache local (rechargé à chaque login)
-let DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [], dossierRent: [] };
+let DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [], dossierRent: [], societes: [], agences: [], gerants: [] };
 
 async function sbFetch(table, options = {}) {
   const { method = 'GET', filter = '', body = null, select = '*', order = '' } = options;
@@ -2102,16 +2213,26 @@ function dossierToRow(d) {
 async function loadDB() {
   showLoading(true);
   try {
-    const [dossiers, users, settingsRows, apporteurs] = await Promise.all([
+    const [dossiers, users, settingsRows, apporteurs, societes, agences, gerants] = await Promise.all([
       sbFetch('dossiers', { order: 'id.asc' }),
       sbFetch('users'),
       sbFetch('settings'),
-      sbFetch('apporteurs')
+      sbFetch('apporteurs'),
+      sbFetch('societes', { order: 'nom.asc' }),
+      sbFetch('agences', { order: 'nom.asc' }),
+      sbFetch('gerants')
     ]);
     DB.dossiers = dossiers.map(rowToDossier);
     DB.users = users.map(u => ({ id: u.id, password: u.password, email: u.email || '', role: u.role, nom: u.nom, agence: u.agence || null }));
     DB.settings.tva = parseFloat(settingsRows.find(s => s.key === 'tva')?.value || '20');
     DB.apporteurs = apporteurs.map(a => a.nom);
+    DB.societes = societes;
+    DB.agences = agences;
+    DB.gerants = gerants;
+    // AGENCES dynamique : utiliser la table Supabase si renseignée, sinon garder le tableau statique
+    if (agences && agences.length > 0) {
+      window._AGENCES_DYNAMIC = agences.map(a => a.nom).sort();
+    }
     await loadNegociateurs();
   } catch(e) {
     showToast('Erreur de connexion à la base de données', 'error');
@@ -2174,7 +2295,7 @@ async function doLogin() {
 
 function doLogout() {
   currentUser = null;
-  DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [] };
+  DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [], dossierRent: [], societes: [], agences: [], gerants: [] };
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-user').value = '';
@@ -2209,6 +2330,7 @@ async function initApp() {
     document.getElementById('nav-rapport').style.display = 'flex';
     document.getElementById('nav-params').style.display = 'flex';
     document.getElementById('params-admin-section').style.display = 'block';
+    document.getElementById('params-reseau-section').style.display = 'block';
     document.getElementById('nav-saisie-section').style.display = 'block';
     renderUsersList();
   } else if (currentUser.role === 'agence') {
@@ -2314,7 +2436,7 @@ function showPage(name, navEl) {
   document.getElementById('page-' + name).classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', 'fiche-agence':'Fiche agence', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
+  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', 'fiche-agence':'Fiche agence', 'fiche-societe':'Fiche société', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
   document.getElementById('topbar-title').textContent = titles[name] || name;
 
   if (name === 'dashboard') refreshDashboard();
@@ -2326,6 +2448,7 @@ function showPage(name, navEl) {
   if (name === 'encaissements') { initEncaissements(); }
   if (name === 'performances') { initPerformances(); }
   if (name === 'rapport') { populateRapportFilters(); }
+  if (name === 'params') { initReseauSection(); }
 }
 
 // =====================
@@ -5014,6 +5137,438 @@ function onRentreurEditNeg(idx, val) {
   rentreurLignesEdit[idx].negId = val;
 }
 
+
+
+
+
+// =====================
+// FICHE STATS SOCIÉTÉ
+// =====================
+let ficheSocieteId = null;
+let ficheSocieteFromPage = 'ranking';
+let ficheSocieteChartCA = null;
+let ficheSocieteChartNb = null;
+let ficheSocieteChartGlissant = null;
+
+function openFicheSociete(societeId, fromPage) {
+  ficheSocieteId = societeId;
+  ficheSocieteFromPage = fromPage || 'ranking';
+  const s = (DB.societes || []).find(x => x.id === societeId);
+  if (!s) return;
+  const agencesSoc = (DB.agences || []).filter(a => a.societe_id === societeId);
+  document.getElementById('fiche-societe-titre').textContent = (s.forme_juridique ? s.forme_juridique + ' ' : '') + s.nom;
+  document.getElementById('fiche-societe-sous-titre').textContent = agencesSoc.length + ' agence(s)';
+  refreshFicheSociete();
+  showPage('fiche-societe', null);
+}
+
+function goBackFromFicheSociete() {
+  showPage(ficheSocieteFromPage, null);
+}
+
+function getSocieteAgences() {
+  return (DB.agences || []).filter(a => a.societe_id === ficheSocieteId).map(a => a.nom);
+}
+
+function getSocieteDossiers() {
+  const agenceNoms = getSocieteAgences();
+  return DB.dossiers.filter(d => agenceNoms.includes(d.agence) && d.statut === 'SIGNÉ')
+    .sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+}
+
+function refreshFicheSociete() {
+  const s = (DB.societes || []).find(x => x.id === ficheSocieteId);
+  if (!s) return;
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const n1Year = curYear - 1;
+  const agenceNoms = getSocieteAgences();
+  const dos = getSocieteDossiers();
+  const totalCA = dos.reduce((sum, d) => sum + (d.ht||0), 0);
+
+  // Stats rapides
+  document.getElementById('fiche-societe-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-label">CA HT TOTAL</div><div class="stat-value">' + fmtEuro(totalCA) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">VENTES SIGNÉES</div><div class="stat-value">' + dos.length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">CA ' + curYear + '</div><div class="stat-value">' + fmtEuro(dos.filter(d => d.date && new Date(d.date).getFullYear() === curYear).reduce((s,d) => s+(d.ht||0),0)) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">AGENCES</div><div class="stat-value">' + agenceNoms.length + '</div></div>';
+
+  // Agences cliquables
+  const agenceContainer = document.getElementById('fiche-societe-agences');
+  if (agenceNoms.length === 0) {
+    agenceContainer.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucune agence rattachée</div>';
+  } else {
+    agenceContainer.innerHTML = agenceNoms.map(nom => {
+      const caAg = dos.filter(d => d.agence === nom).reduce((s,d) => s+(d.ht||0),0);
+      return `<div class="agence-card" data-agence="${encodeURIComponent(nom)}" style="cursor:pointer;padding:14px 18px;border:1.5px solid var(--border);border-radius:12px;min-width:140px;text-align:center;transition:all .2s">
+        <div style="font-weight:600;font-size:14px">🏠 ${nom}</div>
+        <div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:6px">${fmtEuro(caAg)}</div>
+      </div>`;
+    }).join('');
+    agenceContainer.querySelectorAll('.agence-card').forEach(el => {
+      el.addEventListener('click', () => openFicheAgence(decodeURIComponent(el.dataset.agence), 'fiche-societe'));
+      el.addEventListener('mouseover', () => { el.style.borderColor = 'var(--primary)'; el.style.background = '#f0f4f8'; });
+      el.addEventListener('mouseout', () => { el.style.borderColor = 'var(--border)'; el.style.background = ''; });
+    });
+  }
+
+  // 10 dernières ventes
+  const tbody = document.getElementById('fiche-societe-ventes');
+  const last10 = dos.slice(0, 10);
+  tbody.innerHTML = last10.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>'
+    : last10.map(d => '<tr><td><strong>' + d.client + '</strong></td><td style="font-size:12px;color:var(--text-muted)">' + d.agence + '</td><td>' + fmtDate(d.date) + '</td><td style="font-weight:700;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td><td>' + statusBadge(d.statut) + '</td></tr>').join('');
+
+  // Sélecteur années
+  const years = [...new Set(dos.map(d => d.date ? new Date(d.date).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
+  const yearOptsMoy = '<option value="">Depuis ouverture</option>' + years.map(y => '<option value="' + y + '">' + y + '</option>').join('');
+  const curY = now.getFullYear();
+  const yearOptsGraph = years.map(y => '<option value="' + y + '"' + (y === curY ? ' selected' : '') + '>' + y + '</option>').join('');
+  document.getElementById('fiche-societe-annee-moy').innerHTML = yearOptsMoy;
+  document.getElementById('fiche-societe-graph-annee').innerHTML = yearOptsGraph;
+  document.getElementById('fiche-societe-graph-annee-nb').innerHTML = yearOptsGraph;
+
+  refreshFicheSocieteMoyenne();
+  refreshFicheSocieteTableau(dos, curYear, 'fiche-societe-tableau-annee', 'fiche-societe-annee-titre');
+  refreshFicheSocieteTableau(dos, n1Year, 'fiche-societe-tableau-n1', 'fiche-societe-annee-n1-titre');
+  refreshFicheSocieteGraphGlissant();
+  refreshFicheSocieteGraphs();
+  refreshFicheSocieteGraphNb();
+  refreshFicheSocieteEquipe();
+  refreshFicheSocieteGerants();
+}
+
+function refreshFicheSocieteMoyenne() {
+  const annee = document.getElementById('fiche-societe-annee-moy')?.value || '';
+  let dos = getSocieteDossiers();
+  if (annee) dos = dos.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(annee));
+  const now = new Date();
+  let nbMois;
+  if (annee) {
+    nbMois = parseInt(annee) === now.getFullYear() ? now.getMonth() + 1 : 12;
+  } else {
+    const dates = dos.map(d => d.date ? new Date(d.date) : null).filter(d => d && !isNaN(d)).sort((a,b) => a-b);
+    nbMois = dates.length > 0 ? Math.max(1, Math.floor((now - dates[0]) / (30.44 * 86400000))) : 12;
+  }
+  const totalCA = dos.reduce((s,d) => s+(d.ht||0), 0);
+  const moyCA = nbMois > 0 ? totalCA / nbMois : 0;
+  const moyV = nbMois > 0 ? dos.length / nbMois : 0;
+  document.getElementById('fiche-societe-moyenne').innerHTML =
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">CA MOYEN / MOIS</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + fmtEuro(moyCA) + '</div></div>' +
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">VENTES MOYENNES / MOIS</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + moyV.toFixed(1) + '</div></div>' +
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">PÉRIODE</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + nbMois + ' mois</div></div>';
+}
+
+function refreshFicheSocieteTableau(dos, annee, tableId, titleId) {
+  document.getElementById(titleId).textContent = '📊 ' + annee;
+  const v = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
+  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
+  const ca = MONTH_NAMES.map((_,mi) => v.filter(d => new Date(d.date).getMonth() === mi).reduce((s,d) => s+(d.ht||0),0));
+  const nb = MONTH_NAMES.map((_,mi) => v.filter(d => new Date(d.date).getMonth() === mi).length);
+  const tot = ca.reduce((s,x) => s+x, 0);
+  document.getElementById(tableId).innerHTML = header + '<tbody>' +
+    '<tr><td style="font-weight:600;font-size:12px">CA HT</td>' + ca.map(x => '<td style="font-size:12px;color:' + (x>0?'var(--primary)':'var(--text-muted)') + ';font-weight:' + (x>0?'600':'400') + '">' + (x>0?fmtEuro(x):'—') + '</td>').join('') + '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(tot) + '</td></tr>' +
+    '<tr><td style="font-weight:600;font-size:12px">Nb ventes</td>' + nb.map(x => '<td style="font-size:12px">' + (x>0?x:'—') + '</td>').join('') + '<td style="font-weight:700">' + nb.reduce((s,x)=>s+x,0) + '</td></tr>' +
+    '</tbody>';
+}
+
+function refreshFicheSocieteGraphs() {
+  const anneeSelect = document.getElementById('fiche-societe-graph-annee')?.value || '';
+  const allYears = document.getElementById('fiche-societe-graph-all')?.checked || false;
+  const dos = getSocieteDossiers().filter(d => d.date);
+  const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
+  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+  const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
+  const datasets = yearsToShow.map((y,yi) => ({
+    label: String(y),
+    data: MONTH_NAMES.map((_,mi) => dos.filter(d => new Date(d.date).getFullYear()===y && new Date(d.date).getMonth()===mi).reduce((s,d)=>s+(d.ht||0),0)),
+    borderColor: palette[yi%palette.length], backgroundColor: palette[yi%palette.length]+'22', tension:0.3, fill:false, pointRadius:3
+  }));
+  const ctx = document.getElementById('fiche-societe-chart-ca');
+  if (!ctx) return;
+  if (ficheSocieteChartCA) ficheSocieteChartCA.destroy();
+  ficheSocieteChartCA = new Chart(ctx, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets }, options:{ responsive:true, plugins:{ legend:{ display:yearsToShow.length>1, labels:{ boxWidth:12, font:{ size:11 } } } }, scales:{ y:{ ticks:{ callback:v=>fmtEuro(v), font:{ size:10 } }, beginAtZero:true }, x:{ ticks:{ font:{ size:10 } } } } } });
+}
+
+function refreshFicheSocieteGraphNb() {
+  const anneeSelect = document.getElementById('fiche-societe-graph-annee-nb')?.value || '';
+  const allYears = document.getElementById('fiche-societe-graph-all-nb')?.checked || false;
+  const dos = getSocieteDossiers().filter(d => d.date);
+  const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
+  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+  const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
+  const datasets = yearsToShow.map((y,yi) => ({
+    label: String(y),
+    data: MONTH_NAMES.map((_,mi) => dos.filter(d => new Date(d.date).getFullYear()===y && new Date(d.date).getMonth()===mi).length),
+    borderColor: palette[yi%palette.length], backgroundColor: palette[yi%palette.length]+'22', tension:0.3, fill:false, pointRadius:3
+  }));
+  const ctx = document.getElementById('fiche-societe-chart-nb');
+  if (!ctx) return;
+  if (ficheSocieteChartNb) ficheSocieteChartNb.destroy();
+  ficheSocieteChartNb = new Chart(ctx, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets }, options:{ responsive:true, plugins:{ legend:{ display:yearsToShow.length>1, labels:{ boxWidth:12, font:{ size:11 } } } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 } } }, x:{ ticks:{ font:{ size:10 } } } } } });
+}
+
+function refreshFicheSocieteGraphGlissant() {
+  const dos = getSocieteDossiers().filter(d => d.date);
+  if (dos.length === 0) return;
+  const now = new Date();
+  const firstDate = dos.map(d => new Date(d.date)).filter(d => !isNaN(d)).sort((a,b) => a-b)[0];
+  if (!firstDate) return;
+  const startBar = new Date(firstDate.getFullYear(), firstDate.getMonth() + 11, 1);
+  const labels = [], data = [];
+  let cursor = new Date(startBar);
+  while (cursor <= now) {
+    const y = cursor.getFullYear(), m = cursor.getMonth();
+    let cumul = 0;
+    for (let i = 0; i < 12; i++) {
+      const ref = new Date(y, m-i, 1);
+      cumul += dos.filter(d => { const dd = new Date(d.date); return dd.getFullYear()===ref.getFullYear() && dd.getMonth()===ref.getMonth(); }).reduce((s,d)=>s+(d.ht||0),0);
+    }
+    labels.push(MONTH_NAMES[m].substring(0,3)+' '+String(y).substring(2));
+    data.push(cumul);
+    cursor = new Date(y, m+1, 1);
+  }
+  const bgColors = data.map((v,i) => i===data.length-1?'#2D455A':i>0&&v>data[i-1]?'#10b981aa':i>0&&v<data[i-1]?'#ef4444aa':'#2D455Aaa');
+  const ctx = document.getElementById('fiche-societe-chart-glissant');
+  if (!ctx) return;
+  if (ficheSocieteChartGlissant) ficheSocieteChartGlissant.destroy();
+  ficheSocieteChartGlissant = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'CA cumulé 12 mois', data, backgroundColor:bgColors, borderRadius:3, borderSkipped:false }] }, options:{ responsive:true, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:c=>'CA 12 mois : '+fmtEuro(c.parsed.y) } } }, scales:{ y:{ beginAtZero:false, ticks:{ callback:v=>fmtEuro(v), font:{ size:10 } } }, x:{ ticks:{ font:{ size:9 }, maxRotation:45, autoSkip:true, maxTicksLimit:24 } } } } });
+}
+
+function refreshFicheSocieteEquipe() {
+  const agenceNoms = getSocieteAgences();
+  const equipe = (DB.negociateurs || []).filter(n => agenceNoms.includes(n.agence) && n.actif && !n.nom.startsWith('🍒'));
+  const container = document.getElementById('fiche-societe-equipe');
+  if (equipe.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucun collaborateur actif</div>';
+    return;
+  }
+  container.innerHTML = equipe.map(n => {
+    const initiales = n.nom.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const nbV = (DB.dossierNeg||[]).filter(l => { const d=DB.dossiers.find(x=>x.id===l.dossier_id); return l.negociateur_id===n.id && d && d.statut==='SIGNÉ'; }).length;
+    return `<div class="sc-collab-card" data-negid="${n.id}" style="cursor:pointer;padding:14px;border:1.5px solid var(--border);border-radius:12px;min-width:130px;text-align:center;transition:all .2s">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);color:white;font-family:Syne,sans-serif;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">${initiales}</div>
+      <div style="font-weight:600;font-size:13px">${n.nom}</div>
+      <div style="font-size:11px;color:var(--text-muted)">${n.agence}</div>
+      <div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:4px">${nbV} vente(s)</div>
+    </div>`;
+  }).join('');
+  container.querySelectorAll('.sc-collab-card').forEach(el => {
+    el.addEventListener('click', () => openFicheCollab(parseInt(el.dataset.negid), 'fiche-societe'));
+    el.addEventListener('mouseover', () => { el.style.borderColor = 'var(--primary)'; el.style.background = '#f0f4f8'; });
+    el.addEventListener('mouseout', () => { el.style.borderColor = 'var(--border)'; el.style.background = ''; });
+  });
+}
+
+function refreshFicheSocieteGerants() {
+  const gerants = (DB.gerants || []).filter(g => g.societe_id === ficheSocieteId);
+  const container = document.getElementById('fiche-societe-gerants');
+  container.innerHTML = gerants.length === 0
+    ? '<div style="color:var(--text-muted);font-size:13px">Aucun gérant renseigné</div>'
+    : gerants.map(g => '<div style="padding:8px 14px;background:var(--bg);border-radius:8px;border:0.5px solid var(--border);font-size:13px;font-weight:600">👤 ' + g.nom + '</div>').join('');
+}
+
+
+// =====================
+// GESTION RÉSEAU
+// =====================
+
+function renderReseauTree() {
+  const container = document.getElementById('reseau-tree');
+  if (!container) return;
+  const societes = DB.societes || [];
+  const agences = DB.agences || [];
+  const gerants = DB.gerants || [];
+
+  let html = '<div style="font-size:14px">';
+  html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#2D455A;color:white;margin-bottom:12px">
+    <span style="font-size:15px">🏢</span>
+    <span style="font-weight:600">Booster Immobilier</span>
+    <button class="rn-add" data-mode="societe" data-id="" style="margin-left:auto;width:24px;height:24px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.4);background:transparent;color:white;font-size:16px;cursor:pointer;line-height:1" title="Nouvelle société">+</button>
+  </div>`;
+
+  if (societes.length === 0) {
+    html += '<div style="padding:16px;color:var(--text-muted);font-size:13px;text-align:center">Aucune société — cliquez sur + pour en ajouter une</div>';
+  }
+
+  societes.forEach(s => {
+    const agencesSoc = agences.filter(a => a.societe_id === s.id);
+    const gerantsSoc = gerants.filter(g => g.societe_id === s.id);
+    const gerantsLabel = gerantsSoc.length ? gerantsSoc.map(g => g.nom).join(', ') : '';
+    const formeNom = (s.forme_juridique ? s.forme_juridique + ' ' : '') + s.nom;
+
+    html += `<div style="margin-left:20px;border-left:2px dashed var(--border);padding-left:16px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--color-background-info,#e6f1fb);border:0.5px solid var(--color-border-info,#b5d4f4);margin-bottom:6px">
+        <span style="font-size:14px">🏛</span>
+        <span style="font-weight:600;color:var(--color-text-info,#185fa5)">${formeNom}</span>
+        ${gerantsLabel ? '<span style="font-size:11px;color:var(--text-muted);margin-left:6px">' + gerantsLabel + '</span>' : ''}
+        <div style="margin-left:auto;display:flex;gap:4px">
+          <button class="rn-edit" data-mode="edit-societe" data-id="${s.id}" style="width:22px;height:22px;border-radius:5px;border:0.5px solid var(--border);background:white;color:var(--text-muted);font-size:11px;cursor:pointer" title="Modifier">✎</button>
+          <button class="rn-add" data-mode="agence" data-id="${s.id}" style="width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border);background:white;color:var(--text-muted);font-size:15px;cursor:pointer;line-height:1" title="Nouvelle agence">+</button>
+        </div>
+      </div>`;
+
+    if (agencesSoc.length === 0) {
+      html += '<div style="margin-left:20px;padding:6px 10px;color:var(--text-muted);font-size:12px">Aucune agence</div>';
+    }
+
+    agencesSoc.forEach(a => {
+      const dateStr = a.date_ouverture ? new Date(a.date_ouverture).toLocaleDateString('fr-FR') : '';
+      html += `<div style="margin-left:20px;border-left:2px dashed var(--border);padding-left:16px">
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:var(--bg);border:0.5px solid var(--border);margin-bottom:6px">
+          <span style="font-size:13px">🏠</span>
+          <span>${a.nom}</span>
+          ${dateStr ? '<span style="font-size:11px;color:var(--text-muted)">Ouverture : ' + dateStr + '</span>' : ''}
+          <button class="rn-edit" data-mode="edit-agence" data-id="${a.id}" style="margin-left:auto;width:22px;height:22px;border-radius:5px;border:0.5px solid var(--border);background:white;color:var(--text-muted);font-size:11px;cursor:pointer" title="Modifier">✎</button>
+        </div>
+      </div>`;
+    });
+
+    html += '</div>';
+  });
+
+  const agencesSansSoc = agences.filter(a => !a.societe_id || !societes.find(s => s.id === a.societe_id));
+  if (agencesSansSoc.length > 0) {
+    html += '<div style="margin-top:16px;padding:10px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e">⚠️ ' + agencesSansSoc.length + ' agence(s) sans société : ' + agencesSansSoc.map(a => a.nom).join(', ') + '</div>';
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+
+  container.querySelectorAll('.rn-add, .rn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
+      openReseauModal(btn.dataset.mode, id);
+    });
+  });
+}
+
+// Modal CRUD réseau
+function openReseauModal(mode, targetId) {
+  document.getElementById('modal-reseau')?.remove();
+
+  let title = '';
+  let bodyHTML = '';
+
+  if (mode === 'societe') {
+    title = 'Nouvelle société';
+    bodyHTML = `<div class="form-group"><label>Forme juridique</label>
+      <select id="rm-forme" style="width:100%"><option>SARL</option><option>EURL</option><option>SAS</option><option>SASU</option><option>SCI</option></select></div>
+      <div class="form-group"><label>Nom de la société *</label><input id="rm-nom" placeholder="ex: Prox'Alliance" style="width:100%"></div>
+      <div class="form-group"><label>Gérants (un par ligne)</label><textarea id="rm-gerants" rows="3" placeholder="Jean Dupont&#10;Marie Martin" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"></textarea></div>`;
+  } else if (mode === 'edit-societe') {
+    const s = (DB.societes || []).find(x => x.id === targetId);
+    const gerantsSoc = (DB.gerants || []).filter(g => g.societe_id === targetId).map(g => g.nom).join('\n');
+    title = 'Modifier la société';
+    bodyHTML = `<div class="form-group"><label>Forme juridique</label>
+      <select id="rm-forme" style="width:100%">
+        ${['SARL','EURL','SAS','SASU','SCI'].map(f => `<option${s?.forme_juridique === f ? ' selected' : ''}>${f}</option>`).join('')}
+      </select></div>
+      <div class="form-group"><label>Nom de la société *</label><input id="rm-nom" value="${s?.nom||''}" style="width:100%"></div>
+      <div class="form-group"><label>Gérants (un par ligne)</label><textarea id="rm-gerants" rows="3" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">${gerantsSoc}</textarea></div>`;
+  } else if (mode === 'agence') {
+    const s = (DB.societes || []).find(x => x.id === targetId);
+    title = `Nouvelle agence — ${s?.nom || ''}`;
+    bodyHTML = `<div class="form-group"><label>Nom de l'agence *</label><input id="rm-nom-agence" placeholder="ex: Booster La Terrasse" style="width:100%"></div>
+      <div class="form-group"><label>Date d'ouverture</label><input type="date" id="rm-date" style="width:100%"></div>`;
+  } else if (mode === 'edit-agence') {
+    const a = (DB.agences || []).find(x => x.id === targetId);
+    title = "Modifier l'agence";
+    bodyHTML = `<div class="form-group"><label>Nom de l'agence *</label><input id="rm-nom-agence" value="${a?.nom||''}" style="width:100%"></div>
+      <div class="form-group"><label>Date d'ouverture</label><input type="date" id="rm-date" value="${a?.date_ouverture||''}" style="width:100%"></div>`;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-reseau';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:white;border-radius:16px;padding:24px;width:420px;max-width:95vw';
+  box.innerHTML = `<h3 style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;margin:0 0 20px;color:var(--primary)">${title}</h3>
+    ${bodyHTML}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button id="rm-cancel" style="padding:8px 16px;border:0.5px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:13px">Annuler</button>
+      <button id="rm-save" style="padding:8px 16px;border:none;border-radius:8px;background:#2D455A;color:white;cursor:pointer;font-size:13px;font-weight:600">Enregistrer</button>
+    </div>`;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('rm-cancel').addEventListener('click', () => overlay.remove());
+  document.getElementById('rm-save').addEventListener('click', () => saveReseau(mode, targetId));
+}
+
+async function saveReseau(mode, targetId) {
+  try {
+    showLoading(true);
+    if (mode === 'societe') {
+      const nom = document.getElementById('rm-nom').value.trim();
+      const forme = document.getElementById('rm-forme').value;
+      if (!nom) { showToast('Nom requis', 'error'); showLoading(false); return; }
+      const row = await sbInsert('societes', { nom, forme_juridique: forme });
+      if (row && row[0]) {
+        DB.societes.push(row[0]);
+        const gerantsText = document.getElementById('rm-gerants').value.trim();
+        if (gerantsText) {
+          const noms = gerantsText.split('\n').map(g => g.trim()).filter(Boolean);
+          for (const g of noms) {
+            const gr = await sbInsert('gerants', { societe_id: row[0].id, nom: g });
+            if (gr && gr[0]) DB.gerants.push(gr[0]);
+          }
+        }
+      }
+    } else if (mode === 'edit-societe') {
+      const nom = document.getElementById('rm-nom').value.trim();
+      const forme = document.getElementById('rm-forme').value;
+      if (!nom) { showToast('Nom requis', 'error'); showLoading(false); return; }
+      await sbUpdate('societes', 'id=eq.' + targetId, { nom, forme_juridique: forme });
+      const idx = DB.societes.findIndex(s => s.id === targetId);
+      if (idx >= 0) { DB.societes[idx].nom = nom; DB.societes[idx].forme_juridique = forme; }
+      // Gérants : supprimer et recréer
+      await sbDelete('gerants', 'societe_id=eq.' + targetId);
+      DB.gerants = DB.gerants.filter(g => g.societe_id !== targetId);
+      const gerantsText = document.getElementById('rm-gerants').value.trim();
+      if (gerantsText) {
+        const noms = gerantsText.split('\n').map(g => g.trim()).filter(Boolean);
+        for (const g of noms) {
+          const gr = await sbInsert('gerants', { societe_id: targetId, nom: g });
+          if (gr && gr[0]) DB.gerants.push(gr[0]);
+        }
+      }
+    } else if (mode === 'agence') {
+      const nom = document.getElementById('rm-nom-agence').value.trim();
+      const date = document.getElementById('rm-date').value || null;
+      if (!nom) { showToast('Nom requis', 'error'); showLoading(false); return; }
+      const row = await sbInsert('agences', { nom, societe_id: targetId, actif: true, date_ouverture: date });
+      if (row && row[0]) {
+        DB.agences.push(row[0]);
+        // Mettre à jour AGENCES dynamique
+        window._AGENCES_DYNAMIC = DB.agences.map(a => a.nom).sort();
+      }
+    } else if (mode === 'edit-agence') {
+      const nom = document.getElementById('rm-nom-agence').value.trim();
+      const date = document.getElementById('rm-date').value || null;
+      if (!nom) { showToast('Nom requis', 'error'); showLoading(false); return; }
+      await sbUpdate('agences', 'id=eq.' + targetId, { nom, date_ouverture: date });
+      const idx = DB.agences.findIndex(a => a.id === targetId);
+      if (idx >= 0) { DB.agences[idx].nom = nom; DB.agences[idx].date_ouverture = date; }
+      window._AGENCES_DYNAMIC = DB.agences.map(a => a.nom).sort();
+    }
+    document.getElementById('modal-reseau')?.remove();
+    showLoading(false);
+    showToast('Enregistré ✓', 'success');
+    renderReseauTree();
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur : ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+// Afficher la section réseau dans les params
+function initReseauSection() {
+  renderReseauTree();
+}
 
 
 // =====================
