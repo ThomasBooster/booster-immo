@@ -3563,8 +3563,8 @@ function genererRapportPDF() {
   const annee = mois.split(' ')[1];
   const moisDeLannee = getMoisList().filter(m => m.endsWith(annee));
 
-  agences.forEach((agence, idx) => {
-    setTimeout(() => {
+  // Une seule fenêtre avec toutes les agences (page-break entre chaque)
+  const pagesHTML = agences.map((agence) => {
       const dosMois = DB.dossiers.filter(d => (matchMois(d, mois) || (!d.date && d.mois === mois)) && d.agence === agence && d.statut === 'SIGNÉ');
       const dosAnnee = DB.dossiers.filter(d => (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))) && d.agence === agence && d.statut === 'SIGNÉ');
 
@@ -3583,47 +3583,10 @@ function genererRapportPDF() {
       const positionAnnee = rankAnnee.findIndex(r => r.name === agence) + 1;
       const medals = ['🥇', '🥈', '🥉'];
 
-      const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Rapport ${agence} — ${mois}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@400;500;600&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Inter',sans-serif; color:#1a2530; font-size:13px; padding:32px; background:white; }
-  .header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:20px; border-bottom:3px solid #2D455A; margin-bottom:24px; }
-  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:#2D455A; }
-  .logo-sub { font-size:12px; color:#6b7f8e; margin-top:2px; }
-  .report-title { text-align:right; }
-  .report-title h1 { font-family:'Syne',sans-serif; font-size:22px; color:#2D455A; }
-  .report-title p { font-size:12px; color:#6b7f8e; margin-top:4px; }
-  .section { margin-bottom:24px; }
-  .section-title { font-family:'Syne',sans-serif; font-weight:700; font-size:15px; color:#2D455A; padding-bottom:8px; border-bottom:1px solid #d8e2ea; margin-bottom:14px; }
-  .stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:20px; }
-  .stat-box { background:#f4f6f8; border-radius:10px; padding:14px; border-left:3px solid #2D455A; }
-  .stat-box.gold { border-color:#E8A838; }
-  .stat-label { font-size:10px; font-weight:600; color:#6b7f8e; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
-  .stat-value { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; color:#2D455A; }
-  table { width:100%; border-collapse:collapse; font-size:12px; }
-  thead th { padding:8px 10px; background:#2D455A; color:white; font-size:10px; text-transform:uppercase; letter-spacing:0.3px; text-align:left; }
-  tbody tr:nth-child(even) { background:#f8fafc; }
-  tbody td { padding:8px 10px; border-bottom:1px solid #e8eef3; }
-  .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-weight:700; font-size:11px; }
-  .rank-1 { background:#FFD700; color:#7d6200; }
-  .rank-2 { background:#C0C0C0; color:#4a4a4a; }
-  .rank-3 { background:#CD7F32; color:#5a2c00; }
-  .rank-other { background:#f0f4f8; color:#6b7f8e; }
-  .highlight { background:#fffbeb !important; font-weight:700; }
-  .frais-box { background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; }
-  .frais-amount { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; color:#dc2626; }
-  .footer { margin-top:32px; padding-top:16px; border-top:1px solid #d8e2ea; display:flex; justify-content:space-between; font-size:10px; color:#6b7f8e; }
-  @media print { body { padding:16px; } }
-</style>
-</head>
-<body>
+      return `
+<div class="page-agence">
 <div class="header">
-  <div><div class="logo">Booster Immobilier</div><div class="logo-sub">Réseau de 5 agences</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -3693,23 +3656,65 @@ function genererRapportPDF() {
 </div>
 
 <div class="footer">
-  <span>Booster Immobilier — Document confidentiel</span>
+  <span>Scorim — Booster Immobilier — Document confidentiel</span>
   <span>Rapport généré automatiquement • ${new Date().toLocaleDateString('fr-FR', {day:'numeric',month:'long',year:'numeric'})}</span>
 </div>
+</div>`;
+  }).join('<div style="page-break-after:always"></div>');
 
+  const fullHTML = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Rapports ${mois}${agenceFiltree ? ' — ' + agenceFiltree : ' — Toutes agences'}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@400;500;600&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; color:#1a2530; font-size:13px; background:white; }
+  .page-agence { padding:32px; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:20px; border-bottom:3px solid #2D455A; margin-bottom:24px; }
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:#2D455A; }
+  .logo-sub { font-size:12px; color:#6b7f8e; margin-top:2px; }
+  .report-title { text-align:right; }
+  .report-title h1 { font-family:'Syne',sans-serif; font-size:22px; color:#2D455A; }
+  .report-title p { font-size:12px; color:#6b7f8e; margin-top:4px; }
+  .section { margin-bottom:24px; }
+  .section-title { font-family:'Syne',sans-serif; font-weight:700; font-size:15px; color:#2D455A; padding-bottom:8px; border-bottom:1px solid #d8e2ea; margin-bottom:14px; }
+  .stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:20px; }
+  .stat-box { background:#f4f6f8; border-radius:10px; padding:14px; border-left:3px solid #2D455A; }
+  .stat-box.gold { border-color:#E8A838; }
+  .stat-label { font-size:10px; font-weight:600; color:#6b7f8e; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+  .stat-value { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; color:#2D455A; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  thead th { padding:8px 10px; background:#2D455A; color:white; font-size:10px; text-transform:uppercase; letter-spacing:0.3px; text-align:left; }
+  tbody tr:nth-child(even) { background:#f8fafc; }
+  tbody td { padding:8px 10px; border-bottom:1px solid #e8eef3; }
+  .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-weight:700; font-size:11px; }
+  .rank-1 { background:#FFD700; color:#7d6200; }
+  .rank-2 { background:#C0C0C0; color:#4a4a4a; }
+  .rank-3 { background:#CD7F32; color:#5a2c00; }
+  .rank-other { background:#f0f4f8; color:#6b7f8e; }
+  .highlight { background:#fffbeb !important; font-weight:700; }
+  .frais-box { background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; }
+  .frais-amount { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; color:#dc2626; }
+  .footer { margin-top:32px; padding-top:16px; border-top:1px solid #d8e2ea; display:flex; justify-content:space-between; font-size:10px; color:#6b7f8e; }
+  @media print { .page-agence { padding:16px; } }
+</style>
+</head>
+<body>
+${pagesHTML}
 <script>window.onload = () => { window.print(); }<\/script>
 </body></html>`;
 
-      const win = window.open('', `rapport_${agence}_${mois}`, 'width=900,height=700');
-      win.document.write(html);
-      win.document.close();
+  const win = window.open('', 'rapport_scorim_' + mois.replace(' ', '_'), 'width=900,height=700');
+  if (!win) { showToast('Popup bloquée par le navigateur — autorise les popups pour ce site', 'error'); return; }
+  win.document.write(fullHTML);
+  win.document.close();
 
-      document.getElementById('rapport-status').innerHTML =
-        `<div style="padding:10px 14px;background:#d1fae5;border-radius:8px;color:#065f46;font-size:13px;font-weight:600">
-          ✅ Rapport ouvert pour : ${agences.slice(0, idx+1).join(', ')}
-        </div>`;
-    }, idx * 600);
-  });
+  document.getElementById('rapport-status').innerHTML =
+    `<div style="padding:10px 14px;background:#d1fae5;border-radius:8px;color:#065f46;font-size:13px;font-weight:600">
+      ✅ Rapport ouvert pour : ${agences.join(', ')}
+    </div>`;
 }
 
 function refreshButoires() {
