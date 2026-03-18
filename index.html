@@ -2231,7 +2231,10 @@ async function loadDB() {
     DB.gerants = gerants;
     // AGENCES dynamique : utiliser la table Supabase si renseignée, sinon garder le tableau statique
     if (agences && agences.length > 0) {
-      window._AGENCES_DYNAMIC = agences.map(a => a.nom).sort();
+      // Fusionner la liste statique et Supabase pour ne rien perdre
+      const fromSupabase = agences.filter(a => a.actif !== false).map(a => a.nom);
+      const allAgences = [...new Set([...AGENCES_STATIC, ...fromSupabase])].sort();
+      window._AGENCES_DYNAMIC = allAgences;
     }
     await loadNegociateurs();
   } catch(e) {
@@ -5543,7 +5546,7 @@ async function saveReseau(mode, targetId) {
       if (row && row[0]) {
         DB.agences.push(row[0]);
         // Mettre à jour AGENCES dynamique
-        window._AGENCES_DYNAMIC = DB.agences.map(a => a.nom).sort();
+        window._AGENCES_DYNAMIC = [...new Set([...AGENCES_STATIC, ...DB.agences.filter(a=>a.actif!==false).map(a=>a.nom)])].sort();
       }
     } else if (mode === 'edit-agence') {
       const nom = document.getElementById('rm-nom-agence').value.trim();
@@ -5552,7 +5555,7 @@ async function saveReseau(mode, targetId) {
       await sbUpdate('agences', 'id=eq.' + targetId, { nom, date_ouverture: date });
       const idx = DB.agences.findIndex(a => a.id === targetId);
       if (idx >= 0) { DB.agences[idx].nom = nom; DB.agences[idx].date_ouverture = date; }
-      window._AGENCES_DYNAMIC = DB.agences.map(a => a.nom).sort();
+      window._AGENCES_DYNAMIC = [...new Set([...AGENCES_STATIC, ...DB.agences.filter(a=>a.actif!==false).map(a=>a.nom)])].sort();
     }
     document.getElementById('modal-reseau')?.remove();
     showLoading(false);
