@@ -4643,7 +4643,7 @@ function renderNegociateursSaisie() {
   }
 
   container.innerHTML = agencesSelectionnees.map(({ idx, agence }) => {
-    const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif);
+    const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false);
     const lignesActuelles = getNegLignesSaisie(idx);
     const lignesHtml = lignesActuelles.map((ligne, li) => buildNegLigneSaisie(idx, li, agence, negsAgence, ligne)).join('');
     return '<div style="margin-bottom:16px;padding:14px;background:var(--bg);border-radius:10px">' +
@@ -4742,7 +4742,7 @@ function renderNegociateursEdit(agencesGroupe, dossierNegRows) {
   });
 
   container.innerHTML = agencesGroupe.map((agence, idx) => {
-    const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif);
+    const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false);
     const lignesHtml = negLignesEdit[idx].map((ligne, li) => buildNegLigneEdit(idx, li, agence, negsAgence, ligne)).join('');
     return '<div style="margin-bottom:14px;padding:12px;background:var(--bg);border-radius:10px">' +
       '<div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:8px">🏢 ' + agence + '</div>' +
@@ -4769,7 +4769,7 @@ function addNegLigneEdit(agenceIdx, agence) {
   const totalPct = negLignesEdit[agenceIdx].reduce((s, l) => s + (parseFloat(l.pct) || 0), 0);
   negLignesEdit[agenceIdx].push({ negId: '', pct: Math.max(0, 100 - totalPct) || '' });
   // Re-render juste ce bloc
-  const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif);
+  const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false);
   const container = document.getElementById('neg-edit-lignes-' + agenceIdx);
   if (container) container.innerHTML = negLignesEdit[agenceIdx].map((l, li) => buildNegLigneEdit(agenceIdx, li, agence, negsAgence, l)).join('');
 }
@@ -4784,7 +4784,7 @@ function removeNegLigneEdit(agenceIdx, ligneIdx) {
   const dossiersGroupe = d.groupId ? DB.dossiers.filter(x => x.groupId === d.groupId).sort((a,b) => a.id - b.id) : [d];
   const agence = dossiersGroupe[agenceIdx]?.agence;
   if (!agence) return;
-  const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif);
+  const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false);
   const container = document.getElementById('neg-edit-lignes-' + agenceIdx);
   if (container) container.innerHTML = negLignesEdit[agenceIdx].map((l, li) => buildNegLigneEdit(agenceIdx, li, agence, negsAgence, l)).join('');
 }
@@ -5021,7 +5021,7 @@ function renderRentreursSaisie() {
 
 function buildRentreurLigneSaisie(idx, ligne) {
   const agenceOpts = '<option value="">— Agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === ligne.agence ? ' selected' : '') + '>' + a + '</option>').join('');
-  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif) : [];
+  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif !== false) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
   const pct = ligne.pct !== undefined ? ligne.pct : 100;
   return '<div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
@@ -5099,7 +5099,7 @@ function renderRentreursEdit(rentRows, agencesGroupe) {
 
 function buildRentreurLigneEdit(idx, ligne) {
   const agenceOpts = '<option value="">— Agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === ligne.agence ? ' selected' : '') + '>' + a + '</option>').join('');
-  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif) : [];
+  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif !== false) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
   const pct = ligne.pct !== undefined ? ligne.pct : 100;
   return '<div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
@@ -5340,7 +5340,7 @@ function refreshFicheSocieteGraphGlissant() {
 
 function refreshFicheSocieteEquipe() {
   const agenceNoms = getSocieteAgences();
-  const equipe = (DB.negociateurs || []).filter(n => agenceNoms.includes(n.agence) && n.actif && !n.nom.startsWith('🍒'));
+  const equipe = (DB.negociateurs || []).filter(n => agenceNoms.includes(n.agence) && n.actif !== false && !n.nom.startsWith('🍒'));
   const container = document.getElementById('fiche-societe-equipe');
   if (equipe.length === 0) {
     container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucun collaborateur actif</div>';
@@ -5876,7 +5876,7 @@ function refreshFicheAgenceApporteurs() {
 
 function refreshFicheAgenceEquipe() {
   const agence = ficheAgenceNom;
-  const equipe = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif && !n.virtuel && !n.nom.startsWith('🍒'));
+  const equipe = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false && !n.virtuel && !n.nom.startsWith('🍒'));
   const container = document.getElementById('fiche-agence-equipe');
   if (equipe.length === 0) {
     container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucun collaborateur actif</div>';
