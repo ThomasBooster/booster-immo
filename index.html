@@ -1574,6 +1574,14 @@
           <div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div>
         </div>
 
+        <!-- Graphique CA glissant 12 mois -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">📊 CA glissant — 12 derniers mois</span>
+          </div>
+          <div style="padding:12px 16px"><canvas id="fiche-agence-chart-glissant" height="70"></canvas></div>
+        </div>
+
         <!-- Graphique CA -->
         <div class="card" style="margin-bottom:20px">
           <div class="card-header">
@@ -1585,7 +1593,7 @@
               </label>
             </div>
           </div>
-          <div style="padding:16px"><canvas id="fiche-agence-chart-ca" height="120"></canvas></div>
+          <div style="padding:16px"><canvas id="fiche-agence-chart-ca" height="70"></canvas></div>
         </div>
 
         <!-- Graphique nb ventes -->
@@ -1599,7 +1607,7 @@
               </label>
             </div>
           </div>
-          <div style="padding:16px"><canvas id="fiche-agence-chart-nb" height="120"></canvas></div>
+          <div style="padding:16px"><canvas id="fiche-agence-chart-nb" height="70"></canvas></div>
         </div>
 
         <!-- Apporteurs -->
@@ -5014,6 +5022,7 @@ let ficheAgenceNom = null;
 let ficheAgenceFromPage = 'ranking';
 let ficheAgenceChartCA = null;
 let ficheAgenceChartNb = null;
+let ficheAgenceChartGlissant = null;
 
 function openFicheAgence(agence, fromPage) {
   ficheAgenceNom = agence;
@@ -5068,14 +5077,17 @@ function refreshFicheAgence() {
 
   // Sélecteur années pour moyennes et graphiques
   const years = [...new Set(dosAgence.map(d => d.date ? new Date(d.date).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
-  const yearOpts = '<option value="">Depuis ouverture</option>' + years.map(y => '<option value="' + y + '">' + y + '</option>').join('');
-  document.getElementById('fiche-agence-annee-moy').innerHTML = yearOpts;
-  document.getElementById('fiche-agence-graph-annee').innerHTML = yearOpts;
-  document.getElementById('fiche-agence-graph-annee-nb').innerHTML = yearOpts;
+  const yearOptsMoy = '<option value="">Depuis ouverture</option>' + years.map(y => '<option value="' + y + '">' + y + '</option>').join('');
+  const curY = new Date().getFullYear();
+  const yearOptsGraph = years.map(y => '<option value="' + y + '"' + (y === curY ? ' selected' : '') + '>' + y + '</option>').join('');
+  document.getElementById('fiche-agence-annee-moy').innerHTML = yearOptsMoy;
+  document.getElementById('fiche-agence-graph-annee').innerHTML = yearOptsGraph;
+  document.getElementById('fiche-agence-graph-annee-nb').innerHTML = yearOptsGraph;
 
   refreshFicheAgenceMoyenne();
   refreshFicheAgenceTableau(dosAgence, curYear, 'fiche-agence-tableau-annee', 'fiche-agence-annee-titre');
   refreshFicheAgenceTableau(dosAgence, n1Year, 'fiche-agence-tableau-n1', 'fiche-agence-annee-n1-titre');
+  refreshFicheAgenceGraphGlissant();
   refreshFicheAgenceGraphs();
   refreshFicheAgenceGraphNb();
   refreshFicheAgenceApporteurs();
@@ -5094,7 +5106,7 @@ function refreshFicheAgenceMoyenne() {
     nbMois = parseInt(annee) === now.getFullYear() ? now.getMonth() + 1 : 12;
   } else {
     // Depuis la 1ère vente
-    const dates = dos.map(d => new Date(d.date)).filter(Boolean).sort((a,b) => a-b);
+    const dates = dos.map(d => d.date ? new Date(d.date) : null).filter(d => d && !isNaN(d)).sort((a,b) => a-b);
     if (dates.length > 0) {
       nbMois = Math.max(1, Math.floor((now - dates[0]) / (30.44 * 86400000)));
     } else { nbMois = 12; }
@@ -5134,21 +5146,66 @@ function refreshFicheAgenceTableau(dossiersAgence, annee, tableId, titleId) {
     '</tbody>';
 }
 
+function refreshFicheAgenceGraphGlissant() {
+  const agence = ficheAgenceNom;
+  const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
+  const now = new Date();
+
+  // Construire les 12 derniers mois (mois glissant)
+  const labels = [];
+  const data = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const label = MONTH_NAMES[m].substring(0,3) + ' ' + String(y).substring(2);
+    const ca = dos.filter(dd => {
+      const dd2 = new Date(dd.date);
+      return dd2.getFullYear() === y && dd2.getMonth() === m;
+    }).reduce((s, dd) => s + (dd.ht||0), 0);
+    labels.push(label);
+    data.push(ca);
+  }
+
+  const ctx = document.getElementById('fiche-agence-chart-glissant');
+  if (!ctx) return;
+  if (ficheAgenceChartGlissant) ficheAgenceChartGlissant.destroy();
+  ficheAgenceChartGlissant = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'CA HT',
+        data,
+        backgroundColor: data.map((v, i) => i === 11 ? '#2D455A' : '#2D455A55'),
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: v => fmtEuro(v), font: { size: 10 } } },
+        x: { ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
 function refreshFicheAgenceGraphs() {
   const agence = ficheAgenceNom;
   const anneeSelect = document.getElementById('fiche-agence-graph-annee')?.value || '';
   const allYears = document.getElementById('fiche-agence-graph-all')?.checked || false;
   const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
-
   const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+  const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
 
-  let datasets = [];
-  const yearsToShow = allYears ? years : (anneeSelect ? [parseInt(anneeSelect)] : [new Date().getFullYear()]);
-
-  yearsToShow.forEach((y, yi) => {
+  const datasets = yearsToShow.map((y, yi) => {
     const ca = MONTH_NAMES.map((_, mi) => dos.filter(d => new Date(d.date).getFullYear() === y && new Date(d.date).getMonth() === mi).reduce((s, d) => s + (d.ht||0), 0));
-    datasets.push({ label: String(y), data: ca, borderColor: palette[yi % palette.length], backgroundColor: palette[yi % palette.length] + '22', tension: 0.3, fill: false, pointRadius: 4 });
+    return { label: String(y), data: ca, borderColor: palette[yi % palette.length], backgroundColor: palette[yi % palette.length] + '22', tension: 0.3, fill: false, pointRadius: 3, pointHoverRadius: 5 };
   });
 
   const ctx = document.getElementById('fiche-agence-chart-ca');
@@ -5157,7 +5214,7 @@ function refreshFicheAgenceGraphs() {
   ficheAgenceChartCA = new Chart(ctx, {
     type: 'line',
     data: { labels: MONTH_NAMES.map(m => m.substring(0,3)), datasets },
-    options: { responsive: true, plugins: { legend: { display: yearsToShow.length > 1 } }, scales: { y: { ticks: { callback: v => fmtEuro(v) }, beginAtZero: true } } }
+    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: yearsToShow.length > 1, labels: { boxWidth: 12, font: { size: 11 } } } }, scales: { y: { ticks: { callback: v => fmtEuro(v), font: { size: 10 } }, beginAtZero: true }, x: { ticks: { font: { size: 10 } } } } }
   });
 }
 
@@ -5168,12 +5225,12 @@ function refreshFicheAgenceGraphNb() {
   const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
   const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+  const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
 
-  const yearsToShow = allYears ? years : (anneeSelect ? [parseInt(anneeSelect)] : [new Date().getFullYear()]);
   const datasets = yearsToShow.map((y, yi) => ({
     label: String(y),
     data: MONTH_NAMES.map((_, mi) => dos.filter(d => new Date(d.date).getFullYear() === y && new Date(d.date).getMonth() === mi).length),
-    borderColor: palette[yi % palette.length], backgroundColor: palette[yi % palette.length] + '22', tension: 0.3, fill: false, pointRadius: 4
+    borderColor: palette[yi % palette.length], backgroundColor: palette[yi % palette.length] + '22', tension: 0.3, fill: false, pointRadius: 3, pointHoverRadius: 5
   }));
 
   const ctx = document.getElementById('fiche-agence-chart-nb');
@@ -5182,7 +5239,7 @@ function refreshFicheAgenceGraphNb() {
   ficheAgenceChartNb = new Chart(ctx, {
     type: 'line',
     data: { labels: MONTH_NAMES.map(m => m.substring(0,3)), datasets },
-    options: { responsive: true, plugins: { legend: { display: yearsToShow.length > 1 } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: yearsToShow.length > 1, labels: { boxWidth: 12, font: { size: 11 } } } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } } }
   });
 }
 
@@ -5227,7 +5284,7 @@ function refreshFicheAgenceApporteurs() {
 
 function refreshFicheAgenceEquipe() {
   const agence = ficheAgenceNom;
-  const equipe = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif && !n.virtuel);
+  const equipe = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif && !n.virtuel && !n.nom.startsWith('🍒'));
   const container = document.getElementById('fiche-agence-equipe');
   if (equipe.length === 0) {
     container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucun collaborateur actif</div>';
@@ -5493,6 +5550,7 @@ function buildNegRanking(dossiersFiltres, agenceFiltree) {
     liens.forEach(l => {
       const neg = negs.find(n => n.id === l.negociateur_id);
       if (!neg) return;
+      if (neg.nom && neg.nom.startsWith('🍒')) return;
       if (agenceFiltree && neg.agence !== agenceFiltree) return;
       const ca = (d.ht || 0) * (l.pct_ca / 100);
       const nbDos = d.nbAgencesGroupe > 1 ? (1 / d.nbAgencesGroupe) * (l.pct_ca / 100) : (l.pct_ca / 100);
