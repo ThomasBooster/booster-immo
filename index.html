@@ -3818,7 +3818,7 @@ function genererRapportPDF() {
 <body>
 ${pagesHTML}
 \x3Cscript>window.onload = () => { window.print(); }\x3C/script>
-`;
+</body></html>`;
 
   const win = window.open('', 'rapport_scorim_' + mois.replace(' ', '_'), 'width=900,height=700');
   if (!win) { showToast('Popup bloquée par le navigateur — autorise les popups pour ce site', 'error'); return; }
@@ -5207,7 +5207,7 @@ function refreshFicheAgenceApporteurs() {
     '<div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600">Dossiers</div><div style="font-weight:700;font-size:16px;color:var(--primary)">' + dos.length + '</div></div>' +
     '<div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600">CA HT total</div><div style="font-weight:700;font-size:16px;color:var(--primary)">' + fmtEuro(totalCA) + '</div></div>' +
     '<div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600">Apports HT versés</div><div style="font-weight:700;font-size:16px;color:#f59e0b">' + fmtEuro(totalApport) + '</div></div>' +
-    '<div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600">% moyen d'apport</div><div style="font-weight:700;font-size:16px;color:#f59e0b">' + (totalCA > 0 ? (totalApport/totalCA*100).toFixed(1) + ' %' : '—') + '</div></div>';
+    '<div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600">% moyen d&#39;apport</div><div style="font-weight:700;font-size:16px;color:#f59e0b">' + (totalCA > 0 ? (totalApport/totalCA*100).toFixed(1) + ' %' : '—') + '</div></div>';
 
   const tbody = document.getElementById('fiche-agence-apporteurs-tbody');
   if (dos.length === 0) {
