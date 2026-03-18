@@ -2159,6 +2159,7 @@ function rowToDossier(r) {
     groupId: r.group_id,
     client: r.client,
     agence: r.agence,
+    agenceId: r.agence_id || null,
     ttc: parseFloat(r.ttc) || 0,
     brutHT: parseFloat(r.brut_ht) || 0,
     ht: parseFloat(r.ht) || 0,
@@ -2187,6 +2188,7 @@ function dossierToRow(d) {
     group_id: d.groupId || null,
     client: d.client,
     agence: d.agence,
+    agence_id: d.agenceId || null,
     ttc: d.ttc || 0,
     brut_ht: d.brutHT || 0,
     ht: d.ht || 0,
@@ -3136,6 +3138,17 @@ function calcEditHT() {
   if (montEl) montEl.textContent = apportHT > 0 ? fmtEuro(apportHT) : '—';
 }
 
+
+// Helper : filtre les négociateurs par agence (utilise agence_id si dispo, sinon texte)
+function negosByAgence(agenceNom) {
+  const agObj = DB.agences.find(a => a.nom === agenceNom);
+  return (DB.negociateurs || []).filter(n => {
+    if (n.actif === false) return false;
+    if (agObj && n.agence_id) return n.agence_id === agObj.id;
+    return n.agence === agenceNom;
+  });
+}
+
 async function saveDossier() {
   const client = document.getElementById('s-client').value.trim().toUpperCase();
   const ttc = parseFloat(document.getElementById('s-ttc').value) || 0;
@@ -3179,7 +3192,8 @@ async function saveDossier() {
     const pct = nbAgences === 1 ? 100 : (parseFloat(document.getElementById('s-pct-' + i)?.value) || 0);
     if (!agence) { showToast('Veuillez sélectionner l\'agence ' + (i+1), 'error'); return; }
     if (pct <= 0) { showToast('Le % de l\'agence ' + (i+1) + ' doit être > 0', 'error'); return; }
-    parts.push({ agence, pct });
+    const agenceObj = DB.agences.find(a => a.nom === agence);
+    parts.push({ agence, agenceId: agenceObj ? agenceObj.id : null, pct });
   }
   if (nbAgences > 1) {
     const totalPct = parts.reduce((s, p) => s + p.pct, 0);
@@ -3197,7 +3211,7 @@ async function saveDossier() {
       const apportPartHT = +(apportHT * p.pct / 100).toFixed(2);
       const row = dossierToRow({
         groupId: null, // sera mis à jour après
-        client, agence: p.agence,
+        client, agence: p.agence, agenceId: p.agenceId || null,
         ttc: ttcPart, ht: htPart,
         ttcTotal: ttc, htTotal: netHT,
         brutHT: +(brutHT * p.pct / 100).toFixed(2),
@@ -4643,7 +4657,12 @@ function renderNegociateursSaisie() {
   }
 
   container.innerHTML = agencesSelectionnees.map(({ idx, agence }) => {
-    const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false);
+    const agenceObjS = DB.agences.find(a => a.nom === agence);
+    const negsAgence = (DB.negociateurs || []).filter(n => {
+      if (!n.actif !== false && n.actif === false) return false;
+      if (agenceObjS && n.agence_id) return n.agence_id === agenceObjS.id;
+      return n.agence === agence;
+    });
     const lignesActuelles = getNegLignesSaisie(idx);
     const lignesHtml = lignesActuelles.map((ligne, li) => buildNegLigneSaisie(idx, li, agence, negsAgence, ligne)).join('');
     return '<div style="margin-bottom:16px;padding:14px;background:var(--bg);border-radius:10px">' +
@@ -4742,7 +4761,7 @@ function renderNegociateursEdit(agencesGroupe, dossierNegRows) {
   });
 
   container.innerHTML = agencesGroupe.map((agence, idx) => {
-    const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false);
+    const negsAgence = negosByAgence(agence);
     const lignesHtml = negLignesEdit[idx].map((ligne, li) => buildNegLigneEdit(idx, li, agence, negsAgence, ligne)).join('');
     return '<div style="margin-bottom:14px;padding:12px;background:var(--bg);border-radius:10px">' +
       '<div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:8px">🏢 ' + agence + '</div>' +
@@ -4769,7 +4788,7 @@ function addNegLigneEdit(agenceIdx, agence) {
   const totalPct = negLignesEdit[agenceIdx].reduce((s, l) => s + (parseFloat(l.pct) || 0), 0);
   negLignesEdit[agenceIdx].push({ negId: '', pct: Math.max(0, 100 - totalPct) || '' });
   // Re-render juste ce bloc
-  const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false);
+  const negsAgence = negosByAgence(agence);
   const container = document.getElementById('neg-edit-lignes-' + agenceIdx);
   if (container) container.innerHTML = negLignesEdit[agenceIdx].map((l, li) => buildNegLigneEdit(agenceIdx, li, agence, negsAgence, l)).join('');
 }
@@ -4784,7 +4803,7 @@ function removeNegLigneEdit(agenceIdx, ligneIdx) {
   const dossiersGroupe = d.groupId ? DB.dossiers.filter(x => x.groupId === d.groupId).sort((a,b) => a.id - b.id) : [d];
   const agence = dossiersGroupe[agenceIdx]?.agence;
   if (!agence) return;
-  const negsAgence = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false);
+  const negsAgence = negosByAgence(agence);
   const container = document.getElementById('neg-edit-lignes-' + agenceIdx);
   if (container) container.innerHTML = negLignesEdit[agenceIdx].map((l, li) => buildNegLigneEdit(agenceIdx, li, agence, negsAgence, l)).join('');
 }
@@ -5021,7 +5040,7 @@ function renderRentreursSaisie() {
 
 function buildRentreurLigneSaisie(idx, ligne) {
   const agenceOpts = '<option value="">— Agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === ligne.agence ? ' selected' : '') + '>' + a + '</option>').join('');
-  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif !== false) : [];
+  const negsAgence = ligne.agence ? negosByAgence(ligne.agence) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
   const pct = ligne.pct !== undefined ? ligne.pct : 100;
   return '<div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
@@ -5099,7 +5118,7 @@ function renderRentreursEdit(rentRows, agencesGroupe) {
 
 function buildRentreurLigneEdit(idx, ligne) {
   const agenceOpts = '<option value="">— Agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === ligne.agence ? ' selected' : '') + '>' + a + '</option>').join('');
-  const negsAgence = ligne.agence ? (DB.negociateurs || []).filter(n => n.agence === ligne.agence && n.actif !== false) : [];
+  const negsAgence = ligne.agence ? negosByAgence(ligne.agence) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
   const pct = ligne.pct !== undefined ? ligne.pct : 100;
   return '<div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
@@ -5876,7 +5895,12 @@ function refreshFicheAgenceApporteurs() {
 
 function refreshFicheAgenceEquipe() {
   const agence = ficheAgenceNom;
-  const equipe = (DB.negociateurs || []).filter(n => n.agence === agence && n.actif !== false && !n.virtuel && !n.nom.startsWith('🍒'));
+  const agObj = DB.agences.find(a => a.nom === agence);
+  const equipe = (DB.negociateurs || []).filter(n => {
+    if (n.actif === false || n.virtuel || (n.nom && n.nom.startsWith('🍒'))) return false;
+    if (agObj && n.agence_id) return n.agence_id === agObj.id;
+    return n.agence === agence;
+  });
   const container = document.getElementById('fiche-agence-equipe');
   if (equipe.length === 0) {
     container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Aucun collaborateur actif</div>';
@@ -6143,7 +6167,11 @@ function buildNegRanking(dossiersFiltres, agenceFiltree) {
       const neg = negs.find(n => n.id === l.negociateur_id);
       if (!neg) return;
       if (neg.nom && neg.nom.startsWith('🍒')) return;
-      if (agenceFiltree && neg.agence !== agenceFiltree) return;
+      if (agenceFiltree) {
+        const agFObj = DB.agences.find(a => a.nom === agenceFiltree);
+        const match = agFObj && neg.agence_id ? neg.agence_id === agFObj.id : neg.agence === agenceFiltree;
+        if (!match) return;
+      }
       const ca = (d.ht || 0) * (l.pct_ca / 100);
       const nbDos = d.nbAgencesGroupe > 1 ? (1 / d.nbAgencesGroupe) * (l.pct_ca / 100) : (l.pct_ca / 100);
       if (!result[neg.id]) result[neg.id] = { neg, ca: 0, count: 0 };
