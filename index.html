@@ -3144,7 +3144,7 @@ function negosByAgence(agenceNom) {
   const agObj = DB.agences.find(a => a.nom === agenceNom);
   return (DB.negociateurs || []).filter(n => {
     if (n.actif === false) return false;
-    if (agObj && n.agence_id) return n.agence_id === agObj.id;
+    if (agObj && n.agence_id) return parseInt(n.agence_id) === parseInt(agObj.id);
     return n.agence === agenceNom;
   });
 }
@@ -4657,12 +4657,7 @@ function renderNegociateursSaisie() {
   }
 
   container.innerHTML = agencesSelectionnees.map(({ idx, agence }) => {
-    const agenceObjS = DB.agences.find(a => a.nom === agence);
-    const negsAgence = (DB.negociateurs || []).filter(n => {
-      if (!n.actif !== false && n.actif === false) return false;
-      if (agenceObjS && n.agence_id) return n.agence_id === agenceObjS.id;
-      return n.agence === agence;
-    });
+    const negsAgence = negosByAgence(agence);
     const lignesActuelles = getNegLignesSaisie(idx);
     const lignesHtml = lignesActuelles.map((ligne, li) => buildNegLigneSaisie(idx, li, agence, negsAgence, ligne)).join('');
     return '<div style="margin-bottom:16px;padding:14px;background:var(--bg);border-radius:10px">' +
