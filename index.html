@@ -666,7 +666,7 @@
   .info-tip:hover { opacity: 1; }
   .info-tip::after {
     content: attr(data-tip);
-    position: absolute; bottom: calc(100% + 6px); left: 50%;
+    position: absolute; top: calc(100% + 6px); left: 50%;
     transform: translateX(-50%);
     background: #1a2530; color: white;
     font-size: 11px; font-weight: 400; line-height: 1.5;
@@ -676,9 +676,9 @@
     z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
   .info-tip::before {
-    content: ''; position: absolute; bottom: calc(100% + 1px); left: 50%;
+    content: ''; position: absolute; top: calc(100% + 1px); left: 50%;
     transform: translateX(-50%);
-    border: 5px solid transparent; border-top-color: #1a2530;
+    border: 5px solid transparent; border-bottom-color: #1a2530;
     pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 9999;
   }
   .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
@@ -4733,7 +4733,8 @@ function buildNegLigneSaisie(agenceIdx, ligneIdx, agence, negsAgence, ligne) {
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onNegSelectChange(' + agenceIdx + ',' + ligneIdx + ',this.value)">' + selectOptions + '</select>' +
     '<div style="display:flex;align-items:center;gap:4px">' +
     '<input type="number" min="0" max="100" step="1" placeholder="%" value="' + (ligne.pct || '') + '" style="width:70px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onNegPctChange(' + agenceIdx + ',' + ligneIdx + ',this.value)">' +
-    '<span style="font-size:12px;color:var(--text-muted)">%</span></div>' +
+    '<span style="font-size:12px;color:var(--text-muted)">%</span>' +
+    '<span class="info-tip" data-tip="Ce % s&#39;applique sur la quote-part HT de l&#39;agence, pas sur le total des honoraires.&#10;Ex : agence à 50% d&#39;une vente 10 000€ HT + négo à 40% = CA négo 2 000€">i</span></div>' +
     (ligneIdx > 0 ? '<button class="btn btn-sm btn-danger" onclick="removeNegLigne(' + agenceIdx + ',' + ligneIdx + ')">✕</button>' : '<div></div>') +
     '</div>';
 }
