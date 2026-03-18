@@ -1574,40 +1574,41 @@
           <div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div>
         </div>
 
-        <!-- Graphique CA glissant 12 mois -->
-        <div class="card" style="margin-bottom:20px">
-          <div class="card-header">
-            <span class="card-title">📊 CA glissant — 12 derniers mois</span>
+        <!-- Graphiques CA et nb ventes côte à côte -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="font-size:13px">📊 CA HT / mois</span>
+              <div style="display:flex;gap:6px;align-items:center">
+                <select class="filter-select" id="fiche-agence-graph-annee" onchange="refreshFicheAgenceGraphs()" style="font-size:11px;padding:3px 6px"></select>
+                <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap">
+                  <input type="checkbox" id="fiche-agence-graph-all" onchange="refreshFicheAgenceGraphs()"> Toutes
+                </label>
+              </div>
+            </div>
+            <div style="padding:10px 12px"><canvas id="fiche-agence-chart-ca" height="90"></canvas></div>
           </div>
-          <div style="padding:12px 16px"><canvas id="fiche-agence-chart-glissant" height="70"></canvas></div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span>
+              <div style="display:flex;gap:6px;align-items:center">
+                <select class="filter-select" id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" style="font-size:11px;padding:3px 6px"></select>
+                <label style="font-size:11px;display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap">
+                  <input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()"> Toutes
+                </label>
+              </div>
+            </div>
+            <div style="padding:10px 12px"><canvas id="fiche-agence-chart-nb" height="90"></canvas></div>
+          </div>
         </div>
 
-        <!-- Graphique CA -->
+        <!-- Graphique CA cumulé glissant 12 mois -->
         <div class="card" style="margin-bottom:20px">
           <div class="card-header">
-            <span class="card-title">📊 Évolution du CA HT par mois</span>
-            <div style="display:flex;gap:8px;align-items:center">
-              <select class="filter-select" id="fiche-agence-graph-annee" onchange="refreshFicheAgenceGraphs()" style="font-size:12px"></select>
-              <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
-                <input type="checkbox" id="fiche-agence-graph-all" onchange="refreshFicheAgenceGraphs()"> Toutes les années
-              </label>
-            </div>
+            <span class="card-title">📈 CA cumulé sur 12 mois glissants</span>
+            <span style="font-size:11px;color:var(--text-muted)">Chaque barre = somme des 12 mois précédents</span>
           </div>
-          <div style="padding:16px"><canvas id="fiche-agence-chart-ca" height="70"></canvas></div>
-        </div>
-
-        <!-- Graphique nb ventes -->
-        <div class="card" style="margin-bottom:20px">
-          <div class="card-header">
-            <span class="card-title">🏠 Évolution du nombre de ventes par mois</span>
-            <div style="display:flex;gap:8px;align-items:center">
-              <select class="filter-select" id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" style="font-size:12px"></select>
-              <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
-                <input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()"> Toutes les années
-              </label>
-            </div>
-          </div>
-          <div style="padding:16px"><canvas id="fiche-agence-chart-nb" height="70"></canvas></div>
+          <div style="padding:10px 16px"><canvas id="fiche-agence-chart-glissant" height="70"></canvas></div>
         </div>
 
         <!-- Apporteurs -->
@@ -5149,23 +5150,53 @@ function refreshFicheAgenceTableau(dossiersAgence, annee, tableId, titleId) {
 function refreshFicheAgenceGraphGlissant() {
   const agence = ficheAgenceNom;
   const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
+  if (dos.length === 0) return;
+
   const now = new Date();
 
-  // Construire les 12 derniers mois (mois glissant)
+  // Trouver la première vente
+  const firstDate = dos.map(d => new Date(d.date)).filter(d => !isNaN(d)).sort((a,b) => a-b)[0];
+  if (!firstDate) return;
+
+  // La première barre peut apparaître au plus tôt 12 mois après la 1ère vente
+  // On démarre au mois suivant la 1ère vente + 11 mois = mois 12 depuis le début
+  // En pratique : on génère une barre pour chaque mois depuis firstDate+11 mois jusqu'à aujourd'hui
+  const startBar = new Date(firstDate.getFullYear(), firstDate.getMonth() + 11, 1);
+
   const labels = [];
   const data = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const y = d.getFullYear();
-    const m = d.getMonth();
+
+  // Itérer mois par mois depuis startBar jusqu'au mois courant
+  let cursor = new Date(startBar);
+  while (cursor <= now) {
+    const y = cursor.getFullYear();
+    const m = cursor.getMonth();
     const label = MONTH_NAMES[m].substring(0,3) + ' ' + String(y).substring(2);
-    const ca = dos.filter(dd => {
-      const dd2 = new Date(dd.date);
-      return dd2.getFullYear() === y && dd2.getMonth() === m;
-    }).reduce((s, dd) => s + (dd.ht||0), 0);
+
+    // Sommer les 12 mois allant de (cursor - 11 mois) à cursor inclus
+    let cumul = 0;
+    for (let i = 0; i < 12; i++) {
+      const refDate = new Date(y, m - i, 1);
+      const ry = refDate.getFullYear();
+      const rm = refDate.getMonth();
+      cumul += dos.filter(d => {
+        const dd = new Date(d.date);
+        return dd.getFullYear() === ry && dd.getMonth() === rm;
+      }).reduce((s, d) => s + (d.ht||0), 0);
+    }
+
     labels.push(label);
-    data.push(ca);
+    data.push(cumul);
+    cursor = new Date(y, m + 1, 1);
   }
+
+  // Colorer : la dernière barre plus foncée, tendance haussière/baissière
+  const bgColors = data.map((v, i) => {
+    if (i === data.length - 1) return '#2D455A';
+    if (i > 0 && v > data[i-1]) return '#10b981aa';
+    if (i > 0 && v < data[i-1]) return '#ef4444aa';
+    return '#2D455Aaa';
+  });
 
   const ctx = document.getElementById('fiche-agence-chart-glissant');
   if (!ctx) return;
@@ -5175,20 +5206,23 @@ function refreshFicheAgenceGraphGlissant() {
     data: {
       labels,
       datasets: [{
-        label: 'CA HT',
+        label: 'CA cumulé 12 mois',
         data,
-        backgroundColor: data.map((v, i) => i === 11 ? '#2D455A' : '#2D455A55'),
-        borderRadius: 4,
+        backgroundColor: bgColors,
+        borderRadius: 3,
         borderSkipped: false
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: true,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => 'CA 12 mois : ' + fmtEuro(ctx.parsed.y) } }
+      },
       scales: {
-        y: { beginAtZero: true, ticks: { callback: v => fmtEuro(v), font: { size: 10 } } },
-        x: { ticks: { font: { size: 9 } } }
+        y: { beginAtZero: false, ticks: { callback: v => fmtEuro(v), font: { size: 10 } } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 24 } }
       }
     }
   });
