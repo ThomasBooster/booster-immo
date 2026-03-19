@@ -5159,31 +5159,33 @@ function checkAlertePE() {
   const joursEl = document.getElementById('neg-pe-jours');
   const peValidee = document.getElementById('neg-periode-essai-validee')?.value;
 
-  // Médecine et CCI :
-  // - masqués si PE en cours ET > 15 jours avant fin
-  // - visibles à partir de J-15 (et restent visibles après même si PE terminée ou validée)
-  const showMedCCI = (() => {
-    if (!finPEStr) return false;
-    const finPE = new Date(finPEStr);
-    const diffJours = Math.ceil((finPE - new Date()) / (1000 * 60 * 60 * 24));
-    // Visible si on est à moins de 15 jours de la fin OU si la fin est dépassée
-    return diffJours <= 15;
-  })();
+  // Médecine et CCI visibles dès J-15 ET en permanence une fois ce seuil passé
+  // Règle : masqués SEULEMENT si PE existe ET on est encore à plus de 15 jours de la fin
   const medRow = document.getElementById('cl-medecine-row');
   const cciRow = document.getElementById('cl-cci-row');
-  if (medRow) medRow.style.display = showMedCCI ? 'flex' : 'none';
-  if (cciRow) cciRow.style.display = showMedCCI ? 'flex' : 'none';
+  if (finPEStr) {
+    const finPE = new Date(finPEStr);
+    const diffJours = Math.ceil((finPE - new Date()) / (1000 * 60 * 60 * 24));
+    // Visible dès J-15, que la PE soit validée, en cours, ou dépassée
+    const showMedCCI = diffJours <= 15;
+    if (medRow) medRow.style.display = showMedCCI ? 'flex' : 'none';
+    if (cciRow) cciRow.style.display = showMedCCI ? 'flex' : 'none';
+  } else {
+    if (medRow) medRow.style.display = 'none';
+    if (cciRow) cciRow.style.display = 'none';
+  }
 
-  // Alerte PE (uniquement si PE en cours — pas validée ni refusée)
-  if (!finPEStr || !alerte || peValidee === 'true' || peValidee === 'false') {
-    if (alerte) alerte.style.display = 'none';
+  // Alerte PE : uniquement si PE en cours (pas encore validée ni refusée)
+  if (!alerte) return;
+  if (!finPEStr || peValidee === 'true' || peValidee === 'false') {
+    alerte.style.display = 'none';
     return;
   }
-  const finPE = new Date(finPEStr);
-  const diffJours = Math.ceil((finPE - new Date()) / (1000 * 60 * 60 * 24));
-  if (diffJours <= 15 && diffJours >= 0) {
+  const finPE2 = new Date(finPEStr);
+  const diffJours2 = Math.ceil((finPE2 - new Date()) / (1000 * 60 * 60 * 24));
+  if (diffJours2 <= 15 && diffJours2 >= 0) {
     alerte.style.display = 'block';
-    if (joursEl) joursEl.textContent = diffJours;
+    if (joursEl) joursEl.textContent = diffJours2;
   } else {
     alerte.style.display = 'none';
   }
