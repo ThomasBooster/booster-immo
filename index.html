@@ -1530,13 +1530,13 @@
                 <input type="checkbox" id="cl-document-unique" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
                 <span>Signature du document unique</span>
               </label>
-              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+              <label id="cl-medecine-row" style="display:none;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
                 <input type="checkbox" id="cl-medecine" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
-                <span>Inscription à la médecine du travail</span>
+                <span>Inscription à la médecine du travail <span style="font-size:11px;color:#6b7280;font-style:italic">(à faire avant la fin de la période d'essai)</span></span>
               </label>
-              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+              <label id="cl-cci-row" style="display:none;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
                 <input type="checkbox" id="cl-cci" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
-                <span>Attestation collaborateur CCI — <a href="https://www.cciwebstore.fr/" target="_blank" style="color:#0369a1">cciwebstore.fr</a></span>
+                <span>Attestation collaborateur CCI — <a href="https://www.cciwebstore.fr/" target="_blank" style="color:#0369a1">cciwebstore.fr</a> <span style="font-size:11px;color:#6b7280;font-style:italic">(à faire avant la fin de la période d'essai)</span></span>
               </label>
             </div>
             <!-- Alerte période d'essai -->
@@ -4899,53 +4899,63 @@ const CHECKLIST_KEYS = ['mutuelle', 'document-unique', 'medecine', 'cci'];
 
 function onNegStatutChange() {
   const statut = document.getElementById('neg-statut-emploi')?.value;
+  // Salariés = CDI, responsable, alternant, stagiaire
   const isSalarie = ['salarié', 'responsable', 'alternant', 'stagiaire'].includes(statut);
-  const isSalarieCDI = statut === 'salarié';
+  // Période d'essai CDI = salarié CDI OU responsable d'agence
+  const isSalarieCDI = ['salarié', 'responsable'].includes(statut);
 
   // Avance sur commission
   const avanceGroup = document.getElementById('neg-avance-group');
   if (avanceGroup) avanceGroup.style.display = ['salarié','responsable'].includes(statut) ? 'block' : 'none';
 
-  // Checklist
+  // Checklist (tous salariés)
   const checklistSection = document.getElementById('neg-checklist-section');
   if (checklistSection) checklistSection.style.display = isSalarie ? 'block' : 'none';
 
-  // Période d'essai (CDI uniquement)
+  // Période d'essai
   const peGroup = document.getElementById('neg-pe-group');
   const peValideeGroup = document.getElementById('neg-pe-validee-group');
   if (peGroup) peGroup.style.display = isSalarieCDI ? 'block' : 'none';
   if (peValideeGroup) peValideeGroup.style.display = isSalarieCDI ? 'block' : 'none';
 
-  // Recalculer la date de fin PE si date embauche déjà saisie
-  if (isSalarieCDI) onNegDateEmbaucheChange();
+  // Mise à jour visibilité checklist PE
+  if (isSalarie) checkAlertePE();
 }
 
 function onNegDateEmbaucheChange() {
   const statut = document.getElementById('neg-statut-emploi')?.value;
-  if (statut !== 'salarié') return;
+  const isSalarieCDI = ['salarié', 'responsable'].includes(statut);
+  if (!isSalarieCDI) return;
   const dateStr = document.getElementById('neg-date-entree')?.value;
   if (!dateStr) return;
 
-  const dateMbauche = new Date(dateStr);
-  // Demander si PE = 3 mois (seulement si pas déjà renseignée)
+  // Ouvrir le modal stylisé SEULEMENT si pas déjà renseigné
   const existingPE = document.getElementById('neg-date-fin-pe')?.value;
   if (!existingPE) {
-    const ok3mois = confirm('La période d\'essai est-elle de 3 mois ?\n\nOui → date de fin calculée automatiquement.\nNon → vous saisirez la durée manuellement.');
-    if (ok3mois) {
-      const finPE = new Date(dateMbauche);
-      finPE.setMonth(finPE.getMonth() + 3);
-      document.getElementById('neg-date-fin-pe').value = finPE.toISOString().split('T')[0];
-    } else {
-      const duree = prompt('Durée de la période d\'essai (en mois) :', '2');
-      if (duree && !isNaN(parseInt(duree))) {
-        const finPE = new Date(dateMbauche);
-        finPE.setMonth(finPE.getMonth() + parseInt(duree));
-        document.getElementById('neg-date-fin-pe').value = finPE.toISOString().split('T')[0];
-      }
-    }
-    document.getElementById('neg-date-fin-pe').removeAttribute('readonly');
+    openModalPEDuree(dateStr);
   }
+}
+
+function openModalPEDuree(dateEmbauche) {
+  window._peDateEmbauche = dateEmbauche;
+  const modal = document.getElementById('modal-pe-duree');
+  if (modal) modal.style.display = 'flex';
+}
+
+function setPEDuree(mois) {
+  if (!window._peDateEmbauche) return;
+  const finPE = new Date(window._peDateEmbauche);
+  finPE.setMonth(finPE.getMonth() + mois);
+  const el = document.getElementById('neg-date-fin-pe');
+  if (el) { el.value = finPE.toISOString().split('T')[0]; el.removeAttribute('readonly'); }
+  document.getElementById('modal-pe-duree').style.display = 'none';
   checkAlertePE();
+}
+
+function setPEDureeCustom() {
+  const val = parseInt(document.getElementById('pe-duree-custom')?.value);
+  if (!val || val < 1) return;
+  setPEDuree(val);
 }
 
 function checkAlertePE() {
@@ -4953,14 +4963,26 @@ function checkAlertePE() {
   const alerte = document.getElementById('neg-pe-alerte');
   const joursEl = document.getElementById('neg-pe-jours');
   const peValidee = document.getElementById('neg-periode-essai-validee')?.value;
+
+  // Médecine et CCI — visibles seulement à J-15
+  const showJ15 = (() => {
+    if (!finPEStr || peValidee === 'true' || peValidee === 'false') return false;
+    const finPE = new Date(finPEStr);
+    const diffJours = Math.ceil((finPE - new Date()) / (1000 * 60 * 60 * 24));
+    return diffJours <= 15 && diffJours >= -30;
+  })();
+  const medRow = document.getElementById('cl-medecine-row');
+  const cciRow = document.getElementById('cl-cci-row');
+  if (medRow) medRow.style.display = showJ15 ? 'flex' : 'none';
+  if (cciRow) cciRow.style.display = showJ15 ? 'flex' : 'none';
+
+  // Alerte PE
   if (!finPEStr || !alerte || peValidee === 'true' || peValidee === 'false') {
     if (alerte) alerte.style.display = 'none';
     return;
   }
   const finPE = new Date(finPEStr);
-  const now = new Date();
-  const diffMs = finPE - now;
-  const diffJours = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const diffJours = Math.ceil((finPE - new Date()) / (1000 * 60 * 60 * 24));
   if (diffJours <= 15 && diffJours >= 0) {
     alerte.style.display = 'block';
     if (joursEl) joursEl.textContent = diffJours;
@@ -6865,6 +6887,31 @@ function openAffairesApporteur(nom) {
           <tbody id="modal-apporteur-tbody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+  <!-- MODAL PÉRIODE D'ESSAI -->
+  <div id="modal-pe-duree" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;display:none;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:16px;padding:28px;width:400px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:8px">⏱ Période d'essai</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px">Quelle est la durée de la période d'essai pour ce contrat ?</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+        <button id="pe-btn-3mois" onclick="setPEDuree(3)" style="padding:12px 16px;border:2px solid var(--border);border-radius:10px;background:white;font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:all .15s">
+          <span style="font-size:16px">✅</span> 3 mois <span style="font-size:12px;color:var(--text-muted);font-weight:400">(standard CDI)</span>
+        </button>
+        <button id="pe-btn-2mois" onclick="setPEDuree(2)" style="padding:12px 16px;border:2px solid var(--border);border-radius:10px;background:white;font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:all .15s">
+          <span style="font-size:16px">📅</span> 2 mois
+        </button>
+        <button id="pe-btn-1mois" onclick="setPEDuree(1)" style="padding:12px 16px;border:2px solid var(--border);border-radius:10px;background:white;font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:all .15s">
+          <span style="font-size:16px">📅</span> 1 mois
+        </button>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border:2px solid var(--border);border-radius:10px">
+          <span style="font-size:16px">✏️</span>
+          <span style="font-size:13px;font-weight:600">Autre :</span>
+          <input type="number" id="pe-duree-custom" min="1" max="12" placeholder="mois" style="width:70px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px">
+          <button onclick="setPEDureeCustom()" style="padding:6px 12px;border:none;border-radius:6px;background:var(--primary);color:white;font-size:12px;font-weight:600;cursor:pointer">OK</button>
+        </div>
+      </div>
+      <button onclick="document.getElementById('modal-pe-duree').style.display='none'" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:white;font-size:13px;cursor:pointer;color:var(--text-muted)">Passer cette étape</button>
     </div>
   </div>
 </body>
