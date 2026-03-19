@@ -819,6 +819,8 @@
 
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
+        <div id="neg-cci-alertes-container" style="display:none;margin-bottom:16px;padding:14px;background:white;border-radius:12px;border:1px solid var(--border)"></div>
+        <div id="neg-rcs-alertes-container" style="display:none;margin-bottom:16px;padding:14px;background:white;border-radius:12px;border:1px solid var(--border)"></div>
         <div class="stats-grid" id="stats-grid"></div>
 
         <div class="filters">
@@ -1366,6 +1368,10 @@
       <div class="page" id="page-negociateurs">
         <!-- Alertes périodes d'essai -->
         <div id="neg-pe-alertes-container" style="display:none;margin-bottom:16px"></div>
+        <!-- Alertes CCI manquante -->
+        <div id="neg-cci-alertes-container" style="display:none;margin-bottom:16px;padding:14px;background:white;border-radius:12px;border:1px solid var(--border)"></div>
+        <!-- Alertes RCS manquant -->
+        <div id="neg-rcs-alertes-container" style="display:none;margin-bottom:16px;padding:14px;background:white;border-radius:12px;border:1px solid var(--border)"></div>
         <div class="card" style="margin-bottom:20px">
           <div class="card-header">
             <span class="card-title">👤 Négociateurs & Rentreurs</span>
@@ -1432,9 +1438,11 @@
 
       <!-- Modal ajout/édition négociateur -->
       <div class="modal-overlay" id="modal-negociateur" style="z-index:300">
-        <div class="modal" style="width:520px;max-height:90vh;overflow-y:auto">
+        <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto">
           <h3 id="modal-neg-title">Ajouter un négociateur</h3>
           <input type="hidden" id="neg-edit-id">
+
+          <!-- Champs communs à tous -->
           <div class="form-grid">
             <div class="form-group">
               <label>Nom *</label>
@@ -1446,7 +1454,7 @@
                 <option value="">— Sélectionner —</option>
               </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" id="neg-poste-group">
               <label>Poste *</label>
               <select id="neg-poste">
                 <option value="négociateur">Négociateur</option>
@@ -1455,59 +1463,19 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Statut emploi</label>
+              <label>Type de contrat</label>
               <select id="neg-statut-emploi" onchange="onNegStatutChange()">
-                <option value="agent-co">Agent commercial</option>
                 <option value="salarié">Salarié CDI</option>
+                <option value="responsable">Responsable d'agence</option>
+                <option value="agent-co">Agent commercial</option>
                 <option value="alternant">Alternant</option>
                 <option value="stagiaire">Stagiaire</option>
-                <option value="responsable">Responsable d'agence</option>
                 <option value="gérant">Gérant</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Type de contrat</label>
-              <select id="neg-type-contrat">
-                <option value="">— Sélectionner —</option>
-                <option value="CDI">CDI</option>
-                <option value="Agent commercial">Agent commercial</option>
-                <option value="Alternance">Alternance</option>
-                <option value="Stage">Stage</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Date d'embauche</label>
-              <input type="date" id="neg-date-entree" onchange="onNegDateEmbaucheChange()">
-            </div>
-            <div class="form-group" id="neg-pe-group" style="display:none">
-              <label>Fin de période d'essai</label>
-              <input type="date" id="neg-date-fin-pe" readonly style="background:#f8fafc;cursor:default">
-            </div>
-            <div class="form-group" id="neg-pe-validee-group" style="display:none">
-              <label>Période d'essai</label>
-              <select id="neg-periode-essai-validee">
-                <option value="">— En cours —</option>
-                <option value="true">✅ Validée</option>
-                <option value="false">❌ Non validée</option>
               </select>
             </div>
             <div class="form-group">
               <label>Email</label>
               <input type="email" id="neg-email" placeholder="ex: sophie@booster-immobilier.com">
-            </div>
-            <div class="form-group">
-              <label>Objectif CA mensuel (HT)</label>
-              <input type="number" id="neg-objectif-ca" placeholder="ex: 8000" min="0">
-            </div>
-            <div class="form-group" id="neg-avance-group" style="display:none">
-              <label>Avance sur commission (€/mois)</label>
-              <input type="number" id="neg-avance" placeholder="ex: 1500" min="0">
-            </div>
-            <div class="form-group">
-              <label>Agence précédente</label>
-              <select id="neg-agence-precedente">
-                <option value="">— Aucune / Première agence —</option>
-              </select>
             </div>
             <div class="form-group">
               <label>Actif</label>
@@ -1518,10 +1486,120 @@
             </div>
           </div>
 
-          <!-- CHECKLIST EMBAUCHE (salariés uniquement) -->
+          <!-- SALARIÉ CDI / RESPONSABLE -->
+          <div id="neg-section-salarie" style="display:none">
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">Informations contrat</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Date d'embauche</label>
+                <input type="date" id="neg-date-entree" onchange="onNegDateEmbaucheChange()">
+              </div>
+              <div class="form-group" id="neg-pe-group">
+                <label>Fin de période d'essai</label>
+                <input type="date" id="neg-date-fin-pe" style="background:#f8fafc">
+              </div>
+              <div class="form-group" id="neg-pe-validee-group">
+                <label>Période d'essai</label>
+                <select id="neg-periode-essai-validee">
+                  <option value="">— En cours —</option>
+                  <option value="true">✅ Validée</option>
+                  <option value="false">❌ Non validée</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Objectif CA mensuel (HT)</label>
+                <input type="number" id="neg-objectif-ca" placeholder="ex: 8000" min="0">
+              </div>
+              <div class="form-group">
+                <label>Avance sur commission (€/mois)</label>
+                <input type="number" id="neg-avance" placeholder="ex: 1500" min="0">
+              </div>
+              <div class="form-group">
+                <label>Agence précédente</label>
+                <select id="neg-agence-precedente">
+                  <option value="">— Aucune / Première agence —</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- AGENT COMMERCIAL -->
+          <div id="neg-section-agentco" style="display:none">
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">Informations mandat</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Date du premier mandat</label>
+                <input type="date" id="neg-date-premier-mandat">
+              </div>
+              <div class="form-group">
+                <label>Taux rétrocession sortie (%)</label>
+                <input type="number" id="neg-taux-sortie" placeholder="ex: 60" min="0" max="100" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>Taux rétrocession rentrée (%)</label>
+                <input type="number" id="neg-taux-rentree" placeholder="ex: 50" min="0" max="100" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>N° RCS</label>
+                <input type="text" id="neg-numero-rcs" placeholder="ex: 123 456 789">
+              </div>
+              <div class="form-group">
+                <label>Ville RCS</label>
+                <input type="text" id="neg-ville-rcs" placeholder="ex: Toulouse">
+              </div>
+              <div class="form-group">
+                <label>Agence précédente</label>
+                <select id="neg-agence-precedente-co">
+                  <option value="">— Aucune / Première agence —</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- ALTERNANT -->
+          <div id="neg-section-alternant" style="display:none">
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">Informations alternance</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Date d'embauche</label>
+                <input type="date" id="neg-date-entree-alt" onchange="onNegDateAltChange()">
+              </div>
+              <div class="form-group">
+                <label>Niveau d'étude</label>
+                <select id="neg-niveau-etude" onchange="onNegNiveauChange()">
+                  <option value="">— Sélectionner —</option>
+                  <option value="BTS">BTS</option>
+                  <option value="Bachelor">Bachelor</option>
+                  <option value="Master">Master</option>
+                  <option value="Autre">Autre</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Date de fin de contrat</label>
+                <input type="date" id="neg-date-fin-contrat">
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGIAIRE -->
+          <div id="neg-section-stagiaire" style="display:none">
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">Informations stage</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Date de début</label>
+                <input type="date" id="neg-date-entree-stag">
+              </div>
+              <div class="form-group">
+                <label>Date de fin de stage</label>
+                <input type="date" id="neg-date-fin-contrat-stag">
+              </div>
+            </div>
+          </div>
+
+          <!-- CHECKLIST SALARIÉ -->
           <div id="neg-checklist-section" style="display:none;margin-top:20px;padding:16px;background:#f0f9ff;border-radius:12px;border:1px solid #bae6fd">
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#0369a1;margin-bottom:12px">✅ Check-list d'embauche salarié</div>
-            <div style="display:flex;flex-direction:column;gap:8px" id="neg-checklist-items">
+            <div style="display:flex;flex-direction:column;gap:8px">
               <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
                 <input type="checkbox" id="cl-mutuelle" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
                 <span>Inscription à la mutuelle</span>
@@ -1530,22 +1608,36 @@
                 <input type="checkbox" id="cl-document-unique" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
                 <span>Signature du document unique</span>
               </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-assurance-voiture" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>Attestation assurance voiture <span style="font-size:11px;color:#6b7280;font-style:italic">(transport de clients)</span></span>
+              </label>
               <label id="cl-medecine-row" style="display:none;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
                 <input type="checkbox" id="cl-medecine" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
                 <span>Inscription à la médecine du travail <span style="font-size:11px;color:#6b7280;font-style:italic">(à faire avant la fin de la période d'essai)</span></span>
               </label>
               <label id="cl-cci-row" style="display:none;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
                 <input type="checkbox" id="cl-cci" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
-                <span>Attestation collaborateur CCI — <a href="https://www.cciwebstore.fr/" target="_blank" style="color:#0369a1">cciwebstore.fr</a> <span style="font-size:11px;color:#6b7280;font-style:italic">(à faire avant la fin de la période d'essai)</span></span>
+                <span>Habilitation collaborateur CCI — <a href="https://www.cciwebstore.fr/" target="_blank" style="color:#0369a1">cciwebstore.fr</a> <span style="font-size:11px;color:#6b7280;font-style:italic">(à faire avant la fin de la période d'essai)</span></span>
               </label>
             </div>
-            <!-- Alerte période d'essai -->
             <div id="neg-pe-alerte" style="display:none;margin-top:12px;padding:10px 14px;background:#fef3c7;border-radius:8px;border:1px solid #fcd34d;font-size:13px;color:#92400e">
-              ⏰ <strong>Période d'essai</strong> — La fin approche dans <span id="neg-pe-jours"></span> jours !<br>
+              ⏰ <strong>Période d'essai</strong> — La fin approche dans <span id="neg-pe-jours"></span> jours !
               <div style="margin-top:8px;display:flex;gap:8px">
                 <button type="button" onclick="validerPeriodeEssai(true)" style="padding:6px 12px;border:none;border-radius:6px;background:#16a34a;color:white;font-size:12px;font-weight:600;cursor:pointer">✅ Valider</button>
                 <button type="button" onclick="validerPeriodeEssai(false)" style="padding:6px 12px;border:none;border-radius:6px;background:#dc2626;color:white;font-size:12px;font-weight:600;cursor:pointer">❌ Ne pas valider</button>
               </div>
+            </div>
+          </div>
+
+          <!-- CHECKLIST AGENT CO -->
+          <div id="neg-checklist-agentco" style="display:none;margin-top:20px;padding:16px;background:#f0fdf4;border-radius:12px;border:1px solid #86efac">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#16a34a;margin-bottom:12px">✅ Check-list agent commercial</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-cci-co" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>Habilitation collaborateur CCI — <a href="https://www.cciwebstore.fr/" target="_blank" style="color:#16a34a">cciwebstore.fr</a></span>
+              </label>
             </div>
           </div>
 
@@ -2581,6 +2673,9 @@ function refreshDashboard() {
   const nbReport = list.filter(d => d.statut === 'REPORT').length;
   const nbAnnule = list.filter(d => d.statut === 'ANNULÉ').length;
 
+  // Alertes CCI et RCS sur le dashboard
+  checkAlerteCCIGlobale();
+  checkAlerteRCSGlobale();
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-label">CA TTC brut (signés)<span class="info-tip" data-tip="Montant total TTC de toutes les ventes signées sur la période. Ne comprend pas les dossiers en report ou annulés.">i</span></div><div class="stat-value">${fmtEuro(totalTTC)}</div><div class="stat-sub">Hors reports et annulés</div></div>
     <div class="stat-card"><div class="stat-label">CA net HT (signés)<span class="info-tip" data-tip="CA HT après déduction de la TVA et des commissions versées aux apporteurs d&#39;affaires. C&#39;est le CA réellement encaissé par le réseau.">i</span></div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
@@ -4267,8 +4362,10 @@ function initEncaissements() {
     const sel = document.getElementById(id);
     if (!sel) return;
     while (sel.options.length > 1) sel.remove(1);
-    // Vérifier les périodes d'essai qui arrivent à échéance
+    // Vérifier les périodes d'essai, CCI et RCS
   checkAlertePEGlobale();
+  checkAlerteCCIGlobale();
+  checkAlerteRCSGlobale();
   if (currentUser.role === 'agence') {
       sel.style.display = 'none'; // Agence voit que ses chiffres
     } else {
@@ -4864,6 +4961,60 @@ function refreshFicheTableau(dossiersVentes, annee, tableId, titleId, totauxN1) 
 
 
 
+
+// Alerte CCI non cochée (salariés + agents co) — visible par responsables agence et admin
+function checkAlerteCCIGlobale() {
+  const container = document.getElementById('neg-cci-alertes-container');
+  if (!container) return;
+  const now = new Date();
+  const alertes = (DB.negociateurs || []).filter(n => {
+    if (!n.actif || n.nom.startsWith('🍒')) return false;
+    // Vérifier droits : admin voit tout, agence voit sa propre agence
+    if (currentUser.role !== 'admin' && n.agence !== currentUser.agence) return false;
+    const checklist = n.checklist_embauche || {};
+    // CCI non cochée
+    return !checklist['cci'] && !checklist['cci-co'];
+  });
+
+  if (alertes.length === 0) { container.style.display = 'none'; return; }
+  container.style.display = 'block';
+  container.innerHTML = '<div style="font-weight:700;font-size:13px;color:#dc2626;margin-bottom:8px">⚠️ Habilitation CCI manquante</div>' +
+    alertes.map(n => '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;margin-bottom:6px">' +
+      '<span style="font-size:14px">🏛</span>' +
+      '<div style="flex:1"><div style="font-weight:600;font-size:13px">' + n.nom + '</div>' +
+      '<div style="font-size:12px;color:var(--text-muted)">' + n.agence + ' · ' + (n.statut_emploi||'') + '</div></div>' +
+      '<button onclick="openEditNegociateur(' + n.id + ')" style="padding:5px 10px;border:none;border-radius:6px;background:#dc2626;color:white;font-size:11px;font-weight:600;cursor:pointer">Ouvrir</button>' +
+      '</div>').join('');
+}
+
+// Alerte RCS absent 30 jours après premier mandat
+function checkAlerteRCSGlobale() {
+  const container = document.getElementById('neg-rcs-alertes-container');
+  if (!container) return;
+  const now = new Date();
+  const alertes = (DB.negociateurs || []).filter(n => {
+    if (!n.actif || n.statut_emploi !== 'agent-co' || n.numero_rcs) return false;
+    if (currentUser.role !== 'admin' && n.agence !== currentUser.agence) return false;
+    if (!n.date_entree) return false;
+    const debut = new Date(n.date_entree);
+    const diffJours = Math.ceil((now - debut) / (1000 * 60 * 60 * 24));
+    return diffJours >= 30;
+  });
+  if (alertes.length === 0) { container.style.display = 'none'; return; }
+  container.style.display = 'block';
+  container.innerHTML = '<div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:8px">⚠️ N° RCS manquant</div>' +
+    alertes.map(n => {
+      const debut = new Date(n.date_entree);
+      const diffJours = Math.ceil((now - debut) / (1000 * 60 * 60 * 24));
+      return '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fff7ed;border-radius:8px;border:1px solid #fed7aa;margin-bottom:6px">' +
+        '<span style="font-size:14px">📋</span>' +
+        '<div style="flex:1"><div style="font-weight:600;font-size:13px">' + n.nom + '</div>' +
+        '<div style="font-size:12px;color:var(--text-muted)">' + n.agence + ' · Mandat depuis ' + diffJours + ' jours</div></div>' +
+        '<button onclick="openEditNegociateur(' + n.id + ')" style="padding:5px 10px;border:none;border-radius:6px;background:#92400e;color:white;font-size:11px;font-weight:600;cursor:pointer">Compléter</button>' +
+        '</div>';
+    }).join('');
+}
+
 // Vérifier les PE qui arrivent à échéance (alerte dans la page)
 function checkAlertePEGlobale() {
   const now = new Date();
@@ -4895,31 +5046,63 @@ function checkAlertePEGlobale() {
 // RH — FICHE NÉGOCIATEUR
 // =====================
 
-const CHECKLIST_KEYS = ['mutuelle', 'document-unique', 'medecine', 'cci'];
+const CHECKLIST_KEYS = ['mutuelle', 'document-unique', 'assurance-voiture', 'medecine', 'cci', 'cci-co'];
 
 function onNegStatutChange() {
   const statut = document.getElementById('neg-statut-emploi')?.value;
-  // Salariés = CDI, responsable, alternant, stagiaire
-  const isSalarie = ['salarié', 'responsable', 'alternant', 'stagiaire'].includes(statut);
-  // Période d'essai CDI = salarié CDI OU responsable d'agence
   const isSalarieCDI = ['salarié', 'responsable'].includes(statut);
+  const isAgentCo = statut === 'agent-co';
+  const isAlternant = statut === 'alternant';
+  const isStagiaire = statut === 'stagiaire';
+  const isGerant = statut === 'gérant';
 
-  // Avance sur commission
-  const avanceGroup = document.getElementById('neg-avance-group');
-  if (avanceGroup) avanceGroup.style.display = ['salarié','responsable'].includes(statut) ? 'block' : 'none';
+  // Masquer toutes les sections
+  ['neg-section-salarie','neg-section-agentco','neg-section-alternant','neg-section-stagiaire',
+   'neg-checklist-section','neg-checklist-agentco','neg-poste-group'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
 
-  // Checklist (tous salariés)
-  const checklistSection = document.getElementById('neg-checklist-section');
-  if (checklistSection) checklistSection.style.display = isSalarie ? 'block' : 'none';
+  if (isGerant) return; // Gérant : seulement nom, agence, email, type contrat
 
-  // Période d'essai
-  const peGroup = document.getElementById('neg-pe-group');
-  const peValideeGroup = document.getElementById('neg-pe-validee-group');
-  if (peGroup) peGroup.style.display = isSalarieCDI ? 'block' : 'none';
-  if (peValideeGroup) peValideeGroup.style.display = isSalarieCDI ? 'block' : 'none';
+  // Poste visible pour tous sauf gérant
+  const posteGroup = document.getElementById('neg-poste-group');
+  if (posteGroup) posteGroup.style.display = 'block';
 
-  // Mise à jour visibilité checklist PE
-  if (isSalarie) checkAlertePE();
+  if (isSalarieCDI) {
+    document.getElementById('neg-section-salarie').style.display = 'block';
+    document.getElementById('neg-checklist-section').style.display = 'block';
+    checkAlertePE();
+  } else if (isAgentCo) {
+    document.getElementById('neg-section-agentco').style.display = 'block';
+    document.getElementById('neg-checklist-agentco').style.display = 'block';
+    checkAlerteCCIAgentCo();
+  } else if (isAlternant) {
+    document.getElementById('neg-section-alternant').style.display = 'block';
+  } else if (isStagiaire) {
+    document.getElementById('neg-section-stagiaire').style.display = 'block';
+  }
+}
+
+function onNegNiveauChange() {
+  const niveau = document.getElementById('neg-niveau-etude')?.value;
+  const dateDebut = document.getElementById('neg-date-entree-alt')?.value;
+  if (!dateDebut || !niveau || niveau === 'Autre') return;
+  const duree = niveau === 'Bachelor' ? 1 : 2; // BTS et Master = 2 ans, Bachelor = 1 an
+  const fin = new Date(dateDebut);
+  fin.setFullYear(fin.getFullYear() + duree);
+  const finEl = document.getElementById('neg-date-fin-contrat');
+  if (finEl && !finEl.value) finEl.value = fin.toISOString().split('T')[0];
+}
+
+function onNegDateAltChange() {
+  const niveau = document.getElementById('neg-niveau-etude')?.value;
+  if (niveau && niveau !== 'Autre') onNegNiveauChange();
+}
+
+function checkAlerteCCIAgentCo() {
+  const cciCo = document.getElementById('cl-cci-co');
+  // L'alerte globale sera gérée dans checkAlerteCCIGlobale
 }
 
 function onNegDateEmbaucheChange() {
@@ -4964,19 +5147,22 @@ function checkAlertePE() {
   const joursEl = document.getElementById('neg-pe-jours');
   const peValidee = document.getElementById('neg-periode-essai-validee')?.value;
 
-  // Médecine et CCI — visibles seulement à J-15
-  const showJ15 = (() => {
-    if (!finPEStr || peValidee === 'true' || peValidee === 'false') return false;
+  // Médecine et CCI :
+  // - masqués si PE en cours ET > 15 jours avant fin
+  // - visibles à partir de J-15 (et restent visibles après même si PE terminée ou validée)
+  const showMedCCI = (() => {
+    if (!finPEStr) return false;
     const finPE = new Date(finPEStr);
     const diffJours = Math.ceil((finPE - new Date()) / (1000 * 60 * 60 * 24));
-    return diffJours <= 15 && diffJours >= -30;
+    // Visible si on est à moins de 15 jours de la fin OU si la fin est dépassée
+    return diffJours <= 15;
   })();
   const medRow = document.getElementById('cl-medecine-row');
   const cciRow = document.getElementById('cl-cci-row');
-  if (medRow) medRow.style.display = showJ15 ? 'flex' : 'none';
-  if (cciRow) cciRow.style.display = showJ15 ? 'flex' : 'none';
+  if (medRow) medRow.style.display = showMedCCI ? 'flex' : 'none';
+  if (cciRow) cciRow.style.display = showMedCCI ? 'flex' : 'none';
 
-  // Alerte PE
+  // Alerte PE (uniquement si PE en cours — pas validée ni refusée)
   if (!finPEStr || !alerte || peValidee === 'true' || peValidee === 'false') {
     if (alerte) alerte.style.display = 'none';
     return;
@@ -5047,12 +5233,18 @@ async function loadNegociateurs() {
     ]);
     DB.negociateurs = negs.map(n => ({
       ...n,
-      type_contrat: n.type_contrat || null,
+      type_contrat: n.type_contrat || n.statut_emploi || null,
       date_fin_periode_essai: n.date_fin_periode_essai || null,
       periode_essai_validee: n.periode_essai_validee ?? null,
       checklist_embauche: n.checklist_embauche || {},
       date_inactivite: n.date_inactivite || null,
       motif_inactivite: n.motif_inactivite || null,
+      taux_retrocession_sortie: parseFloat(n.taux_retrocession_sortie) || 0,
+      taux_retrocession_rentree: parseFloat(n.taux_retrocession_rentree) || 0,
+      numero_rcs: n.numero_rcs || null,
+      ville_rcs: n.ville_rcs || null,
+      niveau_etude: n.niveau_etude || null,
+      date_fin_contrat: n.date_fin_contrat || null,
     }));
     DB.dossierNeg = dossierNegs;
     DB.dossierRent = dossierRents;
@@ -5341,16 +5533,45 @@ function openEditNegociateur(id) {
     selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === n.agence ? ' selected' : '') + '>' + a + '</option>').join('');
   }
   selAgPrec.innerHTML = '<option value="">— Aucune / Première agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === n.agence_precedente ? ' selected' : '') + '>' + a + '</option>').join('');
-  // Champs RH
-  const typeContratEl = document.getElementById('neg-type-contrat');
-  if (typeContratEl) typeContratEl.value = n.type_contrat || '';
-  const finPEEl = document.getElementById('neg-date-fin-pe');
-  if (finPEEl) { finPEEl.value = n.date_fin_periode_essai || ''; finPEEl.setAttribute('readonly', true); }
-  const peValEl = document.getElementById('neg-periode-essai-validee');
-  if (peValEl) peValEl.value = n.periode_essai_validee === true ? 'true' : n.periode_essai_validee === false ? 'false' : '';
-  loadChecklistUI(n.checklist_embauche || {});
+  // Champs RH selon statut
+  const statut = n.statut_emploi || 'agent-co';
+  const isSalarieCDI = ['salarié','responsable'].includes(statut);
+  const isAgentCo = statut === 'agent-co';
+  const isAlternant = statut === 'alternant';
+  const isStagiaire = statut === 'stagiaire';
+
+  if (isSalarieCDI) {
+    const finPEEl = document.getElementById('neg-date-fin-pe');
+    if (finPEEl) finPEEl.value = n.date_fin_periode_essai || '';
+    const peValEl = document.getElementById('neg-periode-essai-validee');
+    if (peValEl) peValEl.value = n.periode_essai_validee === true ? 'true' : n.periode_essai_validee === false ? 'false' : '';
+    document.getElementById('neg-objectif-ca').value = n.objectif_ca || '';
+    document.getElementById('neg-avance').value = n.avance_commission || '';
+    loadChecklistUI(n.checklist_embauche || {});
+  } else if (isAgentCo) {
+    const mdt = document.getElementById('neg-date-premier-mandat');
+    if (mdt) mdt.value = n.date_entree || '';
+    document.getElementById('neg-taux-sortie').value = n.taux_retrocession_sortie || '';
+    document.getElementById('neg-taux-rentree').value = n.taux_retrocession_rentree || '';
+    document.getElementById('neg-numero-rcs').value = n.numero_rcs || '';
+    document.getElementById('neg-ville-rcs').value = n.ville_rcs || '';
+    loadChecklistUI(n.checklist_embauche || {});
+    // Agence précédente agent co
+    const selAgPrecCo = document.getElementById('neg-agence-precedente-co');
+    if (selAgPrecCo) {
+      selAgPrecCo.innerHTML = '<option value="">— Aucune / Première agence —</option>' +
+        AGENCES.map(a => '<option value="' + a + '"' + (n.agence_precedente === a ? ' selected' : '') + '>' + a + '</option>').join('');
+    }
+  } else if (isAlternant) {
+    document.getElementById('neg-date-entree-alt').value = n.date_entree || '';
+    document.getElementById('neg-niveau-etude').value = n.niveau_etude || '';
+    document.getElementById('neg-date-fin-contrat').value = n.date_fin_contrat || '';
+  } else if (isStagiaire) {
+    document.getElementById('neg-date-entree-stag').value = n.date_entree || '';
+    document.getElementById('neg-date-fin-contrat-stag').value = n.date_fin_contrat || '';
+  }
   onNegStatutChange();
-  checkAlertePE();
+  if (isSalarieCDI) checkAlertePE();
 
   document.getElementById('modal-negociateur').classList.add('open');
 }
@@ -5386,14 +5607,41 @@ async function saveNegociateur() {
     }
   }
 
-  // Champs RH
-  const type_contrat = document.getElementById('neg-type-contrat')?.value || null;
-  const date_fin_periode_essai = document.getElementById('neg-date-fin-pe')?.value || null;
-  const peValStr = document.getElementById('neg-periode-essai-validee')?.value;
-  const periode_essai_validee = peValStr === 'true' ? true : peValStr === 'false' ? false : null;
-  const checklist_embauche = collectChecklist();
+  // Champs RH selon statut
+  const isSalarieCDI2 = ['salarié','responsable'].includes(statut_emploi);
+  const isAgentCo2 = statut_emploi === 'agent-co';
+  const isAlternant2 = statut_emploi === 'alternant';
+  const isStagiaire2 = statut_emploi === 'stagiaire';
 
-  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca, agence_precedente, email, avance_commission, type_contrat, date_fin_periode_essai, periode_essai_validee, checklist_embauche };
+  let date_fin_periode_essai = null, periode_essai_validee = null;
+  let taux_retrocession_sortie = 0, taux_retrocession_rentree = 0;
+  let numero_rcs = null, ville_rcs = null, date_premier_mandat = null;
+  let niveau_etude = null, date_fin_contrat = null;
+
+  if (isSalarieCDI2) {
+    date_fin_periode_essai = document.getElementById('neg-date-fin-pe')?.value || null;
+    const peValStr = document.getElementById('neg-periode-essai-validee')?.value;
+    periode_essai_validee = peValStr === 'true' ? true : peValStr === 'false' ? false : null;
+  } else if (isAgentCo2) {
+    date_entree = document.getElementById('neg-date-premier-mandat')?.value || null;
+    taux_retrocession_sortie = parseFloat(document.getElementById('neg-taux-sortie')?.value) || 0;
+    taux_retrocession_rentree = parseFloat(document.getElementById('neg-taux-rentree')?.value) || 0;
+    numero_rcs = document.getElementById('neg-numero-rcs')?.value.trim() || null;
+    ville_rcs = document.getElementById('neg-ville-rcs')?.value.trim() || null;
+    agence_precedente = document.getElementById('neg-agence-precedente-co')?.value || null;
+  } else if (isAlternant2) {
+    date_entree = document.getElementById('neg-date-entree-alt')?.value || null;
+    niveau_etude = document.getElementById('neg-niveau-etude')?.value || null;
+    date_fin_contrat = document.getElementById('neg-date-fin-contrat')?.value || null;
+  } else if (isStagiaire2) {
+    date_entree = document.getElementById('neg-date-entree-stag')?.value || null;
+    date_fin_contrat = document.getElementById('neg-date-fin-contrat-stag')?.value || null;
+  }
+
+  const checklist_embauche = collectChecklist();
+  const type_contrat = statut_emploi; // Le statut emploi est devenu le type de contrat
+
+  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca: isSalarieCDI2 ? (parseFloat(document.getElementById('neg-objectif-ca')?.value)||0) : 0, agence_precedente, email, avance_commission: isSalarieCDI2 ? avance_commission : 0, type_contrat, date_fin_periode_essai, periode_essai_validee, checklist_embauche, taux_retrocession_sortie, taux_retrocession_rentree, numero_rcs, ville_rcs, niveau_etude, date_fin_contrat };
   showLoading(true);
   try {
     if (editId) {
