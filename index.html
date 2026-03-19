@@ -1364,6 +1364,8 @@
 
       <!-- NÉGOCIATEURS - GESTION -->
       <div class="page" id="page-negociateurs">
+        <!-- Alertes périodes d'essai -->
+        <div id="neg-pe-alertes-container" style="display:none;margin-bottom:16px"></div>
         <div class="card" style="margin-bottom:20px">
           <div class="card-header">
             <span class="card-title">👤 Négociateurs & Rentreurs</span>
@@ -1454,17 +1456,40 @@
             </div>
             <div class="form-group">
               <label>Statut emploi</label>
-              <select id="neg-statut-emploi">
+              <select id="neg-statut-emploi" onchange="onNegStatutChange()">
                 <option value="agent-co">Agent commercial</option>
-                <option value="salarié">Salarié</option>
+                <option value="salarié">Salarié CDI</option>
+                <option value="alternant">Alternant</option>
+                <option value="stagiaire">Stagiaire</option>
                 <option value="responsable">Responsable d'agence</option>
                 <option value="gérant">Gérant</option>
-                <option value="alternant">Alternant</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Date d'entrée dans l'agence</label>
-              <input type="date" id="neg-date-entree">
+              <label>Type de contrat</label>
+              <select id="neg-type-contrat">
+                <option value="">— Sélectionner —</option>
+                <option value="CDI">CDI</option>
+                <option value="Agent commercial">Agent commercial</option>
+                <option value="Alternance">Alternance</option>
+                <option value="Stage">Stage</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Date d'embauche</label>
+              <input type="date" id="neg-date-entree" onchange="onNegDateEmbaucheChange()">
+            </div>
+            <div class="form-group" id="neg-pe-group" style="display:none">
+              <label>Fin de période d'essai</label>
+              <input type="date" id="neg-date-fin-pe" readonly style="background:#f8fafc;cursor:default">
+            </div>
+            <div class="form-group" id="neg-pe-validee-group" style="display:none">
+              <label>Période d'essai</label>
+              <select id="neg-periode-essai-validee">
+                <option value="">— En cours —</option>
+                <option value="true">✅ Validée</option>
+                <option value="false">❌ Non validée</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Email</label>
@@ -1492,6 +1517,38 @@
               </select>
             </div>
           </div>
+
+          <!-- CHECKLIST EMBAUCHE (salariés uniquement) -->
+          <div id="neg-checklist-section" style="display:none;margin-top:20px;padding:16px;background:#f0f9ff;border-radius:12px;border:1px solid #bae6fd">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#0369a1;margin-bottom:12px">✅ Check-list d'embauche salarié</div>
+            <div style="display:flex;flex-direction:column;gap:8px" id="neg-checklist-items">
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-mutuelle" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>Inscription à la mutuelle</span>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-document-unique" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>Signature du document unique</span>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-medecine" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>Inscription à la médecine du travail</span>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-cci" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>Attestation collaborateur CCI — <a href="https://www.cciwebstore.fr/" target="_blank" style="color:#0369a1">cciwebstore.fr</a></span>
+              </label>
+            </div>
+            <!-- Alerte période d'essai -->
+            <div id="neg-pe-alerte" style="display:none;margin-top:12px;padding:10px 14px;background:#fef3c7;border-radius:8px;border:1px solid #fcd34d;font-size:13px;color:#92400e">
+              ⏰ <strong>Période d'essai</strong> — La fin approche dans <span id="neg-pe-jours"></span> jours !<br>
+              <div style="margin-top:8px;display:flex;gap:8px">
+                <button type="button" onclick="validerPeriodeEssai(true)" style="padding:6px 12px;border:none;border-radius:6px;background:#16a34a;color:white;font-size:12px;font-weight:600;cursor:pointer">✅ Valider</button>
+                <button type="button" onclick="validerPeriodeEssai(false)" style="padding:6px 12px;border:none;border-radius:6px;background:#dc2626;color:white;font-size:12px;font-weight:600;cursor:pointer">❌ Ne pas valider</button>
+              </div>
+            </div>
+          </div>
+
           <div class="modal-footer">
             <button class="btn btn-outline" onclick="closeModal('modal-negociateur')">Annuler</button>
             <button class="btn btn-accent" onclick="saveNegociateur()">💾 Enregistrer</button>
@@ -4210,7 +4267,9 @@ function initEncaissements() {
     const sel = document.getElementById(id);
     if (!sel) return;
     while (sel.options.length > 1) sel.remove(1);
-    if (currentUser.role === 'agence') {
+    // Vérifier les périodes d'essai qui arrivent à échéance
+  checkAlertePEGlobale();
+  if (currentUser.role === 'agence') {
       sel.style.display = 'none'; // Agence voit que ses chiffres
     } else {
       AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
@@ -4803,10 +4862,158 @@ function refreshFicheTableau(dossiersVentes, annee, tableId, titleId, totauxN1) 
 // DB.negociateurs = [{id, nom, agence, actif}]
 // DB.dossierNeg = [{id, dossier_id, negociateur_id, agence, pct_ca}]
 
-function toggleAvanceField() {
+
+
+// Vérifier les PE qui arrivent à échéance (alerte dans la page)
+function checkAlertePEGlobale() {
+  const now = new Date();
+  const alertes = (DB.negociateurs || []).filter(n => {
+    if (!n.date_fin_periode_essai || n.periode_essai_validee !== null || !n.actif) return false;
+    const finPE = new Date(n.date_fin_periode_essai);
+    const diffJours = Math.ceil((finPE - now) / (1000 * 60 * 60 * 24));
+    return diffJours <= 15 && diffJours >= 0;
+  });
+  const container = document.getElementById('neg-pe-alertes-container');
+  if (!container) return;
+  if (alertes.length === 0) { container.style.display = 'none'; return; }
+  container.style.display = 'block';
+  container.innerHTML = alertes.map(n => {
+    const finPE = new Date(n.date_fin_periode_essai);
+    const diffJours = Math.ceil((finPE - new Date()) / (1000 * 60 * 60 * 24));
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fef3c7;border-radius:8px;border:1px solid #fcd34d;margin-bottom:8px">
+      <span style="font-size:20px">⏰</span>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">${n.nom} — Période d'essai se termine dans <strong>${diffJours} jour(s)</strong></div>
+        <div style="font-size:12px;color:#92400e">${n.agence} · Fin : ${fmtDate(n.date_fin_periode_essai)}</div>
+      </div>
+      <button onclick="openEditNegociateur(${n.id})" style="padding:6px 12px;border:none;border-radius:6px;background:#92400e;color:white;font-size:12px;font-weight:600;cursor:pointer">Ouvrir la fiche</button>
+    </div>`;
+  }).join('');
+}
+
+// =====================
+// RH — FICHE NÉGOCIATEUR
+// =====================
+
+const CHECKLIST_KEYS = ['mutuelle', 'document-unique', 'medecine', 'cci'];
+
+function onNegStatutChange() {
   const statut = document.getElementById('neg-statut-emploi')?.value;
+  const isSalarie = ['salarié', 'responsable', 'alternant', 'stagiaire'].includes(statut);
+  const isSalarieCDI = statut === 'salarié';
+
+  // Avance sur commission
   const avanceGroup = document.getElementById('neg-avance-group');
   if (avanceGroup) avanceGroup.style.display = ['salarié','responsable'].includes(statut) ? 'block' : 'none';
+
+  // Checklist
+  const checklistSection = document.getElementById('neg-checklist-section');
+  if (checklistSection) checklistSection.style.display = isSalarie ? 'block' : 'none';
+
+  // Période d'essai (CDI uniquement)
+  const peGroup = document.getElementById('neg-pe-group');
+  const peValideeGroup = document.getElementById('neg-pe-validee-group');
+  if (peGroup) peGroup.style.display = isSalarieCDI ? 'block' : 'none';
+  if (peValideeGroup) peValideeGroup.style.display = isSalarieCDI ? 'block' : 'none';
+
+  // Recalculer la date de fin PE si date embauche déjà saisie
+  if (isSalarieCDI) onNegDateEmbaucheChange();
+}
+
+function onNegDateEmbaucheChange() {
+  const statut = document.getElementById('neg-statut-emploi')?.value;
+  if (statut !== 'salarié') return;
+  const dateStr = document.getElementById('neg-date-entree')?.value;
+  if (!dateStr) return;
+
+  const dateMbauche = new Date(dateStr);
+  // Demander si PE = 3 mois (seulement si pas déjà renseignée)
+  const existingPE = document.getElementById('neg-date-fin-pe')?.value;
+  if (!existingPE) {
+    const ok3mois = confirm('La période d\'essai est-elle de 3 mois ?\n\nOui → date de fin calculée automatiquement.\nNon → vous saisirez la durée manuellement.');
+    if (ok3mois) {
+      const finPE = new Date(dateMbauche);
+      finPE.setMonth(finPE.getMonth() + 3);
+      document.getElementById('neg-date-fin-pe').value = finPE.toISOString().split('T')[0];
+    } else {
+      const duree = prompt('Durée de la période d\'essai (en mois) :', '2');
+      if (duree && !isNaN(parseInt(duree))) {
+        const finPE = new Date(dateMbauche);
+        finPE.setMonth(finPE.getMonth() + parseInt(duree));
+        document.getElementById('neg-date-fin-pe').value = finPE.toISOString().split('T')[0];
+      }
+    }
+    document.getElementById('neg-date-fin-pe').removeAttribute('readonly');
+  }
+  checkAlertePE();
+}
+
+function checkAlertePE() {
+  const finPEStr = document.getElementById('neg-date-fin-pe')?.value;
+  const alerte = document.getElementById('neg-pe-alerte');
+  const joursEl = document.getElementById('neg-pe-jours');
+  const peValidee = document.getElementById('neg-periode-essai-validee')?.value;
+  if (!finPEStr || !alerte || peValidee === 'true' || peValidee === 'false') {
+    if (alerte) alerte.style.display = 'none';
+    return;
+  }
+  const finPE = new Date(finPEStr);
+  const now = new Date();
+  const diffMs = finPE - now;
+  const diffJours = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  if (diffJours <= 15 && diffJours >= 0) {
+    alerte.style.display = 'block';
+    if (joursEl) joursEl.textContent = diffJours;
+  } else {
+    alerte.style.display = 'none';
+  }
+}
+
+function validerPeriodeEssai(valide) {
+  const sel = document.getElementById('neg-periode-essai-validee');
+  if (sel) sel.value = valide ? 'true' : 'false';
+  if (!valide) {
+    const confirmer = confirm('Période d\'essai non validée.\n\nLe collaborateur sera marqué comme inactif. Ses ventes historiques seront conservées pour les stats.\n\nConfirmer ?');
+    if (confirmer) {
+      document.getElementById('neg-actif').value = 'false';
+      showToast('Collaborateur passé en inactif', 'warning');
+    }
+  }
+  document.getElementById('neg-pe-alerte').style.display = 'none';
+}
+
+function loadChecklistUI(checklist) {
+  CHECKLIST_KEYS.forEach(k => {
+    const el = document.getElementById('cl-' + k);
+    if (el) el.checked = !!(checklist && checklist[k]);
+  });
+}
+
+function collectChecklist() {
+  const result = {};
+  CHECKLIST_KEYS.forEach(k => {
+    const el = document.getElementById('cl-' + k);
+    if (el) result[k] = el.checked;
+  });
+  return result;
+}
+
+function resetNegRHFields() {
+  const peEl = document.getElementById('neg-date-fin-pe');
+  if (peEl) { peEl.value = ''; peEl.setAttribute('readonly', true); }
+  const peValEl = document.getElementById('neg-periode-essai-validee');
+  if (peValEl) peValEl.value = '';
+  const typeEl = document.getElementById('neg-type-contrat');
+  if (typeEl) typeEl.value = '';
+  loadChecklistUI({});
+  document.getElementById('neg-checklist-section').style.display = 'none';
+  document.getElementById('neg-pe-group').style.display = 'none';
+  document.getElementById('neg-pe-validee-group').style.display = 'none';
+  document.getElementById('neg-pe-alerte').style.display = 'none';
+}
+
+function toggleAvanceField() {
+  onNegStatutChange();
 }
 
 async function loadNegociateurs() {
@@ -4816,7 +5023,15 @@ async function loadNegociateurs() {
       sbFetch('dossier_negociateurs'),
       sbFetch('dossier_rentreurs')
     ]);
-    DB.negociateurs = negs;
+    DB.negociateurs = negs.map(n => ({
+      ...n,
+      type_contrat: n.type_contrat || null,
+      date_fin_periode_essai: n.date_fin_periode_essai || null,
+      periode_essai_validee: n.periode_essai_validee ?? null,
+      checklist_embauche: n.checklist_embauche || {},
+      date_inactivite: n.date_inactivite || null,
+      motif_inactivite: n.motif_inactivite || null,
+    }));
     DB.dossierNeg = dossierNegs;
     DB.dossierRent = dossierRents;
   } catch(e) {
@@ -5043,6 +5258,7 @@ function collectNegociateursEdit(agencesduGroupe) {
 // =====================
 function openAddNegociateur() {
   document.getElementById('modal-neg-title').textContent = 'Ajouter un négociateur';
+  resetNegRHFields();
   document.getElementById('neg-edit-id').value = '';
   document.getElementById('neg-nom').value = '';
   document.getElementById('neg-actif').value = 'true';
@@ -5103,6 +5319,17 @@ function openEditNegociateur(id) {
     selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === n.agence ? ' selected' : '') + '>' + a + '</option>').join('');
   }
   selAgPrec.innerHTML = '<option value="">— Aucune / Première agence —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === n.agence_precedente ? ' selected' : '') + '>' + a + '</option>').join('');
+  // Champs RH
+  const typeContratEl = document.getElementById('neg-type-contrat');
+  if (typeContratEl) typeContratEl.value = n.type_contrat || '';
+  const finPEEl = document.getElementById('neg-date-fin-pe');
+  if (finPEEl) { finPEEl.value = n.date_fin_periode_essai || ''; finPEEl.setAttribute('readonly', true); }
+  const peValEl = document.getElementById('neg-periode-essai-validee');
+  if (peValEl) peValEl.value = n.periode_essai_validee === true ? 'true' : n.periode_essai_validee === false ? 'false' : '';
+  loadChecklistUI(n.checklist_embauche || {});
+  onNegStatutChange();
+  checkAlertePE();
+
   document.getElementById('modal-negociateur').classList.add('open');
 }
 
@@ -5137,7 +5364,14 @@ async function saveNegociateur() {
     }
   }
 
-  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca, agence_precedente, email, avance_commission };
+  // Champs RH
+  const type_contrat = document.getElementById('neg-type-contrat')?.value || null;
+  const date_fin_periode_essai = document.getElementById('neg-date-fin-pe')?.value || null;
+  const peValStr = document.getElementById('neg-periode-essai-validee')?.value;
+  const periode_essai_validee = peValStr === 'true' ? true : peValStr === 'false' ? false : null;
+  const checklist_embauche = collectChecklist();
+
+  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca, agence_precedente, email, avance_commission, type_contrat, date_fin_periode_essai, periode_essai_validee, checklist_embauche };
   showLoading(true);
   try {
     if (editId) {
@@ -5196,7 +5430,10 @@ function renderNegociateursList() {
       '<td>' + n.agence + '</td>' +
       '<td>' + posteBadge(n.poste) + '</td>' +
       '<td>' + statutBadge(n.statut_emploi) + '</td>' +
-      '<td style="font-size:12px">' + (n.date_entree ? fmtDate(n.date_entree) : '—') + '</td>' +
+      '<td style="font-size:12px">' + (n.date_entree ? fmtDate(n.date_entree) : '—') +
+        (n.date_fin_periode_essai && n.periode_essai_validee === null ?
+          ' <span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;font-weight:600">PE</span>' : '') +
+        '</td>' +
       '<td style="font-size:12px;color:var(--text-muted)">' + (n.objectif_ca ? fmtEuro(n.objectif_ca) + '/mois' : '—') + '</td>' +
       '<td style="font-weight:600;color:var(--primary)">' + fmtEuro(caSortie) + '</td>' +
       '<td style="font-weight:600;color:#10b981">' + fmtEuro(caRentree) + '</td>' +
