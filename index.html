@@ -4855,7 +4855,7 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
     return '<td style="font-size:12px;cursor:pointer;font-weight:600;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dosListe.map(d=>d.id)) + ')">' + v + '</td>';
   };
 
-  const rows =
+  let rows =
     '<tr><td style="font-weight:600;font-size:12px">CA HT signé</td>' +
       caParMois.map(v => '<td style="font-size:12px;color:' + (v>0?'var(--primary)':'var(--text-muted)') + ';font-weight:' + (v>0?'600':'400') + '">' + fmtCell(v,true) + '</td>').join('') +
       '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(totalCA) + '</td></tr>' +
