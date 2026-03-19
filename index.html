@@ -762,6 +762,9 @@
         </div>
         <div class="nav-section">
           <div class="nav-section-title">Analyse & Insights</div>
+          <div class="nav-item" onclick="showPage('stats', this)">
+            <span class="nav-icon">📊</span> Statistiques
+          </div>
           <div class="nav-item" onclick="showPage('encaissements', this)">
             <span class="nav-icon">💰</span> Encaissements
           </div>
@@ -1198,6 +1201,32 @@
           <h3>🏢 Réseau Booster Immobilier</h3>
           <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Gérez les sociétés, agences et gérants du réseau.</p>
           <div id="reseau-tree"></div>
+        </div>
+      </div>
+
+
+      <!-- PAGE STATISTIQUES -->
+      <div class="page" id="page-stats">
+        <!-- Barre de navigation contextuelle -->
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:14px 16px;background:white;border-radius:12px;border:1px solid var(--border)">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--primary)">📊 Niveau :</div>
+          <select id="stats-niveau" onchange="onStatsNiveauChange()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Syne',sans-serif;font-weight:600">
+            <option value="reseau">🌐 Réseau Booster</option>
+            <option value="societe">🏛 Société</option>
+            <option value="agence">🏠 Agence</option>
+            <option value="negociateur">👤 Négociateur</option>
+          </select>
+          <select id="stats-sel-societe" style="display:none;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"></select>
+          <select id="stats-sel-agence" style="display:none;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"></select>
+          <select id="stats-sel-neg" style="display:none;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"></select>
+          <button onclick="refreshStatsPage()" style="padding:8px 16px;border:none;border-radius:8px;background:var(--primary);color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif">Afficher</button>
+        </div>
+
+        <!-- Contenu dynamique -->
+        <div id="stats-content">
+          <div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px">
+            Sélectionnez un niveau et cliquez sur Afficher
+          </div>
         </div>
       </div>
 
@@ -2641,7 +2670,7 @@ function showPage(name, navEl) {
   document.getElementById('page-' + name).classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', 'fiche-agence':'Fiche agence', 'fiche-societe':'Fiche société', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
+  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', 'fiche-agence':'Fiche agence', 'fiche-societe':'Fiche société', 'stats':'Statistiques', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
   document.getElementById('topbar-title').textContent = titles[name] || name;
 
   if (name === 'dashboard') refreshDashboard();
@@ -2654,6 +2683,7 @@ function showPage(name, navEl) {
   if (name === 'performances') { initPerformances(); }
   if (name === 'rapport') { populateRapportFilters(); }
   if (name === 'params') { initReseauSection(); }
+  if (name === 'stats') { populateStatsSels(); onStatsNiveauChange(); refreshStatsPage(); }
 }
 
 // =====================
@@ -7051,6 +7081,188 @@ function openAffairesApporteur(nom) {
 
   document.getElementById('modal-affaires-apporteur').style.display = 'block';
   document.body.style.overflow = 'hidden';
+}
+
+
+// =====================
+// PAGE STATISTIQUES
+// =====================
+
+function canSeeReseau() {
+  return ['admin','saisie','agence','responsable'].includes(currentUser.role);
+}
+function canSeeSociete() {
+  return ['admin','saisie','agence','responsable'].includes(currentUser.role);
+}
+function canSeeAllAgences() {
+  return ['admin','saisie'].includes(currentUser.role);
+}
+function getSocietesAccessibles() {
+  if (['admin','saisie'].includes(currentUser.role)) return DB.societes || [];
+  // Responsable/agence : sociétés dont fait partie son agence
+  const agenceUser = (DB.agences || []).find(a => a.nom === currentUser.agence);
+  if (!agenceUser) return [];
+  return (DB.societes || []).filter(s => s.id === agenceUser.societe_id);
+}
+function getAgencesAccessibles() {
+  if (['admin','saisie'].includes(currentUser.role)) return DB.agences || [];
+  // Responsable/agence : toutes les agences de sa société
+  const agenceUser = (DB.agences || []).find(a => a.nom === currentUser.agence);
+  if (!agenceUser) return (DB.agences || []).filter(a => a.nom === currentUser.agence);
+  return (DB.agences || []).filter(a => a.societe_id === agenceUser.societe_id);
+}
+function getNegoAccessibles() {
+  if (['admin','saisie'].includes(currentUser.role)) {
+    return (DB.negociateurs || []).filter(n => n.actif !== false && !n.nom.startsWith('🍒'));
+  }
+  // Responsable/agence : uniquement ses collabs
+  return (DB.negociateurs || []).filter(n => n.actif !== false && !n.nom.startsWith('🍒') && n.agence === currentUser.agence);
+}
+
+function initStatsPage() {
+  const selNiveau = document.getElementById('stats-niveau');
+  if (!selNiveau) return;
+
+  // Construire les options de niveau selon les droits
+  const options = [];
+  options.push('<option value="reseau">🌐 Réseau Booster</option>');
+  if (getSocietesAccessibles().length > 0) options.push('<option value="societe">🏛 Société</option>');
+  options.push('<option value="agence">🏠 Agence</option>');
+  options.push('<option value="negociateur">👤 Négociateur</option>');
+  selNiveau.innerHTML = options.join('');
+
+  // Peupler les selects secondaires
+  populateStatsSels();
+  onStatsNiveauChange();
+  refreshStatsPage();
+}
+
+function populateStatsSels() {
+  // Sociétés
+  const selSoc = document.getElementById('stats-sel-societe');
+  const societes = getSocietesAccessibles();
+  selSoc.innerHTML = societes.map(s => '<option value="' + s.id + '">' + (s.forme_juridique ? s.forme_juridique + ' ' : '') + s.nom + '</option>').join('');
+
+  // Agences
+  const selAg = document.getElementById('stats-sel-agence');
+  const agences = getAgencesAccessibles().filter(a => a.actif !== false);
+  selAg.innerHTML = agences.map(a => '<option value="' + a.nom + '">' + a.nom + '</option>').join('');
+
+  // Négociateurs
+  const selNeg = document.getElementById('stats-sel-neg');
+  const negs = getNegoAccessibles().sort((a,b) => a.nom.localeCompare(b.nom));
+  selNeg.innerHTML = negs.map(n => '<option value="' + n.id + '">' + n.nom + ' (' + n.agence + ')</option>').join('');
+}
+
+function onStatsNiveauChange() {
+  const niveau = document.getElementById('stats-niveau')?.value;
+  document.getElementById('stats-sel-societe').style.display = niveau === 'societe' ? 'block' : 'none';
+  document.getElementById('stats-sel-agence').style.display = niveau === 'agence' ? 'block' : 'none';
+  document.getElementById('stats-sel-neg').style.display = niveau === 'negociateur' ? 'block' : 'none';
+}
+
+function refreshStatsPage() {
+  const niveau = document.getElementById('stats-niveau')?.value;
+  const container = document.getElementById('stats-content');
+  if (!container) return;
+
+  if (niveau === 'reseau') {
+    renderStatsReseau(container);
+  } else if (niveau === 'societe') {
+    const socId = parseInt(document.getElementById('stats-sel-societe')?.value);
+    if (socId) renderStatsSociete(container, socId);
+  } else if (niveau === 'agence') {
+    const agNom = document.getElementById('stats-sel-agence')?.value;
+    if (agNom) renderStatsAgence(container, agNom);
+  } else if (niveau === 'negociateur') {
+    const negId = parseInt(document.getElementById('stats-sel-neg')?.value);
+    if (negId) renderStatsNeg(container, negId);
+  }
+}
+
+// ── Réseau ──
+function renderStatsReseau(container) {
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const n1Year = curYear - 1;
+  const dos = DB.dossiers.filter(d => d.statut === 'SIGNÉ');
+
+  // Stats rapides
+  const totalCA = dos.reduce((s,d) => s+(d.ht||0), 0);
+  const totalTTC = dos.reduce((s,d) => s+(d.ttc||0), 0);
+  container.innerHTML =
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🌐 Réseau Booster Immobilier</div>' +
+    '<div class="stats-grid" style="margin-bottom:20px">' +
+    '<div class="stat-card"><div class="stat-label">CA HT TOTAL</div><div class="stat-value">' + fmtEuro(totalCA) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">VENTES SIGNÉES</div><div class="stat-value">' + dos.length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">CA ' + curYear + '</div><div class="stat-value">' + fmtEuro(dos.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear).reduce((s,d)=>s+(d.ht||0),0)) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">AGENCES ACTIVES</div><div class="stat-value">' + AGENCES.length + '</div></div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="stats-table-n"></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="stats-table-n1"></table></div></div>';
+
+  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m=>'<th style="font-size:11px">'+m.substring(0,3)+'</th>').join('') + '<th>Total</th></tr></thead>';
+  const totN1 = buildAndRenderStatsTableau(dos, n1Year, 'stats-table-n1', header, true);
+  buildAndRenderStatsTableau(dos, curYear, 'stats-table-n', header, false, totN1);
+}
+
+function buildAndRenderStatsTableau(dos, annee, tableId, header, isN1, totauxN1) {
+  const ventesAnnee = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1);
+  const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
+  const el = document.getElementById(tableId);
+  if (el) el.innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
+  return { totalCA, totalNb };
+}
+
+// ── Société ──
+function renderStatsSociete(container, socId) {
+  ficheSocieteId = socId;
+  const s = (DB.societes||[]).find(x => x.id === socId);
+  if (!s) return;
+  // Réutiliser la logique de refreshFicheSociete mais dans stats-content
+  container.innerHTML = '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏛 ' + (s.forme_juridique?s.forme_juridique+' ':'') + s.nom + '</div>' +
+    '<div id="fiche-societe-stats" class="stats-grid" style="margin-bottom:20px"></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 Année en cours</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 N-1</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div></div>';
+  refreshFicheSociete();
+}
+
+// ── Agence ──
+function renderStatsAgence(container, agNom) {
+  ficheAgenceNom = agNom;
+  container.innerHTML = '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
+    '<div id="fiche-collab-stats" class="stats-grid" style="margin-bottom:20px"></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 Année en cours</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 N-1</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div></div>';
+  // Réutiliser refreshFicheAgence mais injecter les stats dans stats-content
+  const dosAgence = DB.dossiers.filter(d => d.agence === agNom && d.statut === 'SIGNÉ');
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const n1Year = curYear - 1;
+  const totalCA = dosAgence.reduce((s,d)=>s+(d.ht||0),0);
+  document.getElementById('fiche-collab-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-label">CA HT TOTAL</div><div class="stat-value">' + fmtEuro(totalCA) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">VENTES</div><div class="stat-value">' + dosAgence.length + '</div></div>';
+  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m=>'<th style="font-size:11px">'+m.substring(0,3)+'</th>').join('') + '<th>Total</th></tr></thead>';
+  const totN1 = refreshFicheAgenceTableau(dosAgence, n1Year, 'fiche-agence-tableau-n1', 'fiche-agence-annee-n1-titre', null, true);
+  refreshFicheAgenceTableau(dosAgence, curYear, 'fiche-agence-tableau-annee', 'fiche-agence-annee-titre', totN1, false);
+}
+
+// ── Négociateur ──
+function renderStatsNeg(container, negId) {
+  const n = DB.negociateurs.find(x => x.id === negId);
+  if (!n) return;
+  ficheCollabId = negId;
+  container.innerHTML =
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:4px">👤 ' + n.nom + '</div>' +
+    '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + n.agence + ' · ' + (n.poste||'négociateur') + '</div>' +
+    '<div id="fiche-collab-stats" class="stats-grid" style="margin-bottom:20px"></div>' +
+    '<div id="fiche-collab-ventes-wrap" class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-titre">📊 Année en cours</span></div><div style="overflow-x:auto"><table id="fiche-tableau-annee"></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-n1-titre">📊 N-1</span></div><div style="overflow-x:auto"><table id="fiche-tableau-n1"></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>';
+  refreshFicheCollab(n);
 }
 
 </script>
