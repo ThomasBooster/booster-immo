@@ -4578,8 +4578,8 @@ function refreshFicheCollab(n) {
   refreshFicheMoyenne();
 
   // Tableaux annuels
-  refreshFicheTableau(dossiersVentes, curYear, 'fiche-tableau-annee', 'fiche-annee-titre');
-  refreshFicheTableau(dossiersVentes, n1Year, 'fiche-tableau-n1', 'fiche-annee-n1-titre');
+  const totN1Collab = refreshFicheTableau(dossiersVentes, n1Year, 'fiche-tableau-n1', 'fiche-annee-n1-titre', null);
+  refreshFicheTableau(dossiersVentes, curYear, 'fiche-tableau-annee', 'fiche-annee-titre', totN1Collab);
 }
 
 function refreshFicheMoyenne() {
@@ -4634,29 +4634,166 @@ function refreshFicheMoyenne() {
     '</div>';
 }
 
-function refreshFicheTableau(dossiersVentes, annee, tableId, titleId) {
-  document.getElementById(titleId).textContent = '📊 ' + annee;
-  const ventesAnnee = dossiersVentes.filter(d => d.date && new Date(d.date).getFullYear() === annee);
 
-  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
-
-  const caParMois = MONTH_NAMES.map((_, mi) => ventesAnnee.filter(d => new Date(d.date).getMonth() === mi).reduce((s, d) => s + d.caCollab, 0));
-  const nbParMois = MONTH_NAMES.map((_, mi) => ventesAnnee.filter(d => new Date(d.date).getMonth() === mi).length);
-  const moyParMois = caParMois.map((ca, i) => nbParMois[i] > 0 ? ca / nbParMois[i] : 0);
-
-  const totalCA = caParMois.reduce((s, v) => s + v, 0);
-  const totalNb = nbParMois.reduce((s, v) => s + v, 0);
-  const totalMoy = totalNb > 0 ? totalCA / totalNb : 0;
+// ============================================================
+// HELPER TABLEAU N/N-1 — lignes encaissements + indicateur
+// ============================================================
+function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, clickFn) {
+  // caKey = fonction pour extraire le CA d'un dossier
+  // nbKey = non utilisé (on compte les dossiers)
+  // clickFn = fonction appelée au clic (reçoit tableau de dossiers)
 
   const fmtCell = (v, isCa) => isCa ? (v > 0 ? fmtEuro(v) : '—') : (v > 0 ? v : '—');
 
-  const body = '<tbody>' +
-    '<tr><td style="font-weight:600;font-size:12px">CA HT (part)</td>' + caParMois.map(v => '<td style="font-size:12px;color:' + (v > 0 ? 'var(--primary)' : 'var(--text-muted)') + ';font-weight:' + (v > 0 ? '600' : '400') + '">' + fmtCell(v, true) + '</td>').join('') + '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(totalCA) + '</td></tr>' +
-    '<tr><td style="font-weight:600;font-size:12px">Nb ventes</td>' + nbParMois.map(v => '<td style="font-size:12px">' + fmtCell(v, false) + '</td>').join('') + '<td style="font-weight:700">' + totalNb + '</td></tr>' +
-    '<tr><td style="font-weight:600;font-size:12px">CA moyen/vente</td>' + moyParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + fmtCell(v, true) + '</td>').join('') + '<td style="font-weight:700;color:var(--text-muted)">' + fmtEuro(totalMoy) + '</td></tr>' +
-    '</tbody>';
+  // CA et nb ventes signées (basé sur date SSP)
+  const caParMois = MONTH_NAMES.map((_, mi) =>
+    dossiersAnnee.filter(d => d.date && new Date(d.date).getMonth() === mi).reduce((s, d) => s + (caKey(d)||0), 0));
+  const nbParMois = MONTH_NAMES.map((_, mi) =>
+    dossiersAnnee.filter(d => d.date && new Date(d.date).getMonth() === mi).length);
+  const moyParMois = caParMois.map((ca, i) => nbParMois[i] > 0 ? ca / nbParMois[i] : 0);
+  const totalCA = caParMois.reduce((s,v) => s+v, 0);
+  const totalNb = nbParMois.reduce((s,v) => s+v, 0);
+  const totalMoy = totalNb > 0 ? totalCA / totalNb : 0;
 
-  document.getElementById(tableId).innerHTML = header + body;
+  // Encaissé = dossier SIGNÉ avec dateActe dans l'année
+  const encaisseParMois = MONTH_NAMES.map((_, mi) =>
+    dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi)
+      .reduce((s, d) => s + (caKey(d)||0), 0));
+  const nbEncaisseParMois = MONTH_NAMES.map((_, mi) =>
+    dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi).length);
+  const totalEncaisse = encaisseParMois.reduce((s,v) => s+v, 0);
+  const totalNbEncaisse = nbEncaisseParMois.reduce((s,v) => s+v, 0);
+
+  // À encaisser = dossier SIGNÉ sans dateActe avec dateButoire dans l'année
+  const aEncaisserParMois = MONTH_NAMES.map((_, mi) =>
+    (allDossiers||dossiersAnnee).filter(d => d.statut === 'SIGNÉ' && !d.dateActe &&
+      d.dateButoire && new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi)
+      .reduce((s, d) => s + (caKey(d)||0), 0));
+  const nbAEncaisserParMois = MONTH_NAMES.map((_, mi) =>
+    (allDossiers||dossiersAnnee).filter(d => d.statut === 'SIGNÉ' && !d.dateActe &&
+      d.dateButoire && new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi).length);
+  const totalAEncaisser = aEncaisserParMois.reduce((s,v) => s+v, 0);
+  const totalNbAEncaisser = nbAEncaisserParMois.reduce((s,v) => s+v, 0);
+
+  const tipEnc = '<span class="info-tip" data-tip="CA encaissé : dossiers ayant un acte authentique signé sur ce mois.&#10;En vert.">i</span>';
+  const tipNbEnc = '<span class="info-tip" data-tip="Nombre de dossiers ayant un acte authentique signé sur ce mois.">i</span>';
+  const tipAEnc = '<span class="info-tip" data-tip="CA à encaisser : dossiers signés sans acte authentique, dont la date butoire tombe sur ce mois.&#10;En orange.">i</span>';
+  const tipNbAEnc = '<span class="info-tip" data-tip="Nombre de dossiers signés sans acte authentique, dont la date butoire tombe sur ce mois.">i</span>';
+
+  // Cellule cliquable pour encaissements
+  const mkClickEnc = (dosListe, v, color) => {
+    if (!clickFn || v <= 0) return '<td style="font-size:12px;color:' + (v > 0 ? color : 'var(--text-muted)') + ';font-weight:' + (v > 0 ? '600' : '400') + '">' + fmtCell(v, true) + '</td>';
+    return '<td style="font-size:12px;color:' + color + ';font-weight:600;cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dosListe.map(d=>d.id)) + ')">' + fmtEuro(v) + '</td>';
+  };
+  const mkClickNb = (dosListe, v) => {
+    if (!clickFn || v <= 0) return '<td style="font-size:12px">' + fmtCell(v, false) + '</td>';
+    return '<td style="font-size:12px;cursor:pointer;font-weight:600;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dosListe.map(d=>d.id)) + ')">' + v + '</td>';
+  };
+
+  const rows =
+    '<tr><td style="font-weight:600;font-size:12px">CA HT signé</td>' +
+      caParMois.map(v => '<td style="font-size:12px;color:' + (v>0?'var(--primary)':'var(--text-muted)') + ';font-weight:' + (v>0?'600':'400') + '">' + fmtCell(v,true) + '</td>').join('') +
+      '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(totalCA) + '</td></tr>' +
+    '<tr><td style="font-weight:600;font-size:12px">Nb ventes</td>' +
+      nbParMois.map(v => '<td style="font-size:12px">' + fmtCell(v,false) + '</td>').join('') +
+      '<td style="font-weight:700">' + totalNb + '</td></tr>' +
+    '<tr><td style="font-weight:600;font-size:12px">CA moyen/vente</td>' +
+      moyParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + fmtCell(v,true) + '</td>').join('') +
+      '<td style="font-weight:700;color:var(--text-muted)">' + fmtEuro(totalMoy) + '</td></tr>' +
+    '<tr style="background:#f0fdf4"><td style="font-weight:600;font-size:12px;color:#16a34a">CA encaissé ' + tipEnc + '</td>' +
+      MONTH_NAMES.map((_, mi) => {
+        const v = encaisseParMois[mi];
+        const dosM = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
+        return mkClickEnc(dosM, v, '#16a34a');
+      }).join('') +
+      '<td style="font-weight:700;color:#16a34a;' + (totalEncaisse>0?'cursor:pointer;text-decoration:underline dotted':'') + '"' +
+        (totalEncaisse>0 && clickFn ? ' onclick="' + clickFn + '(' + JSON.stringify(dossiersAnnee.filter(d=>d.dateActe&&new Date(d.dateActe).getFullYear()===annee).map(d=>d.id)) + ')"' : '') +
+        '>' + (totalEncaisse>0?fmtEuro(totalEncaisse):'—') + '</td></tr>' +
+    '<tr style="background:#f0fdf4"><td style="font-weight:600;font-size:12px;color:#16a34a">Nb encaissés ' + tipNbEnc + '</td>' +
+      MONTH_NAMES.map((_, mi) => {
+        const v = nbEncaisseParMois[mi];
+        const dosM = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
+        return mkClickNb(dosM, v);
+      }).join('') +
+      '<td style="font-weight:700">' + (totalNbEncaisse>0?totalNbEncaisse:'—') + '</td></tr>' +
+    '<tr style="background:#fff7ed"><td style="font-weight:600;font-size:12px;color:#ea580c">CA à encaisser ' + tipAEnc + '</td>' +
+      MONTH_NAMES.map((_, mi) => {
+        const v = aEncaisserParMois[mi];
+        const dosM = (allDossiers||dossiersAnnee).filter(d => d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi);
+        return mkClickEnc(dosM, v, '#ea580c');
+      }).join('') +
+      '<td style="font-weight:700;color:#ea580c">' + (totalAEncaisser>0?fmtEuro(totalAEncaisser):'—') + '</td></tr>' +
+    '<tr style="background:#fff7ed"><td style="font-weight:600;font-size:12px;color:#ea580c">Nb à encaisser ' + tipNbAEnc + '</td>' +
+      MONTH_NAMES.map((_, mi) => {
+        const v = nbAEncaisserParMois[mi];
+        const dosM = (allDossiers||dossiersAnnee).filter(d => d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi);
+        return mkClickNb(dosM, v);
+      }).join('') +
+      '<td style="font-weight:700;color:#ea580c">' + (totalNbAEncaisser>0?totalNbAEncaisser:'—') + '</td></tr>';
+
+  return { rows, totalCA, totalNb, totalEncaisse, totalNbEncaisse, totalAEncaisser, totalNbAEncaisser };
+}
+
+// Indicateur comparaison N vs N-1
+function buildIndicateurNvsN1(valN, valN1, label) {
+  if (!valN1 || valN1 === 0) return '';
+  const diff = valN - valN1;
+  const pct = Math.round((diff / valN1) * 100);
+  const emoji = pct >= 0 ? '🟢' : (pct >= -10 ? '🟡' : '🔴');
+  const color = pct >= 0 ? '#16a34a' : (pct >= -10 ? '#d97706' : '#dc2626');
+  const sign = pct >= 0 ? '+' : '';
+  const tipNvsN1 = '<span class="info-tip" data-tip="Comparaison ' + label + ' N vs N-1.&#10;🟢 N > N-1&#10;🟡 N entre 90% et 100% de N-1&#10;🔴 N < 90% de N-1&#10;Le % indique l&#39;écart relatif.">i</span>';
+  return '<tr style="background:#f8fafc;border-top:2px solid var(--border)">' +
+    '<td style="font-weight:600;font-size:12px">vs N-1 ' + tipNvsN1 + '</td>' +
+    '<td colspan="12" style="font-size:13px;font-weight:700;color:' + color + ';padding:6px 8px">' +
+    emoji + ' ' + sign + pct + '% (' + sign + fmtEuro(diff) + ')</td>' +
+    '<td style="font-size:12px;color:var(--text-muted);font-style:italic">N-1 : ' + fmtEuro(valN1) + '</td></tr>';
+}
+
+// Ouvre un mini-modal avec la liste des dossiers passés en IDs
+function openDossiersEncModal(ids) {
+  const dos = DB.dossiers.filter(d => ids.includes(d.id));
+  const existing = document.getElementById('modal-enc-detail');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'modal-enc-detail';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px';
+  const totalCA = dos.reduce((s,d) => s+(d.ht||0), 0);
+  modal.innerHTML = '<div style="background:white;border-radius:16px;width:100%;max-width:800px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+    '<div style="background:var(--primary);padding:16px 20px;display:flex;align-items:center;justify-content:space-between">' +
+    '<div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:white">' + dos.length + ' dossier(s)</div>' +
+    '<div style="font-size:12px;color:rgba(255,255,255,0.7)">CA HT total : ' + fmtEuro(totalCA) + '</div></div>' +
+    '<button id="btn-close-enc" style="background:none;border:none;color:white;font-size:22px;cursor:pointer">✕</button></div>' +
+    '<div style="overflow-x:auto;padding:16px">' +
+    '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">Client</th>' +
+    '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">Agence</th>' +
+    '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">Date SSP</th>' +
+    '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">Date acte</th>' +
+    '<th style="padding:8px 12px;text-align:right;border-bottom:2px solid var(--border)">CA HT</th>' +
+    '<th style="padding:8px 12px;text-align:center;border-bottom:2px solid var(--border)">Statut</th></tr></thead>' +
+    '<tbody>' + dos.map((d,i) => '<tr style="border-bottom:1px solid var(--border);' + (i%2===0?'':'background:#f8fafc') + '">' +
+      '<td style="padding:8px 12px;font-weight:600">' + d.client + '</td>' +
+      '<td style="padding:8px 12px;font-size:12px;color:var(--text-muted)">' + d.agence + '</td>' +
+      '<td style="padding:8px 12px;font-size:12px">' + fmtDate(d.date) + '</td>' +
+      '<td style="padding:8px 12px;font-size:12px;color:#16a34a">' + (d.dateActe ? fmtDate(d.dateActe) : '—') + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;font-weight:700;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td>' +
+      '<td style="padding:8px 12px;text-align:center">' + statusBadge(d.statut) + '</td></tr>').join('') +
+    '</tbody></table></div></div>';
+  document.body.appendChild(modal);
+  document.getElementById('btn-close-enc').addEventListener('click', () => { modal.remove(); document.body.style.overflow=''; });
+  modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); document.body.style.overflow=''; } });
+  document.body.style.overflow = 'hidden';
+}
+
+function refreshFicheTableau(dossiersVentes, annee, tableId, titleId, totauxN1) {
+  document.getElementById(titleId).textContent = '📊 ' + annee;
+  const ventesAnnee = dossiersVentes.filter(d => d.date && new Date(d.date).getFullYear() === annee);
+  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, DB.dossiers, annee, d => d.caCollab||0, null, 'openDossiersEncModal');
+  const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
+  document.getElementById(tableId).innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
+  return { totalCA, totalNb };
 }
 
 
@@ -5296,8 +5433,8 @@ function refreshFicheSociete() {
   document.getElementById('fiche-societe-graph-annee-nb').innerHTML = yearOptsGraph;
 
   refreshFicheSocieteMoyenne();
-  refreshFicheSocieteTableau(dos, curYear, 'fiche-societe-tableau-annee', 'fiche-societe-annee-titre');
-  refreshFicheSocieteTableau(dos, n1Year, 'fiche-societe-tableau-n1', 'fiche-societe-annee-n1-titre');
+  const totN1Soc = refreshFicheSocieteTableau(dos, n1Year, 'fiche-societe-tableau-n1', 'fiche-societe-annee-n1-titre', null);
+  refreshFicheSocieteTableau(dos, curYear, 'fiche-societe-tableau-annee', 'fiche-societe-annee-titre', totN1Soc);
   refreshFicheSocieteGraphGlissant();
   refreshFicheSocieteGraphs();
   refreshFicheSocieteGraphNb();
@@ -5326,17 +5463,14 @@ function refreshFicheSocieteMoyenne() {
     '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">PÉRIODE</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + nbMois + ' mois</div></div>';
 }
 
-function refreshFicheSocieteTableau(dos, annee, tableId, titleId) {
+function refreshFicheSocieteTableau(dos, annee, tableId, titleId, totauxN1) {
   document.getElementById(titleId).textContent = '📊 ' + annee;
-  const v = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
+  const ventesAnnee = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
   const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
-  const ca = MONTH_NAMES.map((_,mi) => v.filter(d => new Date(d.date).getMonth() === mi).reduce((s,d) => s+(d.ht||0),0));
-  const nb = MONTH_NAMES.map((_,mi) => v.filter(d => new Date(d.date).getMonth() === mi).length);
-  const tot = ca.reduce((s,x) => s+x, 0);
-  document.getElementById(tableId).innerHTML = header + '<tbody>' +
-    '<tr><td style="font-weight:600;font-size:12px">CA HT</td>' + ca.map(x => '<td style="font-size:12px;color:' + (x>0?'var(--primary)':'var(--text-muted)') + ';font-weight:' + (x>0?'600':'400') + '">' + (x>0?fmtEuro(x):'—') + '</td>').join('') + '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(tot) + '</td></tr>' +
-    '<tr><td style="font-weight:600;font-size:12px">Nb ventes</td>' + nb.map(x => '<td style="font-size:12px">' + (x>0?x:'—') + '</td>').join('') + '<td style="font-weight:700">' + nb.reduce((s,x)=>s+x,0) + '</td></tr>' +
-    '</tbody>';
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal');
+  const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
+  document.getElementById(tableId).innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
+  return { totalCA, totalNb };
 }
 
 function refreshFicheSocieteGraphs() {
@@ -5708,8 +5842,8 @@ function refreshFicheAgence() {
   document.getElementById('fiche-agence-graph-annee-nb').innerHTML = yearOptsGraph;
 
   refreshFicheAgenceMoyenne();
-  refreshFicheAgenceTableau(dosAgence, curYear, 'fiche-agence-tableau-annee', 'fiche-agence-annee-titre');
-  refreshFicheAgenceTableau(dosAgence, n1Year, 'fiche-agence-tableau-n1', 'fiche-agence-annee-n1-titre');
+  const totN1Agence = refreshFicheAgenceTableau(dosAgence, n1Year, 'fiche-agence-tableau-n1', 'fiche-agence-annee-n1-titre', null);
+  refreshFicheAgenceTableau(dosAgence, curYear, 'fiche-agence-tableau-annee', 'fiche-agence-annee-titre', totN1Agence);
   refreshFicheAgenceGraphGlissant();
   refreshFicheAgenceGraphs();
   refreshFicheAgenceGraphNb();
@@ -5751,22 +5885,14 @@ function refreshFicheAgenceMoyenne() {
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + nbMois + ' mois</div></div>';
 }
 
-function refreshFicheAgenceTableau(dossiersAgence, annee, tableId, titleId) {
+function refreshFicheAgenceTableau(dossiersAgence, annee, tableId, titleId, totauxN1) {
   document.getElementById(titleId).textContent = '📊 ' + annee;
   const ventesAnnee = dossiersAgence.filter(d => d.date && new Date(d.date).getFullYear() === annee);
   const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
-  const caParMois = MONTH_NAMES.map((_, mi) => ventesAnnee.filter(d => new Date(d.date).getMonth() === mi).reduce((s, d) => s + (d.ht||0), 0));
-  const nbParMois = MONTH_NAMES.map((_, mi) => ventesAnnee.filter(d => new Date(d.date).getMonth() === mi).length);
-  const moyParMois = caParMois.map((ca, i) => nbParMois[i] > 0 ? ca / nbParMois[i] : 0);
-  const totalCA = caParMois.reduce((s,v) => s+v, 0);
-  const totalNb = nbParMois.reduce((s,v) => s+v, 0);
-  const totalMoy = totalNb > 0 ? totalCA / totalNb : 0;
-  const fmtCell = (v, isCa) => isCa ? (v > 0 ? fmtEuro(v) : '—') : (v > 0 ? v : '—');
-  document.getElementById(tableId).innerHTML = header + '<tbody>' +
-    '<tr><td style="font-weight:600;font-size:12px">CA HT</td>' + caParMois.map(v => '<td style="font-size:12px;color:' + (v > 0 ? 'var(--primary)' : 'var(--text-muted)') + ';font-weight:' + (v > 0 ? '600' : '400') + '">' + fmtCell(v, true) + '</td>').join('') + '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(totalCA) + '</td></tr>' +
-    '<tr><td style="font-weight:600;font-size:12px">Nb ventes</td>' + nbParMois.map(v => '<td style="font-size:12px">' + fmtCell(v, false) + '</td>').join('') + '<td style="font-weight:700">' + totalNb + '</td></tr>' +
-    '<tr><td style="font-weight:600;font-size:12px">CA moyen/vente</td>' + moyParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + fmtCell(v, true) + '</td>').join('') + '<td style="font-weight:700;color:var(--text-muted)">' + fmtEuro(totalMoy) + '</td></tr>' +
-    '</tbody>';
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dossiersAgence, annee, d => d.ht||0, null, 'openDossiersEncModal');
+  const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
+  document.getElementById(tableId).innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
+  return { totalCA, totalNb };
 }
 
 function refreshFicheAgenceGraphGlissant() {
