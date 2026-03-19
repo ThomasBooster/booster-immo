@@ -4372,7 +4372,8 @@ function buildPerfStats(dossiers, containerId, titlePrefix) {
 
 function buildPerfTable(dossiers, tbodyId) {
   const signed = dossiers.filter(d => d.statut === 'SIGNÉ');
-  const ranked = AGENCES.map(a => {
+  const agencesActives = AGENCES.filter(a => { const ag = DB.agences.find(x => x.nom === a); return !ag || ag.actif !== false; });
+  const ranked = agencesActives.map(a => {
     const dos = signed.filter(d => d.agence === a);
     return { name: a, ht: dos.reduce((s, d) => s + (d.ht || 0), 0), count: dos.length };
   }).sort((a, b) => b.ht - a.ht);
@@ -5574,6 +5575,29 @@ function refreshFicheSocieteGerants() {
 // GESTION RÉSEAU
 // =====================
 
+
+async function toggleAgenceActif(agenceId, estActif) {
+  const a = DB.agences.find(x => x.id === agenceId);
+  if (!a) return;
+  const nouvelEtat = !estActif;
+  const msg = nouvelEtat ? 'Rouvrir l\'agence "' + a.nom + '" ?' : 'Fermer l\'agence "' + a.nom + '" ?\n\nElle sera exclue des saisies et classements mais ses dossiers historiques restent visibles.';
+  if (!confirm(msg)) return;
+  showLoading(true);
+  try {
+    await sbUpdate('agences', 'id=eq.' + agenceId, { actif: nouvelEtat });
+    const idx = DB.agences.findIndex(x => x.id === agenceId);
+    if (idx >= 0) DB.agences[idx].actif = nouvelEtat;
+    // Mettre à jour la liste AGENCES dynamique
+    window._AGENCES_DYNAMIC = [...new Set([...AGENCES_STATIC, ...DB.agences.filter(a => a.actif !== false).map(a => a.nom)])].sort();
+    showLoading(false);
+    showToast(nouvelEtat ? 'Agence rouverte ✓' : 'Agence fermée ✓', 'success');
+    renderReseauTree();
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur : ' + e.message, 'error');
+  }
+}
+
 function renderReseauTree() {
   const container = document.getElementById('reseau-tree');
   if (!container) return;
@@ -5615,12 +5639,20 @@ function renderReseauTree() {
 
     agencesSoc.forEach(a => {
       const dateStr = a.date_ouverture ? new Date(a.date_ouverture).toLocaleDateString('fr-FR') : '';
+      const inactive = a.actif === false;
+      const bg = inactive ? '#f3f4f6' : 'var(--bg)';
+      const border = inactive ? '0.5px solid #d1d5db' : '0.5px solid var(--border)';
+      const textColor = inactive ? 'color:#9ca3af' : '';
       html += `<div style="margin-left:20px;border-left:2px dashed var(--border);padding-left:16px">
-        <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:var(--bg);border:0.5px solid var(--border);margin-bottom:6px">
-          <span style="font-size:13px">🏠</span>
-          <span>${a.nom}</span>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:${bg};border:${border};margin-bottom:6px;${inactive?'opacity:0.7':''}">
+          <span style="font-size:13px">${inactive ? '🔒' : '🏠'}</span>
+          <span style="${textColor}">${a.nom}</span>
+          ${inactive ? '<span style="font-size:10px;font-weight:700;background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px">FERMÉE</span>' : ''}
           ${dateStr ? '<span style="font-size:11px;color:var(--text-muted)">Ouverture : ' + dateStr + '</span>' : ''}
-          <button class="rn-edit" data-mode="edit-agence" data-id="${a.id}" style="margin-left:auto;width:22px;height:22px;border-radius:5px;border:0.5px solid var(--border);background:white;color:var(--text-muted);font-size:11px;cursor:pointer" title="Modifier">✎</button>
+          <div style="margin-left:auto;display:flex;gap:4px">
+            <button class="rn-edit" data-mode="edit-agence" data-id="${a.id}" style="width:22px;height:22px;border-radius:5px;border:0.5px solid var(--border);background:white;color:var(--text-muted);font-size:11px;cursor:pointer" title="Modifier">✎</button>
+            <button class="rn-toggle" data-id="${a.id}" data-actif="${a.actif === false ? 'false' : 'true'}" style="width:22px;height:22px;border-radius:5px;border:0.5px solid ${inactive ? '#16a34a' : '#dc2626'};background:white;color:${inactive ? '#16a34a' : '#dc2626'};font-size:11px;cursor:pointer;font-weight:700" title="${inactive ? 'Rouvrir l\'agence' : 'Fermer l\'agence'}">${inactive ? '↩' : '✕'}</button>
+          </div>
         </div>
       </div>`;
     });
@@ -5641,6 +5673,9 @@ function renderReseauTree() {
       const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
       openReseauModal(btn.dataset.mode, id);
     });
+  });
+  container.querySelectorAll('.rn-toggle').forEach(btn => {
+    btn.addEventListener('click', () => toggleAgenceActif(parseInt(btn.dataset.id), btn.dataset.actif === 'true'));
   });
 }
 
@@ -6338,6 +6373,9 @@ function buildNegRanking(dossiersFiltres, agenceFiltree) {
       const neg = negs.find(n => n.id === l.negociateur_id);
       if (!neg) return;
       if (neg.nom && neg.nom.startsWith('🍒')) return;
+      // Exclure négos des agences inactives du classement
+      const agNeg = DB.agences.find(a => a.nom === neg.agence);
+      if (agNeg && agNeg.actif === false) return;
       if (agenceFiltree) {
         const agFObj = DB.agences.find(a => a.nom === agenceFiltree);
         const match = agFObj && neg.agence_id ? neg.agence_id === agFObj.id : neg.agence === agenceFiltree;
