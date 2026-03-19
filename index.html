@@ -1579,6 +1579,14 @@
                 <input type="date" id="neg-date-fin-contrat">
               </div>
             </div>
+            <!-- Checklist alternant -->
+            <div id="neg-checklist-alternant" style="margin-top:16px;padding:14px;background:#f0fdf4;border-radius:12px;border:1px solid #86efac">
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#16a34a;margin-bottom:10px">✅ Formalités alternance</div>
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-cci-alt" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>Habilitation collaborateur CCI — <a href="https://www.cciwebstore.fr/" target="_blank" style="color:#16a34a">cciwebstore.fr</a></span>
+              </label>
+            </div>
           </div>
 
           <!-- STAGIAIRE -->
@@ -4972,8 +4980,12 @@ function checkAlerteCCIGlobale() {
     // Vérifier droits : admin voit tout, agence voit sa propre agence
     if (currentUser.role !== 'admin' && n.agence !== currentUser.agence) return false;
     const checklist = n.checklist_embauche || {};
-    // CCI non cochée
-    return !checklist['cci'] && !checklist['cci-co'];
+    // Statuts nécessitant une habilitation CCI
+    const needsCCI = ['salarié','responsable','agent-co','alternant'].includes(n.statut_emploi);
+    if (!needsCCI) return false;
+    // Vérifier la bonne case selon le statut
+    const cciKey = n.statut_emploi === 'agent-co' ? 'cci-co' : n.statut_emploi === 'alternant' ? 'cci-alt' : 'cci';
+    return !checklist[cciKey];
   });
 
   if (alertes.length === 0) { container.style.display = 'none'; return; }
@@ -5046,7 +5058,7 @@ function checkAlertePEGlobale() {
 // RH — FICHE NÉGOCIATEUR
 // =====================
 
-const CHECKLIST_KEYS = ['mutuelle', 'document-unique', 'assurance-voiture', 'medecine', 'cci', 'cci-co'];
+const CHECKLIST_KEYS = ['mutuelle', 'document-unique', 'assurance-voiture', 'medecine', 'cci', 'cci-co', 'cci-alt'];
 
 function onNegStatutChange() {
   const statut = document.getElementById('neg-statut-emploi')?.value;
@@ -5566,6 +5578,7 @@ function openEditNegociateur(id) {
     document.getElementById('neg-date-entree-alt').value = n.date_entree || '';
     document.getElementById('neg-niveau-etude').value = n.niveau_etude || '';
     document.getElementById('neg-date-fin-contrat').value = n.date_fin_contrat || '';
+    loadChecklistUI(n.checklist_embauche || {});
   } else if (isStagiaire) {
     document.getElementById('neg-date-entree-stag').value = n.date_entree || '';
     document.getElementById('neg-date-fin-contrat-stag').value = n.date_fin_contrat || '';
@@ -5585,9 +5598,9 @@ async function saveNegociateur() {
   const statut_emploi = document.getElementById('neg-statut-emploi').value;
   const email = document.getElementById('neg-email').value.trim() || null;
   const avance_commission = ['salarié','responsable'].includes(statut_emploi) ? (parseFloat(document.getElementById('neg-avance').value) || 0) : 0;
-  const date_entree = document.getElementById('neg-date-entree').value || null;
+  let date_entree = document.getElementById('neg-date-entree').value || null;
   const objectif_ca = parseFloat(document.getElementById('neg-objectif-ca').value) || 0;
-  const agence_precedente = document.getElementById('neg-agence-precedente').value || null;
+  let agence_precedente = document.getElementById('neg-agence-precedente').value || null;
   if (!nom || !agence) { showToast('Nom et agence requis', 'error'); return; }
 
   // Détection changement d'agence — confirmation obligatoire
