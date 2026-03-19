@@ -4857,11 +4857,25 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
 
   let rows =
     '<tr><td style="font-weight:600;font-size:12px">CA HT signé</td>' +
-      caParMois.map(v => '<td style="font-size:12px;color:' + (v>0?'var(--primary)':'var(--text-muted)') + ';font-weight:' + (v>0?'600':'400') + '">' + fmtCell(v,true) + '</td>').join('') +
-      '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(totalCA) + '</td></tr>' +
+      MONTH_NAMES.map((_, mi) => {
+        const v = caParMois[mi];
+        const dosM = dossiersAnnee.filter(d => d.date && new Date(d.date).getMonth() === mi);
+        return mkClickEnc(dosM, v, 'var(--primary)');
+      }).join('') +
+      (clickFn && totalCA > 0
+        ? '<td style="font-weight:700;color:var(--primary);cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dossiersAnnee.map(d=>d.id)) + ')">' + fmtEuro(totalCA) + '</td>'
+        : '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(totalCA) + '</td>') +
+      '</tr>' +
     '<tr><td style="font-weight:600;font-size:12px">Nb ventes</td>' +
-      nbParMois.map(v => '<td style="font-size:12px">' + fmtCell(v,false) + '</td>').join('') +
-      '<td style="font-weight:700">' + totalNb + '</td></tr>' +
+      MONTH_NAMES.map((_, mi) => {
+        const v = nbParMois[mi];
+        const dosM = dossiersAnnee.filter(d => d.date && new Date(d.date).getMonth() === mi);
+        return mkClickNb(dosM, v);
+      }).join('') +
+      (clickFn && totalNb > 0
+        ? '<td style="font-weight:700;cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dossiersAnnee.map(d=>d.id)) + ')">' + totalNb + '</td>'
+        : '<td style="font-weight:700">' + totalNb + '</td>') +
+      '</tr>' +
     '<tr><td style="font-weight:600;font-size:12px">CA moyen/vente</td>' +
       moyParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + fmtCell(v,true) + '</td>').join('') +
       '<td style="font-weight:700;color:var(--text-muted)">' + fmtEuro(totalMoy) + '</td></tr>' +
