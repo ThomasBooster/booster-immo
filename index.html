@@ -4813,20 +4813,21 @@ function refreshFicheMoyenne() {
   const moyCA = nbMois > 0 ? totalCA / nbMois : 0;
   const moyVentes = nbMois > 0 ? ventes.length / nbMois : 0;
 
-  document.getElementById('fiche-collab-moyenne').innerHTML =
-    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)">' +
-    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">CA MOYEN / MOIS</div>' +
-    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + fmtEuro(moyCA) + '</div>' +
-    (n.objectif_ca ? '<div style="font-size:11px;color:' + (moyCA >= n.objectif_ca ? '#10b981' : '#f59e0b') + ';margin-top:4px">' + (moyCA >= n.objectif_ca ? '✅' : '⚠️') + ' Objectif : ' + fmtEuro(n.objectif_ca) + '</div>' : '') +
-    '</div>' +
-    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)">' +
-    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">VENTES MOYENNES / MOIS</div>' +
-    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + moyVentes.toFixed(1) + '</div>' +
-    '</div>' +
-    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border)">' +
-    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px">PÉRIODE ANALYSÉE</div>' +
-    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + nbMois + ' mois</div>' +
-    '</div>';
+  // Utiliser buildMoyenneSection avec les ventes du négo sur toutes les années
+  const dosNegAll = (DB.dossierNeg||[]).filter(l=>l.negociateur_id===n.id).map(l=>{
+    const d=DB.dossiers.find(x=>x.id===l.dossier_id&&x.statut==='SIGNÉ');
+    if(!d) return null;
+    return {...d, caCollab:(d.ht||0)*(l.pct_ca/100)};
+  }).filter(Boolean);
+  // Peupler le sélecteur si pas encore fait
+  const selMoyN = document.getElementById('fiche-collab-annee-moy');
+  if (selMoyN && dosNegAll.length) {
+    const yearsN = [...new Set(dosNegAll.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
+    if (!selMoyN.options.length || selMoyN.options[0].value === '') {
+      selMoyN.innerHTML = yearsN.map(y=>'<option value="'+y+'"'+(y===new Date().getFullYear()?' selected':'')+'>'+y+'</option>').join('');
+    }
+  }
+  buildMoyenneSection('fiche-collab-moyenne', 'fiche-collab-annee-moy', dosNegAll, d=>d.caCollab||0, n.nom);
 }
 
 
@@ -7212,6 +7213,110 @@ function buildStatCards(c1l, c1v, c2l, c2v, c3l, c3v, c4l, c4v) {
     '<div class="stat-card"><div class="stat-label">' + c3l + '</div><div class="stat-value">' + c3v + '</div></div>' +
     '<div class="stat-card"><div class="stat-label">' + c4l + '</div><div class="stat-value">' + c4v + '</div></div>' +
     '</div>';
+  // Event listeners pour les cartes apporteurs
+  container.querySelectorAll('.ap-card').forEach(el => {
+    el.addEventListener('click', () => openAffairesApporteur(el.dataset.nom));
+    el.addEventListener('mouseover', () => { el.style.borderColor='var(--primary)'; el.style.background='#f0f4f8'; });
+    el.addEventListener('mouseout', () => { el.style.borderColor='var(--border)'; el.style.background='var(--bg)'; });
+  });
+}
+
+// ── Moyenne mensuelle avec comparatif N/N-1 ──
+function buildMoyenneSection(containerId, selectId, dos, caKey, label) {
+  const container = document.getElementById(containerId);
+  const sel = document.getElementById(selectId);
+  if (!container || !sel) return;
+
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const annee = parseInt(sel.value) || curYear;
+  const n1Year = annee - 1;
+
+  const ventesN = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
+  const ventesN1 = dos.filter(d => d.date && new Date(d.date).getFullYear() === n1Year);
+
+  const nbMoisN = annee === curYear ? now.getMonth() + 1 : 12;
+  const nbMoisN1 = 12;
+
+  const caN = ventesN.reduce((s,d) => s + (caKey(d)||0), 0);
+  const caN1 = ventesN1.reduce((s,d) => s + (caKey(d)||0), 0);
+  const moyCAn = nbMoisN > 0 ? caN / nbMoisN : 0;
+  const moyCAn1 = nbMoisN1 > 0 && caN1 > 0 ? caN1 / nbMoisN1 : 0;
+  const moyVN = nbMoisN > 0 ? ventesN.length / nbMoisN : 0;
+  const moyVN1 = nbMoisN1 > 0 && ventesN1.length > 0 ? ventesN1.length / nbMoisN1 : 0;
+
+  const diffCA = moyCAn1 > 0 ? Math.round(((moyCAn - moyCAn1) / moyCAn1) * 100) : null;
+  const diffV = moyVN1 > 0 ? Math.round(((moyVN - moyVN1) / moyVN1) * 100) : null;
+
+  const indic = (diff) => {
+    if (diff === null) return '';
+    const sign = diff >= 0 ? '+' : '';
+    const color = diff >= 0 ? '#16a34a' : diff >= -10 ? '#d97706' : '#dc2626';
+    const emoji = diff >= 0 ? '🟢' : diff >= -10 ? '🟡' : '🔴';
+    return '<div style="font-size:11px;color:' + color + ';margin-top:4px">' + emoji + ' ' + sign + diff + '% vs ' + n1Year + '</div>';
+  };
+
+  container.innerHTML =
+    '<div style="display:flex;gap:16px;flex-wrap:wrap">' +
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border);min-width:160px">' +
+      '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px">CA MOYEN / MOIS ' + annee + '</div>' +
+      '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + fmtEuro(moyCAn) + '</div>' +
+      indic(diffCA) +
+    '</div>' +
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border);min-width:160px">' +
+      '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px">VENTES MOYENNES / MOIS ' + annee + '</div>' +
+      '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + moyVN.toFixed(1) + '</div>' +
+      indic(diffV) +
+    '</div>' +
+    '<div style="text-align:center;padding:16px 24px;background:white;border-radius:12px;border:1px solid var(--border);min-width:160px">' +
+      '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px">PÉRIODE</div>' +
+      '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;color:var(--primary)">' + nbMoisN + ' mois</div>' +
+    '</div>' +
+    '</div>';
+}
+
+// ── Section apporteurs enrichie ──
+function buildApporteursSection(containerId, dos) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const apports = [...new Set(dos.filter(d=>d.hasApporteur&&d.apporteurNom).map(d=>d.apporteurNom))].sort();
+  if (!apports.length) {
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Aucun apporteur sur ce périmètre</span>';
+    return;
+  }
+  container.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' +
+    apports.map(a => {
+      const dosA = dos.filter(d => d.apporteurNom === a);
+      const rev = dosA.reduce((s,d) => s+(d.apportHT||0), 0);
+      const nb = dosA.length;
+      return `<div class="ap-card" data-nom="${a}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px;border:0.5px solid var(--border);cursor:pointer;transition:all .15s">
+        <div style="flex:1;font-weight:600;font-size:13px">${a}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${nb} dossier${nb>1?'s':''}</div>
+        <div style="font-weight:700;color:#92400e;font-size:13px">${fmtEuro(rev)}</div>
+        <span style="font-size:11px;color:var(--text-muted)">→</span>
+      </div>`;
+    }).join('') +
+    '</div>';
+  container.querySelectorAll('.ap-card').forEach(el => {
+    el.addEventListener('click', () => openAffairesApporteur(el.dataset.nom));
+    el.addEventListener('mouseover', () => { el.style.borderColor='var(--primary)'; el.style.background='#f0f4f8'; });
+    el.addEventListener('mouseout', () => { el.style.borderColor='var(--border)'; el.style.background='var(--bg)'; });
+  });
+}
+
+function refreshStatsMoyenneSociete() {
+  const agenceNoms = getSocieteAgences();
+  const dos = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&d.statut==='SIGNÉ');
+  buildMoyenneSection('stats-soc-moyenne','stats-soc-sel-annee-moy', dos, d=>d.ht||0, 'Société');
+}
+function refreshStatsMoyenneAgence() {
+  const dos = DB.dossiers.filter(d=>d.agence===ficheAgenceNom&&d.statut==='SIGNÉ');
+  buildMoyenneSection('stats-ag-moyenne','stats-ag-sel-annee-moy', dos, d=>d.ht||0, ficheAgenceNom);
+}
+
+function refreshStatsMoyenneReseau() {
+  const dos = DB.dossiers.filter(d=>d.statut==='SIGNÉ');
+  buildMoyenneSection('stats-reseau-moyenne','stats-reseau-sel-annee-moy', dos, d=>d.ht||0, 'Réseau');
 }
 
 function buildAndRenderStatsTableau(dos, annee, tableId, header, isN1, totauxN1) {
@@ -7239,6 +7344,7 @@ function renderStatsReseau(container) {
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="stats-table-n"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="stats-table-n1"></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-reseau-sel-annee-moy" onchange="refreshStatsMoyenneReseau()" class="filter-select" style="font-size:12px"></select></div><div id="stats-reseau-moyenne" style="padding:16px"></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="stats-graph-annee" onchange="renderStatsReseauGraphs()" style="font-size:11px;padding:3px 6px" class="filter-select"></select></div><div style="padding:10px"><canvas id="stats-chart-ca" height="90"></canvas></div></div>' +
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span></div><div style="padding:10px"><canvas id="stats-chart-nb" height="90"></canvas></div></div>' +
@@ -7255,6 +7361,13 @@ function renderStatsReseau(container) {
   const totN1 = buildAndRenderStatsTableau(dos, n1Year, 'stats-table-n1', header, true, null);
   buildAndRenderStatsTableau(dos, curYear, 'stats-table-n', header, false, totN1);
   renderStatsReseauGraphs();
+  // Peupler le sélecteur d'année moyennes
+  const selMoyR = document.getElementById('stats-reseau-sel-annee-moy');
+  if (selMoyR) {
+    const years = [...new Set(dos.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
+    selMoyR.innerHTML = years.map(y=>'<option value="'+y+'"'+(y===curYear?' selected':'')+'>'+y+'</option>').join('');
+    buildMoyenneSection('stats-reseau-moyenne', 'stats-reseau-sel-annee-moy', dos, d=>d.ht||0, 'Réseau');
+  }
 }
 
 function renderStatsReseauGraphs() {
@@ -7298,6 +7411,7 @@ function renderStatsSociete(container, socId) {
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏛 ' + (s.forme_juridique?s.forme_juridique+' ':'') + s.nom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-soc-sel-annee-moy" onchange="refreshStatsMoyenneSociete()" class="filter-select" style="font-size:12px"></select></div><div id="stats-soc-moyenne" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
@@ -7337,13 +7451,14 @@ function renderStatsSociete(container, socId) {
   refreshFicheSocieteEquipe();
 
   // Apporteurs
-  const apports = [...new Set(dos.filter(d=>d.hasApporteur&&d.apporteurNom).map(d=>d.apporteurNom))].sort();
-  document.getElementById('fiche-societe-apporteurs').innerHTML = apports.length
-    ? apports.map(a => {
-        const dosA = dos.filter(d=>d.apporteurNom===a);
-        return '<span style="padding:6px 12px;background:var(--bg);border-radius:8px;font-size:13px;border:0.5px solid var(--border)">' + a + ' <strong style="color:#92400e">' + fmtEuro(dosA.reduce((s,d)=>s+(d.apportHT||0),0)) + '</strong></span>';
-      }).join(' ')
-    : '<span style="color:var(--text-muted);font-size:13px">Aucun apporteur</span>';
+  buildApporteursSection('fiche-societe-apporteurs', dos);
+  // Peupler sélecteur moyennes société
+  const selMoyS = document.getElementById('stats-soc-sel-annee-moy');
+  if (selMoyS) {
+    const years = [...new Set(dos.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
+    selMoyS.innerHTML = years.map(y=>'<option value="'+y+'"'+(y===curYear?' selected':'')+'>'+y+'</option>').join('');
+    buildMoyenneSection('stats-soc-moyenne', 'stats-soc-sel-annee-moy', dos, d=>d.ht||0, 'Société');
+  }
 }
 
 function renderStatsAgence(container, agNom) {
@@ -7360,6 +7475,7 @@ function renderStatsAgence(container, agNom) {
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dosAgence.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-ag-sel-annee-moy" onchange="refreshStatsMoyenneAgence()" class="filter-select" style="font-size:12px"></select></div><div id="stats-ag-moyenne" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
@@ -7397,13 +7513,14 @@ function renderStatsAgence(container, agNom) {
   refreshFicheAgenceGraphGlissant();
 
   // Apporteurs
-  const apports = [...new Set(dosAgence.filter(d=>d.hasApporteur&&d.apporteurNom).map(d=>d.apporteurNom))].sort();
-  document.getElementById('stats-ag-apporteurs').innerHTML = apports.length
-    ? apports.map(a => {
-        const dosA = dosAgence.filter(d=>d.apporteurNom===a);
-        return '<span style="padding:6px 12px;background:var(--bg);border-radius:8px;font-size:13px;border:0.5px solid var(--border)">' + a + ' <strong style="color:#92400e">' + fmtEuro(dosA.reduce((s,d)=>s+(d.apportHT||0),0)) + '</strong></span>';
-      }).join(' ')
-    : '<span style="color:var(--text-muted);font-size:13px">Aucun apporteur</span>';
+  buildApporteursSection('stats-ag-apporteurs', dosAgence);
+  // Moyennes agence
+  const selMoyA = document.getElementById('stats-ag-sel-annee-moy');
+  if (selMoyA) {
+    const years2 = [...new Set(dosAgence.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
+    selMoyA.innerHTML = years2.map(y=>'<option value="'+y+'"'+(y===curYear?' selected':'')+'>'+y+'</option>').join('');
+    buildMoyenneSection('stats-ag-moyenne', 'stats-ag-sel-annee-moy', dosAgence, d=>d.ht||0, agNom);
+  }
 
   // Équipe
   const equipe = (DB.negociateurs||[]).filter(n=>n.agence===agNom&&n.actif!==false&&!n.nom.startsWith('🍒'));
