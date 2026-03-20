@@ -7548,6 +7548,42 @@ function refreshIntercabinet() {
   container.innerHTML = matrixHTML + barsHTML;
 }
 
+// Graphique glissant générique
+function renderGlissant(canvasId, dos, caKey, chartKey) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  const dosDated = dos.filter(d => d.date);
+  if (dosDated.length === 0) return;
+  const now = new Date();
+  const firstDate = dosDated.map(d => new Date(d.date)).filter(d => !isNaN(d)).sort((a,b) => a-b)[0];
+  if (!firstDate) return;
+  const startBar = new Date(firstDate.getFullYear(), firstDate.getMonth() + 11, 1);
+  const labels = [], data = [];
+  let cursor = new Date(startBar);
+  while (cursor <= now) {
+    const y = cursor.getFullYear(), m = cursor.getMonth();
+    let cumul = 0;
+    for (let i = 0; i < 12; i++) {
+      const ref = new Date(y, m - i, 1);
+      cumul += dosDated.filter(d => {
+        const dd = new Date(d.date);
+        return dd.getFullYear() === ref.getFullYear() && dd.getMonth() === ref.getMonth();
+      }).reduce((s, d) => s + (caKey(d)||0), 0);
+    }
+    labels.push(MONTH_NAMES[m].substring(0,3) + ' ' + String(y).substring(2));
+    data.push(cumul);
+    cursor = new Date(y, m + 1, 1);
+  }
+  if (data.length === 0) return;
+  const bgColors = data.map((v,i) => i===data.length-1 ? '#2D455A' : i>0&&v>data[i-1] ? '#10b981aa' : i>0&&v<data[i-1] ? '#ef4444aa' : '#2D455Aaa');
+  if (window[chartKey]) window[chartKey].destroy();
+  window[chartKey] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'CA 12m', data, backgroundColor: bgColors, borderRadius: 3, borderSkipped: false }] },
+    options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => 'CA 12 mois : ' + fmtEuro(c.parsed.y) } } }, scales: { y: { beginAtZero: false, ticks: { callback: v => fmtEuro(v), font: { size: 10 } } }, x: { ticks: { font: { size: 9 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 24 } } } }
+  });
+}
+
 function renderStatsReseau(container) {
   const now = new Date();
   const curYear = now.getFullYear();
@@ -7658,7 +7694,7 @@ function renderStatsSociete(container, socId) {
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="fiche-societe-graph-annee" onchange="refreshFicheSocieteGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select></div><div style="padding:10px"><canvas id="fiche-societe-chart-ca" height="90"></canvas></div></div>' +
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><select id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select></div><div style="padding:10px"><canvas id="fiche-societe-chart-nb" height="90"></canvas></div></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="fiche-societe-chart-glissant" height="70"></canvas></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-soc-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👤 Apporteurs actifs</span></div><div id="fiche-societe-apporteurs" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="fiche-societe-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
@@ -7687,7 +7723,7 @@ function renderStatsSociete(container, socId) {
   refreshFicheSocieteTableau(dos, curYear, 'fiche-societe-tableau-annee', 'fiche-societe-annee-titre', totN1Soc, false);
   refreshFicheSocieteGraphs();
   refreshFicheSocieteGraphNb();
-  refreshFicheSocieteGraphGlissant();
+  renderGlissant('stats-soc-chart-glissant', dos, d=>d.ht||0, '_statsGlissantSoc');
   refreshFicheSocieteEquipe();
 
   // Apporteurs
@@ -7722,7 +7758,7 @@ function renderStatsAgence(container, agNom) {
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="fiche-agence-graph-annee" onchange="refreshFicheAgenceGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all" onchange="refreshFicheAgenceGraphs()"> Toutes</label></div><div style="padding:10px"><canvas id="fiche-agence-chart-ca" height="90"></canvas></div></div>' +
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><select id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()"> Toutes</label></div><div style="padding:10px"><canvas id="fiche-agence-chart-nb" height="90"></canvas></div></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="fiche-agence-chart-glissant" height="70"></canvas></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-ag-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👤 Apporteurs actifs</span></div><div id="stats-ag-apporteurs" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="stats-ag-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
@@ -7750,7 +7786,7 @@ function renderStatsAgence(container, agNom) {
   refreshFicheAgenceTableau(dosAgence, curYear, 'fiche-agence-tableau-annee', 'fiche-agence-annee-titre', totN1Ag, false);
   refreshFicheAgenceGraphs();
   refreshFicheAgenceGraphNb();
-  refreshFicheAgenceGraphGlissant();
+  renderGlissant('stats-ag-chart-glissant', dosAgence, d=>d.ht||0, '_statsGlissantAg');
 
   // Apporteurs
   buildApporteursSection('stats-ag-apporteurs', dosAgence);
@@ -7845,25 +7881,7 @@ function renderStatsNeg(container, negId) {
 
   // Graphique glissant négo
   const ctxG = document.getElementById('stats-neg-chart-glissant');
-  if (ctxG) {
-    const dosDated = dossiersVentes.filter(d=>d.date);
-    if (dosDated.length > 0) {
-      const firstDate = dosDated.map(d=>new Date(d.date)).sort((a,b)=>a-b)[0];
-      const startBar = new Date(firstDate.getFullYear(), firstDate.getMonth()+11, 1);
-      const labels=[], data=[];
-      let cursor = new Date(startBar);
-      while (cursor <= now) {
-        const y=cursor.getFullYear(), m=cursor.getMonth();
-        let cumul=0;
-        for(let i=0;i<12;i++){const ref=new Date(y,m-i,1);cumul+=dosDated.filter(d=>{const dd=new Date(d.date);return dd.getFullYear()===ref.getFullYear()&&dd.getMonth()===ref.getMonth();}).reduce((s,d)=>s+d.caCollab,0);}
-        labels.push(MONTH_NAMES[m].substring(0,3)+' '+String(y).substring(2));
-        data.push(cumul);
-        cursor=new Date(y,m+1,1);
-      }
-      if(window._statsNegChartG) window._statsNegChartG.destroy();
-      window._statsNegChartG = new Chart(ctxG, { type:'bar', data:{ labels, datasets:[{ label:'CA 12m', data, backgroundColor:data.map((v,i)=>i===data.length-1?'#2D455A':i>0&&v>data[i-1]?'#10b981aa':i>0&&v<data[i-1]?'#ef4444aa':'#2D455Aaa'), borderRadius:3 }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:false,ticks:{callback:v=>fmtEuro(v),font:{size:10}}}, x:{ticks:{font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:24}} } } });
-    }
-  }
+  renderGlissant('stats-neg-chart-glissant', dossiersVentes, d=>d.caCollab||0, '_statsNegChartG');
 }
 
 </script>
