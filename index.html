@@ -1048,6 +1048,22 @@
               </div>
             </div>
 
+            <!-- Rétrocession Booster -->
+            <div style="margin-top:12px;padding:14px;border:1.5px solid #fde68a;border-radius:12px;background:#fffbeb">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#92400e">🏷 Rétrocession Booster</div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#92400e">
+                  <input type="checkbox" id="s-has-retro-booster" onchange="toggleRetroBooster('s')" style="width:16px;height:16px;accent-color:#d97706"> Vente hors secteur réseau
+                </label>
+              </div>
+              <div id="s-retro-booster-fields" style="display:none">
+                <div class="form-group" style="margin:0">
+                  <label>Montant rétrocession Booster (HT)</label>
+                  <input type="number" id="s-retro-booster-ht" placeholder="ex: 1500" min="0" step="0.01" oninput="calcHT()" style="margin-top:6px">
+                </div>
+              </div>
+            </div>
+
             <!-- Récap montants -->
             <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
               <div style="background:var(--bg);border-radius:10px;padding:12px 14px">
@@ -1145,7 +1161,10 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">Tous les dossiers</span>
-            <span id="dos-count" style="font-size:12px;color:var(--text-muted)"></span>
+            <div style="display:flex;align-items:center;gap:16px">
+              <span id="dos-total-bar" style="font-size:12px;display:flex;gap:12px"></span>
+              <span id="dos-count" style="font-size:12px;color:var(--text-muted)"></span>
+            </div>
           </div>
           <div style="overflow-x:auto">
             <table>
@@ -1226,7 +1245,7 @@
           <select id="stats-sel-agence" style="display:none;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"></select>
           <select id="stats-sel-neg" style="display:none;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"></select>
           <button onclick="refreshStatsPage()" style="padding:8px 16px;border:none;border-radius:8px;background:var(--primary);color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif">Afficher</button>
-          <button onclick="toggleCaMode()" id="ca-mode-toggle-stats" style="padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;background:white;font-size:12px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif">📊 CA net</button>
+
         </div>
 
         <!-- Contenu dynamique -->
@@ -2403,6 +2422,8 @@ function rowToDossier(r) {
     nbAgencesGroupe: r.nb_agences_groupe || 1,
     hasApporteur: r.has_apporteur || false,
     apporteurNom: r.apporteur_nom || '',
+    hasRetroBooster: r.has_retro_booster || false,
+    retroBoosterHT: parseFloat(r.retro_booster_ht) || 0,
     apporteurPct: parseFloat(r.apporteur_pct) || 0,
     apportHT: parseFloat(r.apport_ht) || 0,
     statut: r.statut || 'À SIGNER',
@@ -2432,6 +2453,8 @@ function dossierToRow(d) {
     nb_agences_groupe: d.nbAgencesGroupe || 1,
     has_apporteur: d.hasApporteur || false,
     apporteur_nom: d.apporteurNom || null,
+    has_retro_booster: d.hasRetroBooster || false,
+    retro_booster_ht: d.retroBoosterHT || 0,
     apporteur_pct: d.apporteurPct || 0,
     apport_ht: d.apportHT || 0,
     statut: d.statut || 'À SIGNER',
@@ -2825,7 +2848,7 @@ function switchRankTab(tab) {
 
 function buildRankData(list) {
   const byAgence = {};
-  AGENCES.forEach(a => byAgence[a] = { ttc: 0, ht: 0, count: 0 });
+  getAgencesActives().forEach(a => byAgence[a] = { ttc: 0, ht: 0, count: 0 });
   list.forEach(d => {
     if (!byAgence[d.agence]) byAgence[d.agence] = { ttc: 0, ht: 0, count: 0 };
     byAgence[d.agence].ttc += d.ttc || 0;
@@ -2849,7 +2872,7 @@ function renderPodium(containerId, ranked) {
 
 function refreshRanking() {
   const mois = document.getElementById('filter-mois-rank').value;
-  const list = getDossiers({ mois }).filter(d => window.caMode === 'brut' ? isBrut(d) : isNet(d));
+  const list = getDossiers({ mois }).filter(d => isNet(d));
   const ranked = buildRankData(list);
   const maxHT = ranked[0]?.ht || 1;
 
@@ -2875,7 +2898,7 @@ function refreshRanking() {
 function refreshRankingAnnuel() {
   const annee = document.getElementById('filter-annee-rank').value;
   const moisDeLannee = getMoisList().filter(m => m.endsWith(annee));
-  const list = getDossiers({}).filter(d => (window.caMode === 'brut' ? isBrut(d) : isNet(d)) && (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))));
+  const list = getDossiers({}).filter(d => isNet(d) && (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))));
   const ranked = buildRankData(list);
   const maxHT = ranked[0]?.ht || 1;
 
@@ -2967,6 +2990,17 @@ function onDateActeChange() {
     butEl.style.pointerEvents = '';
     butEl.title = '';
   }
+}
+
+function toggleRetroBooster(prefix) {
+  const checked = document.getElementById(prefix + '-has-retro-booster')?.checked;
+  const fields = document.getElementById(prefix + '-retro-booster-fields');
+  if (fields) fields.style.display = checked ? 'block' : 'none';
+  if (!checked) {
+    const htEl = document.getElementById(prefix + '-retro-booster-ht');
+    if (htEl) htEl.value = '';
+  }
+  calcHT();
 }
 
 function toggleApporteur() {
@@ -3433,6 +3467,8 @@ async function saveDossier() {
   if (hasApporteur && !apporteurNom) { showToast('Veuillez sélectionner ou saisir l\'apporteur', 'error'); return; }
   if (hasApporteur && apporteurPct <= 0) { showToast('Veuillez saisir le % de commission de l\'apporteur', 'error'); return; }
   const apportHT = +(brutHT * apporteurPct / 100).toFixed(2);
+  const hasRetroBooster = document.getElementById('s-has-retro-booster')?.checked || false;
+  const retroBoosterHT = hasRetroBooster ? (parseFloat(document.getElementById('s-retro-booster-ht')?.value) || 0) : 0;
   const netHT = +(brutHT - apportHT).toFixed(2);
 
   // Agences/parts
@@ -3468,6 +3504,7 @@ async function saveDossier() {
         pct: p.pct,
         nbAgencesGroupe: nbAgences,
         hasApporteur, apporteurNom, apporteurPct,
+        hasRetroBooster, retroBoosterHT: +(retroBoosterHT * p.pct / 100).toFixed(2),
         apportHT: apportPartHT,
         statut, date, dateButoire, dateActe,
         diag, mois, remarque,
@@ -3597,6 +3634,16 @@ function refreshDossiers() {
   if (search) list = list.filter(d => d.client && d.client.toLowerCase().includes(search));
   const tbody = document.getElementById('dos-tbody');
   document.getElementById('dos-count').textContent = list.length + ' dossier(s)';
+  const dosNet = list.filter(d => isNet(d));
+  const totalHTNet = dosNet.reduce((s,d) => s+(d.ht||0), 0);
+  const totalBar = document.getElementById('dos-total-bar');
+  if (totalBar) {
+    totalBar.innerHTML = dosNet.length > 0
+      ? '<span style="font-weight:700;color:var(--primary)">' + fmtEuro(totalHTNet) + ' HT net</span>' +
+        '<span style="color:var(--text-muted)">·</span>' +
+        '<span style="color:var(--text-muted)">' + dosNet.length + ' signé(s)</span>'
+      : '';
+  }
   const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin';
   if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier trouvé</td></tr>'; return; }
   tbody.innerHTML = list.map(d => `
@@ -7180,8 +7227,68 @@ function buildAnnulationsSection(containerId, dosNet, dosBrut) {
   }
 }
 
+// ── Stats Rétrocession Booster ──
+function buildRetroBoosterSection(containerId, dos) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const n1Year = curYear - 1;
+
+  const dosRetro = dos.filter(d => d.hasRetroBooster && d.retroBoosterHT > 0);
+  if (dosRetro.length === 0) {
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Aucune rétrocession Booster sur ce périmètre</span>';
+    return;
+  }
+
+  const totalRetro = dosRetro.reduce((s,d) => s+d.retroBoosterHT, 0);
+  const retroN = dosRetro.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear);
+  const retroN1 = dosRetro.filter(d=>d.date&&new Date(d.date).getFullYear()===n1Year);
+  const totalRetroN = retroN.reduce((s,d)=>s+d.retroBoosterHT,0);
+  const totalRetroN1 = retroN1.reduce((s,d)=>s+d.retroBoosterHT,0);
+  const evol = totalRetroN1 > 0 ? Math.round(((totalRetroN-totalRetroN1)/totalRetroN1)*100) : null;
+
+  container.innerHTML =
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
+      '<div style="padding:14px 20px;background:white;border-radius:12px;border:1.5px solid #fde68a;min-width:140px;text-align:center">' +
+        '<div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:4px">TOTAL</div>' +
+        '<div style="font-size:20px;font-weight:700;color:#92400e;font-family:Syne,sans-serif">' + fmtEuro(totalRetro) + '</div>' +
+        '<div style="font-size:10px;color:var(--text-muted)">' + dosRetro.length + ' dossier' + (dosRetro.length>1?'s':'') + '</div>' +
+      '</div>' +
+      '<div style="padding:14px 20px;background:white;border-radius:12px;border:1.5px solid #fde68a;min-width:140px;text-align:center">' +
+        '<div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:4px">EN ' + curYear + '</div>' +
+        '<div style="font-size:20px;font-weight:700;color:#92400e;font-family:Syne,sans-serif">' + fmtEuro(totalRetroN) + '</div>' +
+        '<div style="font-size:10px;color:' + (evol===null?'var(--text-muted)':evol>=0?'#dc2626':'#16a34a') + '">' +
+          (evol===null ? 'Pas de données N-1' : (evol>=0?'▲ +':'▼ ')+evol+'% vs '+n1Year) +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:14px 20px;background:white;border-radius:12px;border:1.5px solid #fde68a;min-width:140px;text-align:center">' +
+        '<div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:4px">EN ' + n1Year + '</div>' +
+        '<div style="font-size:20px;font-weight:700;color:#92400e;font-family:Syne,sans-serif">' + (totalRetroN1>0?fmtEuro(totalRetroN1):'—') + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:8px">Détail des dossiers</div>' +
+    '<div style="display:flex;flex-direction:column;gap:6px">' +
+      dosRetro.sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).map(d =>
+        '<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fffbeb;border-radius:8px;border:0.5px solid #fde68a;cursor:pointer" onclick="openDossiersEncModal([' + d.id + '])">' +
+          '<div style="flex:1"><div style="font-weight:600;font-size:13px">' + d.client + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted)">' + d.agence + ' · ' + fmtDate(d.date) + '</div></div>' +
+          '<div style="font-weight:700;color:#92400e;font-size:13px">' + fmtEuro(d.retroBoosterHT) + '</div>' +
+        '</div>'
+      ).join('') +
+    '</div>';
+}
+
 // ── Helpers statuts ──
 // CA brut = SSP signé (SIGNÉ + SRU + REFUS DE CRÉDIT)
+// Agences actives uniquement (exclure actif === false)
+function getAgencesActives() {
+  return AGENCES.filter(a => {
+    const ag = (DB.agences||[]).find(x => x.nom === a);
+    return !ag || ag.actif !== false;
+  });
+}
+
 const STATUTS_BRUT = ['SIGNÉ', 'SRU', 'REFUS DE CRÉDIT'];
 // CA net = SIGNÉ uniquement
 const STATUTS_NET  = ['SIGNÉ'];
@@ -7193,28 +7300,7 @@ function isNet(d)   { return d.statut === 'SIGNÉ'; }
 function isAnnulSSP(d) { return STATUTS_ANNUL_SSP.includes(d.statut); }
 
 // État global toggle CA
-window.caMode = 'net'; // 'net' ou 'brut'
-function toggleCaMode() {
-  window.caMode = window.caMode === 'net' ? 'brut' : 'net';
-  // Mettre à jour les labels des toggles
-  const label = window.caMode === 'net' ? '📊 CA net' : '📊 CA brut';
-  ['ca-mode-toggle-stats'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = label;
-  });
-  // Rafraîchir les vues actives
-  const activePage = document.querySelector('.page.active');
-  if (activePage) {
-    const id = activePage.id;
-    if (id === 'page-ranking') renderRanking();
-    if (id === 'page-negociateurs-classement') renderClassementNegos();
-    if (id === 'page-stats') refreshStatsPage();
-  }
-}
-function buildCaToggle(extraStyle) {
-  return '<button onclick="toggleCaMode()" id="ca-mode-toggle" style="padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;background:white;font-size:12px;font-weight:600;cursor:pointer;' + (extraStyle||'') + '">' +
-    (window.caMode === 'net' ? '📊 CA net' : '📊 CA brut') + '</button>';
-}
+window.caMode = 'net'; // Toujours net — pas de toggle
 
 function statusBadge(s) {
   const map = { 'SIGNÉ': 'status-signed', 'REPORT': 'status-report', 'ANNULÉ': 'status-withdrawn', 'À SIGNER': 'status-asigner', 'SRU': 'status-sru', 'REFUS DE CRÉDIT': 'status-refus' };
@@ -7972,6 +8058,7 @@ function renderStatsReseau(container) {
     '</div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-reseau-delai" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-reseau-annul" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-reseau-retro" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-reseau-apporteurs" style="padding:16px"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
@@ -7980,6 +8067,9 @@ function renderStatsReseau(container) {
     '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📈 Montée en puissance des nouveaux négos</span>' +
     '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">🎯 Suivi des objectifs</span>' +
     '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">💼 Turn-over du réseau</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📈 Montée en puissance des nouveaux négos</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📄 Rapport annuel</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">🖨 Impression PDF des pages stats</span>' +
     '</div></div>';
 
   const totN1 = buildAndRenderStatsTableau(dos, n1Year, 'stats-table-n1', header, true, null);
@@ -8002,6 +8092,7 @@ function renderStatsReseau(container) {
   }
   buildDelaiPyramideSection('stats-reseau-delai', dos);
   buildAnnulationsSection('stats-reseau-annul', DB.dossiers.filter(d=>isNet(d)), DB.dossiers.filter(d=>isBrut(d)));
+  buildRetroBoosterSection('stats-reseau-retro', dos);
   buildTopApporteursSection('stats-reseau-apporteurs', dos);
 }
 
@@ -8058,6 +8149,7 @@ function renderStatsSociete(container, socId) {
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-soc-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-soc-delai" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-soc-annul" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-soc-retro" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-soc-top-ap" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="fiche-societe-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
@@ -8094,6 +8186,7 @@ function renderStatsSociete(container, socId) {
   const dosSocBrut = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&isBrut(d));
   const dosSocNet  = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&isNet(d));
   buildAnnulationsSection('stats-soc-annul', dosSocNet, dosSocBrut);
+  buildRetroBoosterSection('stats-soc-retro', dos);
   buildTopApporteursSection('stats-soc-top-ap', dos);
   // Peupler sélecteur moyennes société
   const selMoyS = document.getElementById('stats-soc-sel-annee-moy');
@@ -8119,7 +8212,7 @@ function renderStatsAgence(container, agNom) {
   container.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dosAgence.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-ag-sel-annee-moy" onchange="refreshStatsMoyenneAgence()" class="filter-select" style="font-size:12px"></select></div><div id="stats-ag-moyenne" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div></div>' +
@@ -8130,6 +8223,7 @@ function renderStatsAgence(container, agNom) {
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-ag-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-ag-delai" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-ag-annul" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-ag-retro" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-ag-top-ap" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="stats-ag-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
@@ -8142,9 +8236,20 @@ function renderStatsAgence(container, agNom) {
     '</div></div>';
 
   // 10 dernières ventes
-  document.getElementById('stats-ag-ventes').innerHTML = dosAgence.slice(0,10).map((d,i) =>
-    '<tr style="border-bottom:1px solid var(--border);' + (i%2?'background:#f8fafc':'') + '"><td style="padding:8px;font-weight:600">' + d.client + '</td><td style="padding:8px;font-size:12px">' + fmtDate(d.date) + '</td><td style="padding:8px;font-weight:700;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td><td style="padding:8px">' + statusBadge(d.statut) + '</td></tr>'
-  ).join('');
+  document.getElementById('stats-ag-ventes').innerHTML = dosAgence.slice(0,10).map((d,i) => {
+    const jours = d.date ? Math.floor((new Date() - new Date(d.date)) / 86400000) : '—';
+    // Trouver le(s) collab(s) du dossier
+    const links = (DB.dossierNeg||[]).filter(l => l.dossier_id === d.id);
+    const collabs = links.map(l => { const n = DB.negociateurs.find(x=>x.id===l.negociateur_id); return n ? n.nom.split(' ')[0] : ''; }).filter(Boolean).join(', ');
+    return '<tr style="border-bottom:1px solid var(--border);' + (i%2?'background:#f8fafc':'') + '">' +
+      '<td style="padding:8px;font-weight:600">' + d.client + '</td>' +
+      '<td style="padding:8px;font-size:12px;color:var(--text-muted)">' + (collabs||'—') + '</td>' +
+      '<td style="padding:8px;font-size:12px">' + fmtDate(d.date) + '</td>' +
+      '<td style="padding:8px;font-size:12px;font-weight:600;color:' + (jours>90?'#dc2626':jours>30?'#f59e0b':'#10b981') + '">' + (jours!=='—'?jours+'j':'—') + '</td>' +
+      '<td style="padding:8px;font-weight:700;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td>' +
+      '<td style="padding:8px">' + statusBadge(d.statut) + '</td>' +
+    '</tr>';
+  }).join('');
 
   const years = [...new Set(dosAgence.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
   const yearOpts = years.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
@@ -8164,6 +8269,7 @@ function renderStatsAgence(container, agNom) {
   const dosAgBrut = DB.dossiers.filter(d=>d.agence===agNom&&isBrut(d));
   const dosAgNet  = DB.dossiers.filter(d=>d.agence===agNom&&isNet(d));
   buildAnnulationsSection('stats-ag-annul', dosAgNet, dosAgBrut);
+  buildRetroBoosterSection('stats-ag-retro', dosAgence);
   buildTopApporteursSection('stats-ag-top-ap', dosAgence);
   // Moyennes agence
   const selMoyA = document.getElementById('stats-ag-sel-annee-moy');
@@ -8201,7 +8307,7 @@ function renderStatsNeg(container, negId) {
   const curYear = now.getFullYear();
   const n1Year = curYear - 1;
   const dosNeg = (DB.dossierNeg||[]).filter(l=>l.negociateur_id===n.id);
-  const dossiersVentes = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&(window.caMode==='brut'?isBrut(x):isNet(x)));if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100),pctCollab:l.pct_ca};}).filter(Boolean).sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000'));
+  const dossiersVentes = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&isNet(x));if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100),pctCollab:l.pct_ca};}).filter(Boolean).sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000'));
   const totalCA = dossiersVentes.reduce((s,d)=>s+d.caCollab,0);
   const caN = dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear).reduce((s,d)=>s+d.caCollab,0);
   const caN1 = dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===n1Year).reduce((s,d)=>s+d.caCollab,0);
@@ -8221,6 +8327,7 @@ function renderStatsNeg(container, negId) {
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-neg-delai" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-neg-annul" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-neg-retro" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Affaires avec apporteur</span></div><div id="stats-neg-apporteurs" style="padding:16px"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
@@ -8245,6 +8352,7 @@ function renderStatsNeg(container, negId) {
   refreshFicheMoyenne();
   // Apporteurs du négo — seulement ses dossiers avec apporteur
   buildDelaiPyramideSection('stats-neg-delai', dossiersVentes);
+  buildRetroBoosterSection('stats-neg-retro', dossiersVentes);
   const dosNegBrut = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&isBrut(x));if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100)};}).filter(Boolean);
   const dosNegNet  = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&isNet(x));if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100)};}).filter(Boolean);
   buildAnnulationsSection('stats-neg-annul', dosNegNet, dosNegBrut);
