@@ -3634,15 +3634,17 @@ function refreshDossiers() {
   if (search) list = list.filter(d => d.client && d.client.toLowerCase().includes(search));
   const tbody = document.getElementById('dos-tbody');
   document.getElementById('dos-count').textContent = list.length + ' dossier(s)';
-  const dosNet = list.filter(d => isNet(d));
-  const totalHTNet = dosNet.reduce((s,d) => s+(d.ht||0), 0);
   const totalBar = document.getElementById('dos-total-bar');
   if (totalBar) {
-    totalBar.innerHTML = dosNet.length > 0
-      ? '<span style="font-weight:700;color:var(--primary)">' + fmtEuro(totalHTNet) + ' HT net</span>' +
-        '<span style="color:var(--text-muted)">·</span>' +
-        '<span style="color:var(--text-muted)">' + dosNet.length + ' signé(s)</span>'
-      : '';
+    const dosSignes = list.filter(d => isNet(d));
+    const totalHTNet = dosSignes.reduce((s,d) => s+(d.ht||0), 0);
+    const parts = [];
+    if (dosSignes.length > 0) parts.push('<span style="font-weight:700;color:var(--primary)">' + fmtEuro(totalHTNet) + ' HT net</span><span style="color:var(--text-muted)">·</span><span style="color:var(--text-muted)">' + dosSignes.length + ' signé(s)</span>');
+    const dosSru = list.filter(d => d.statut === 'SRU' || d.statut === 'REFUS DE CRÉDIT');
+    if (dosSru.length > 0) parts.push('<span style="color:#dc2626">' + dosSru.length + ' annulation(s)</span>');
+    const dosAsigner = list.filter(d => d.statut === 'À SIGNER');
+    if (dosAsigner.length > 0) parts.push('<span style="color:#0369a1">' + dosAsigner.length + ' à signer</span>');
+    totalBar.innerHTML = parts.join('<span style="color:var(--border)"> | </span>');
   }
   const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin';
   if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier trouvé</td></tr>'; return; }
@@ -4805,7 +4807,7 @@ function refreshFicheCollab(n) {
 
   // 10 dernières ventes
   const tbody = document.getElementById('fiche-collab-ventes');
-  const last10 = dossiersVentes.slice(0, 10);
+  const last10 = [...dossiersVentes].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0, 10);
   if (last10.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>';
   } else {
@@ -8162,7 +8164,7 @@ function renderStatsSociete(container, socId) {
     '</div></div>';
 
   // Peupler les données
-  const last10 = dos.slice(0,10);
+  const last10 = [...dos].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0,10);
   document.getElementById('fiche-societe-ventes').innerHTML = last10.map((d,i) =>
     '<tr style="border-bottom:1px solid var(--border);' + (i%2?'background:#f8fafc':'') + '"><td style="padding:8px;font-weight:600">' + d.client + '</td><td style="padding:8px;font-size:12px">' + d.agence + '</td><td style="padding:8px;font-size:12px">' + fmtDate(d.date) + '</td><td style="padding:8px;font-weight:700;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td><td style="padding:8px">' + statusBadge(d.statut) + '</td></tr>'
   ).join('');
@@ -8236,7 +8238,7 @@ function renderStatsAgence(container, agNom) {
     '</div></div>';
 
   // 10 dernières ventes
-  document.getElementById('stats-ag-ventes').innerHTML = dosAgence.slice(0,10).map((d,i) => {
+  document.getElementById('stats-ag-ventes').innerHTML = [...dosAgence].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0,10).map((d,i) => {
     const jours = d.date ? Math.floor((new Date() - new Date(d.date)) / 86400000) : '—';
     // Trouver le(s) collab(s) du dossier
     const links = (DB.dossierNeg||[]).filter(l => l.dossier_id === d.id);
@@ -8339,7 +8341,7 @@ function renderStatsNeg(container, negId) {
     '</div></div>';
 
   // 10 dernières ventes
-  document.getElementById('fiche-collab-ventes').innerHTML = dossiersVentes.slice(0,10).map(d => {
+  document.getElementById('fiche-collab-ventes').innerHTML = [...dossiersVentes].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0,10).map(d => {
     const j = d.date?Math.floor((now-new Date(d.date))/86400000):'—';
     return '<tr><td><strong>'+d.client+'</strong></td><td>'+d.agence+'</td><td>'+fmtDate(d.date)+'</td><td style="color:'+(j>90?'#dc2626':j>30?'#f59e0b':'#10b981')+';font-weight:600">'+(j!=='—'?j+'j':'—')+'</td><td style="font-weight:600;color:var(--primary)">'+fmtEuro(d.caCollab)+'</td><td>'+statusBadge(d.statut)+'</td></tr>';
   }).join('');
