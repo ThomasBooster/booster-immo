@@ -7582,6 +7582,7 @@ function renderStatsNeg(container, negId) {
     '</div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-neg-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👤 Affaires avec apporteur</span></div><div id="stats-neg-apporteurs" style="padding:16px"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -7603,6 +7604,9 @@ function renderStatsNeg(container, negId) {
   const totN1C = refreshFicheTableau(dossiersVentes, n1Year, 'fiche-tableau-n1', 'fiche-annee-n1-titre', null, true);
   refreshFicheTableau(dossiersVentes, curYear, 'fiche-tableau-annee', 'fiche-annee-titre', totN1C, false);
   refreshFicheMoyenne();
+  // Apporteurs du négo — seulement ses dossiers avec apporteur
+  const dosAvecAp = dossiersVentes.filter(d => d.hasApporteur && d.apporteurNom);
+  buildApporteursSection('stats-neg-apporteurs', dosAvecAp);
 
   // Graphiques négo
   const palette = ['#2D455A'];
