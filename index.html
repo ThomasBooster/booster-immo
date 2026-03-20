@@ -7375,6 +7375,179 @@ function buildAndRenderStatsTableau(dos, annee, tableId, header, isN1, totauxN1)
   return { totalCA, totalNb };
 }
 
+// =====================
+// FLUX INTERCABINET
+// =====================
+function refreshIntercabinet() {
+  const container = document.getElementById('ic-content');
+  if (!container) return;
+
+  const periode = document.getElementById('ic-sel-periode')?.value || '';
+  const metrique = document.getElementById('ic-sel-metrique')?.value || 'nb';
+
+  // Dossiers intercabinet = groupId non null, SIGNÉ
+  const dosAll = DB.dossiers.filter(d => d.statut === 'SIGNÉ' && d.groupId);
+  const dos = periode
+    ? dosAll.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(periode))
+    : dosAll;
+
+  if (dos.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px">Aucune vente intercabinet sur cette période</div>';
+    return;
+  }
+
+  // Grouper par groupId — récupérer les paires d'agences
+  const groups = {};
+  dos.forEach(d => {
+    if (!groups[d.groupId]) groups[d.groupId] = [];
+    groups[d.groupId].push(d);
+  });
+
+  const agences = AGENCES.filter(a => {
+    const ag = DB.agences.find(x => x.nom === a);
+    return !ag || ag.actif !== false;
+  });
+
+  // Construire la matrice [agA][agB] = { nb, ca }
+  const matrix = {};
+  agences.forEach(a => { matrix[a] = {}; agences.forEach(b => { matrix[a][b] = { nb: 0, ca: 0 }; }); });
+
+  // Comptage par agence solo/intercabinet pour les barres
+  const soloCounts = {};
+  const icCounts = {};
+  agences.forEach(a => { soloCounts[a] = { nb: 0, ca: 0 }; icCounts[a] = { nb: 0, ca: 0 }; });
+
+  // Compter les ventes solo
+  const dosSolo = DB.dossiers.filter(d => d.statut === 'SIGNÉ' && !d.groupId);
+  const dosSoloPeriode = periode
+    ? dosSolo.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(periode))
+    : dosSolo;
+  dosSoloPeriode.forEach(d => {
+    if (soloCounts[d.agence]) {
+      soloCounts[d.agence].nb++;
+      soloCounts[d.agence].ca += d.ht || 0;
+    }
+  });
+
+  // Construire les flux intercabinet
+  const groupsSeen = new Set();
+  Object.entries(groups).forEach(([gid, dossiers]) => {
+    if (groupsSeen.has(gid)) return;
+    groupsSeen.add(gid);
+    const agencesGroupe = [...new Set(dossiers.map(d => d.agence))];
+    const caTotal = dossiers[0]?.htTotal || dossiers.reduce((s,d)=>s+(d.ht||0),0);
+    // Pour chaque paire d'agences dans le groupe
+    for (let i = 0; i < agencesGroupe.length; i++) {
+      for (let j = i + 1; j < agencesGroupe.length; j++) {
+        const a = agencesGroupe[i], b = agencesGroupe[j];
+        if (matrix[a] && matrix[a][b] !== undefined) {
+          matrix[a][b].nb++;
+          matrix[a][b].ca += caTotal;
+          matrix[b][a].nb++;
+          matrix[b][a].ca += caTotal;
+        }
+      }
+      // Comptage intercabinet par agence
+      if (icCounts[agencesGroupe[i]]) {
+        icCounts[agencesGroupe[i]].nb++;
+        icCounts[agencesGroupe[i]].ca += dossiers.find(d=>d.agence===agencesGroupe[i])?.ht || 0;
+      }
+    }
+  });
+
+  // Valeur max pour l'intensité de couleur
+  const vals = [];
+  agences.forEach(a => agences.forEach(b => { if (a !== b) vals.push(metrique === 'nb' ? matrix[a][b].nb : matrix[a][b].ca); }));
+  const maxVal = Math.max(...vals, 1);
+
+  const fmt = (v) => metrique === 'nb' ? (v > 0 ? v : '—') : (v > 0 ? fmtEuro(v) : '—');
+  const intensity = (v) => {
+    if (v === 0) return 'transparent';
+    const ratio = Math.sqrt(v / maxVal); // sqrt pour accentuer les différences
+    const r = Math.round(45 + (211 - 45) * (1 - ratio));
+    const g = Math.round(69 + (69 - 69) * ratio);
+    const b2 = Math.round(90 + (90 - 90) * ratio);
+    // Du blanc vers le bleu marine (--primary)
+    return `rgba(45,69,90,${(0.08 + ratio * 0.75).toFixed(2)})`;
+  };
+  const textColor = (v) => {
+    const ratio = Math.sqrt(v / maxVal);
+    return ratio > 0.5 ? 'white' : 'var(--primary)';
+  };
+
+  // ── MATRICE ──
+  let matrixHTML = '<div style="overflow-x:auto;margin-bottom:24px">';
+  matrixHTML += '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">Matrice des flux</div>';
+  matrixHTML += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Plus la cellule est foncée, plus les agences travaillent ensemble. Cliquez sur une cellule pour voir les dossiers.</div>';
+  matrixHTML += '<table style="border-collapse:collapse;font-size:12px">';
+  matrixHTML += '<thead><tr><th style="padding:8px;background:#f8fafc;border:1px solid var(--border)"></th>';
+  agences.forEach(b => {
+    matrixHTML += `<th style="padding:8px 12px;background:#f8fafc;border:1px solid var(--border);font-size:11px;white-space:nowrap;writing-mode:horizontal-tb">${b.replace('Saint-', 'St-')}</th>`;
+  });
+  matrixHTML += '<th style="padding:8px 12px;background:#f0f4f8;border:1px solid var(--border);font-size:11px">TOTAL IC</th></tr></thead><tbody>';
+
+  agences.forEach(a => {
+    const totalIC = agences.reduce((s, b) => a !== b ? s + (metrique === 'nb' ? matrix[a][b].nb : matrix[a][b].ca) / 2 : s, 0);
+    const totalICDisplay = metrique === 'nb' ? Math.round(totalIC) : totalIC;
+    matrixHTML += `<tr>`;
+    matrixHTML += `<td style="padding:8px 12px;background:#f8fafc;border:1px solid var(--border);font-weight:600;font-size:12px;white-space:nowrap">${a.replace('Saint-', 'St-')}</td>`;
+    agences.forEach(b => {
+      if (a === b) {
+        matrixHTML += `<td style="padding:8px 12px;border:1px solid var(--border);background:#f1f5f9;text-align:center;color:var(--text-muted)">—</td>`;
+      } else {
+        const v = metrique === 'nb' ? matrix[a][b].nb : matrix[a][b].ca;
+        const bg = intensity(v);
+        const tc = textColor(v);
+        // Récupérer les IDs des dossiers communs
+        const dosIds = Object.entries(groups)
+          .filter(([,dossiers]) => {
+            const ags = [...new Set(dossiers.map(d=>d.agence))];
+            return ags.includes(a) && ags.includes(b);
+          })
+          .flatMap(([,dossiers]) => dossiers.map(d=>d.id));
+        const clickAttr = dosIds.length ? ` onclick="openDossiersEncModal(${JSON.stringify(dosIds)})" style="padding:10px 12px;border:1px solid var(--border);background:${bg};text-align:center;cursor:pointer;font-weight:${v>0?'700':'400'};color:${tc};min-width:70px"` : ` style="padding:10px 12px;border:1px solid var(--border);background:${bg};text-align:center;color:${tc};min-width:70px"`;
+        matrixHTML += `<td${clickAttr}>${fmt(v)}</td>`;
+      }
+    });
+    matrixHTML += `<td style="padding:8px 12px;border:1px solid var(--border);background:#f0f4f8;text-align:center;font-weight:700;color:var(--primary)">${fmt(totalICDisplay)}</td>`;
+    matrixHTML += '</tr>';
+  });
+  matrixHTML += '</tbody></table></div>';
+
+  // ── BARRES ──
+  const maxBar = Math.max(...agences.map(a => (soloCounts[a]?.nb||0) + (icCounts[a]?.nb||0)), 1);
+  let barsHTML = '<div style="margin-top:8px">';
+  barsHTML += '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">Solo vs Intercabinet par agence</div>';
+  barsHTML += '<div style="display:flex;gap:12px;margin-bottom:12px;font-size:12px">' +
+    '<span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#2D455A;border-radius:2px;display:inline-block"></span>Solo</span>' +
+    '<span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#f59e0b;border-radius:2px;display:inline-block"></span>Intercabinet</span>' +
+    '</div>';
+
+  agences.forEach(a => {
+    const nbSolo = metrique === 'nb' ? (soloCounts[a]?.nb||0) : (soloCounts[a]?.ca||0);
+    const nbIC = metrique === 'nb' ? (icCounts[a]?.nb||0) : (icCounts[a]?.ca||0);
+    const total = nbSolo + nbIC;
+    const maxBarVal = metrique === 'nb'
+      ? Math.max(...agences.map(ag => (soloCounts[ag]?.nb||0) + (icCounts[ag]?.nb||0)), 1)
+      : Math.max(...agences.map(ag => (soloCounts[ag]?.ca||0) + (icCounts[ag]?.ca||0)), 1);
+    const pctSolo = total > 0 ? (nbSolo / total * 100).toFixed(0) : 0;
+    const pctIC = total > 0 ? (nbIC / total * 100).toFixed(0) : 0;
+    const barWidth = total > 0 ? (total / maxBarVal * 100).toFixed(1) : 0;
+
+    barsHTML += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:90px;font-size:12px;font-weight:600;text-align:right;color:var(--primary);flex-shrink:0">${a.replace('Saint-', 'St-')}</div>
+      <div style="flex:1;display:flex;height:22px;border-radius:4px;overflow:hidden;background:#f1f5f9">
+        ${nbSolo > 0 ? `<div style="width:${pctSolo}%;background:#2D455A;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;font-weight:600">${pctSolo}%</div>` : ''}
+        ${nbIC > 0 ? `<div style="width:${pctIC}%;background:#f59e0b;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;font-weight:600">${pctIC}%</div>` : ''}
+      </div>
+      <div style="width:80px;font-size:11px;color:var(--text-muted);flex-shrink:0">${metrique==='nb' ? total+' vente'+(total>1?'s':'') : fmtEuro(total)}</div>
+    </div>`;
+  });
+  barsHTML += '</div>';
+
+  container.innerHTML = matrixHTML + barsHTML;
+}
+
 function renderStatsReseau(container) {
   const now = new Date();
   const curYear = now.getFullYear();
@@ -7395,6 +7568,19 @@ function renderStatsReseau(container) {
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="stats-graph-annee" onchange="renderStatsReseauGraphs()" style="font-size:11px;padding:3px 6px" class="filter-select"></select></div><div style="padding:10px"><canvas id="stats-chart-ca" height="90"></canvas></div></div>' +
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span></div><div style="padding:10px"><canvas id="stats-chart-nb" height="90"></canvas></div></div>' +
     '</div>' +
+    '<div class="card" style="margin-bottom:20px">' +
+      '<div class="card-header">' +
+        '<span class="card-title">🔀 Flux intercabinet</span>' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<select id="ic-sel-periode" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px"></select>' +
+          '<select id="ic-sel-metrique" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px">' +
+            '<option value="nb">Nb de ventes</option>' +
+            '<option value="ca">CA HT</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+      '<div id="ic-content" style="padding:16px"></div>' +
+    '</div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -7413,6 +7599,14 @@ function renderStatsReseau(container) {
     const years = [...new Set(dos.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
     selMoyR.innerHTML = years.map(y=>'<option value="'+y+'"'+(y===curYear?' selected':'')+'>'+y+'</option>').join('');
     buildMoyenneSection('stats-reseau-moyenne', 'stats-reseau-sel-annee-moy', dos, d=>d.ht||0, 'Réseau');
+  }
+  // Peupler le sélecteur de période intercabinet
+  const selIC = document.getElementById('ic-sel-periode');
+  if (selIC) {
+    const allYears = [...new Set(dos.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
+    selIC.innerHTML = '<option value="">Depuis toujours</option>' +
+      allYears.map(y=>'<option value="'+y+'"'+(y===curYear?' selected':'')+'>'+y+'</option>').join('');
+    refreshIntercabinet();
   }
 }
 
