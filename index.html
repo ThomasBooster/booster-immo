@@ -7548,6 +7548,176 @@ function refreshIntercabinet() {
   container.innerHTML = matrixHTML + barsHTML;
 }
 
+// =============================================
+// HELPER : Délai moyen SSP → Acte + Pyramide
+// =============================================
+function buildDelaiPyramideSection(containerId, dos) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const now = new Date();
+
+  // ── Délai moyen SSP → Acte ──
+  const avecActe = dos.filter(d => d.date && d.dateActe);
+  const delais = avecActe.map(d => {
+    const ssp = new Date(d.date);
+    const acte = new Date(d.dateActe);
+    return Math.round((acte - ssp) / 86400000);
+  }).filter(j => j >= 0);
+  const delaiMoyen = delais.length > 0 ? Math.round(delais.reduce((s,v)=>s+v,0) / delais.length) : null;
+  const delaiMin = delais.length > 0 ? Math.min(...delais) : null;
+  const delaiMax = delais.length > 0 ? Math.max(...delais) : null;
+  const delaiColor = delaiMoyen === null ? 'var(--text-muted)' : delaiMoyen <= 60 ? '#16a34a' : delaiMoyen <= 90 ? '#d97706' : '#dc2626';
+
+  // ── Pyramide des âges dossiers en cours ──
+  const enCours = dos.filter(d => d.statut === 'SIGNÉ' && !d.dateActe && d.date);
+  const tranches = [
+    { label: '0 – 30j',  min: 0,   max: 30,  color: '#10b981', dos: [] },
+    { label: '31 – 60j', min: 31,  max: 60,  color: '#f59e0b', dos: [] },
+    { label: '61 – 90j', min: 61,  max: 90,  color: '#f97316', dos: [] },
+    { label: '> 90j',    min: 91,  max: Infinity, color: '#dc2626', dos: [] },
+  ];
+  enCours.forEach(d => {
+    const age = Math.floor((now - new Date(d.date)) / 86400000);
+    const t = tranches.find(t => age >= t.min && age <= t.max);
+    if (t) t.dos.push({ ...d, age });
+  });
+  const maxTranche = Math.max(...tranches.map(t => t.dos.length), 1);
+
+  container.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">' +
+
+    // Délai moyen
+    '<div>' +
+      '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">⏱ Délai moyen SSP → Acte</div>' +
+      (delaiMoyen === null
+        ? '<div style="color:var(--text-muted);font-size:13px">Aucun acte enregistré</div>'
+        : '<div style="display:flex;flex-direction:column;gap:10px">' +
+            '<div style="text-align:center;padding:16px;background:white;border-radius:12px;border:2px solid ' + delaiColor + '">' +
+              '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:4px">MOYENNE</div>' +
+              '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:28px;color:' + delaiColor + '">' + delaiMoyen + 'j</div>' +
+              '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">sur ' + avecActe.length + ' acte' + (avecActe.length > 1 ? 's' : '') + '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:8px">' +
+              '<div style="flex:1;text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac">' +
+                '<div style="font-size:10px;color:var(--text-muted);font-weight:600">MIN</div>' +
+                '<div style="font-weight:700;color:#16a34a;font-size:16px">' + delaiMin + 'j</div>' +
+              '</div>' +
+              '<div style="flex:1;text-align:center;padding:10px;background:#fff7ed;border-radius:8px;border:1px solid #fed7aa">' +
+                '<div style="font-size:10px;color:var(--text-muted);font-weight:600">MAX</div>' +
+                '<div style="font-weight:700;color:#ea580c;font-size:16px">' + delaiMax + 'j</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+      ) +
+    '</div>' +
+
+    // Pyramide des âges
+    '<div>' +
+      '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">📊 Dossiers en cours — âge depuis SSP</div>' +
+      (enCours.length === 0
+        ? '<div style="color:var(--text-muted);font-size:13px">Aucun dossier en attente d\'acte</div>'
+        : '<div style="display:flex;flex-direction:column;gap:8px">' +
+            tranches.map(t => {
+              const nb = t.dos.length;
+              const pct = maxTranche > 0 ? (nb / maxTranche * 100).toFixed(0) : 0;
+              const ids = t.dos.map(d => d.id);
+              return '<div style="display:flex;align-items:center;gap:10px">' +
+                '<div style="width:60px;font-size:11px;font-weight:600;color:' + t.color + ';text-align:right;flex-shrink:0">' + t.label + '</div>' +
+                '<div style="flex:1;background:#f1f5f9;border-radius:4px;height:24px;overflow:hidden">' +
+                  (nb > 0
+                    ? '<div style="height:100%;width:' + pct + '%;background:' + t.color + ';display:flex;align-items:center;justify-content:flex-end;padding-right:6px;cursor:pointer;border-radius:4px;transition:opacity .15s" onclick="openDossiersEncModal(' + JSON.stringify(ids) + ')">' +
+                        '<span style="font-size:11px;font-weight:700;color:white">' + nb + '</span>' +
+                      '</div>'
+                    : '<div style="height:100%;display:flex;align-items:center;padding-left:8px"><span style="font-size:11px;color:var(--text-muted)">—</span></div>'
+                  ) +
+                '</div>' +
+              '</div>';
+            }).join('') +
+            '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:right">' + enCours.length + ' dossier' + (enCours.length > 1 ? 's' : '') + ' en attente d\'acte · Cliquez sur une barre pour voir les dossiers</div>' +
+          '</div>'
+      ) +
+    '</div>' +
+    '</div>';
+}
+
+// =============================================
+// HELPER : Top apporteurs enrichi
+// =============================================
+function buildTopApporteursSection(containerId, dos) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const n1Year = curYear - 1;
+
+  // Agréger par apporteur
+  const apporteurs = {};
+  dos.filter(d => d.hasApporteur && d.apporteurNom).forEach(d => {
+    const a = d.apporteurNom;
+    if (!apporteurs[a]) apporteurs[a] = { nom: a, dos: [], dosN: [], dosN1: [] };
+    apporteurs[a].dos.push(d);
+    if (d.date && new Date(d.date).getFullYear() === curYear) apporteurs[a].dosN.push(d);
+    if (d.date && new Date(d.date).getFullYear() === n1Year) apporteurs[a].dosN1.push(d);
+  });
+
+  const liste = Object.values(apporteurs)
+    .map(a => ({
+      ...a,
+      revTotal: a.dos.reduce((s,d) => s+(d.apportHT||0), 0),
+      revN: a.dosN.reduce((s,d) => s+(d.apportHT||0), 0),
+      revN1: a.dosN1.reduce((s,d) => s+(d.apportHT||0), 0),
+      nbTotal: a.dos.length,
+      nbN: a.dosN.length,
+      nbN1: a.dosN1.length,
+    }))
+    .sort((a,b) => b.revTotal - a.revTotal);
+
+  if (liste.length === 0) {
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Aucun apporteur</span>';
+    return;
+  }
+
+  const totalCA = dos.reduce((s,d) => s+(d.ht||0), 0);
+  const maxRev = liste[0].revTotal;
+
+  container.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:6px">' +
+    // En-tête
+    '<div style="display:grid;grid-template-columns:28px 1fr 80px 80px 80px 100px;gap:8px;padding:6px 10px;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">' +
+      '<div>#</div><div>Apporteur</div><div style="text-align:right">Total</div><div style="text-align:right">' + curYear + '</div><div style="text-align:right">' + n1Year + '</div><div style="text-align:right">Part CA réseau</div>' +
+    '</div>' +
+    liste.map((a, i) => {
+      const evol = a.revN1 > 0 ? Math.round(((a.revN - a.revN1) / a.revN1) * 100) : null;
+      const evolStr = evol === null ? '' : (evol >= 0 ? '<span style="color:#16a34a;font-size:10px">▲ +' + evol + '%</span>' : '<span style="color:#dc2626;font-size:10px">▼ ' + evol + '%</span>');
+      const partCA = totalCA > 0 ? ((a.revTotal / totalCA) * 100).toFixed(1) : 0;
+      const barPct = maxRev > 0 ? (a.revTotal / maxRev * 100).toFixed(0) : 0;
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
+      return '<div class="ap-card" data-nom="' + a.nom.replace(/"/g,'&quot;') + '" data-ids="' + JSON.stringify(a.dos.map(d=>d.id)).replace(/"/g,'&quot;') + '" style="padding:10px;background:' + (i%2===0?'white':'#f8fafc') + ';border-radius:10px;border:0.5px solid var(--border);cursor:pointer;transition:all .15s">' +
+        '<div style="display:grid;grid-template-columns:28px 1fr 80px 80px 80px 100px;gap:8px;align-items:center">' +
+          '<div style="font-size:13px;text-align:center">' + medal + '</div>' +
+          '<div>' +
+            '<div style="font-weight:600;font-size:13px">' + a.nom + '</div>' +
+            '<div style="margin-top:4px;height:4px;background:#e2e8f0;border-radius:2px"><div style="width:' + barPct + '%;height:100%;background:var(--primary);border-radius:2px"></div></div>' +
+            '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">' + a.nbTotal + ' dossier' + (a.nbTotal>1?'s':'') + '</div>' +
+          '</div>' +
+          '<div style="text-align:right;font-weight:700;color:#92400e;font-size:12px">' + fmtEuro(a.revTotal) + '</div>' +
+          '<div style="text-align:right;font-size:12px">' + (a.revN > 0 ? fmtEuro(a.revN) : '—') + '<br>' + evolStr + '</div>' +
+          '<div style="text-align:right;font-size:12px;color:var(--text-muted)">' + (a.revN1 > 0 ? fmtEuro(a.revN1) : '—') + '</div>' +
+          '<div style="text-align:right;font-size:12px;font-weight:600;color:var(--primary)">' + partCA + '%</div>' +
+        '</div>' +
+      '</div>';
+    }).join('') +
+    '</div>';
+
+  container.querySelectorAll('.ap-card').forEach(el => {
+    el.addEventListener('click', () => openAffairesApporteur(el.dataset.nom, JSON.parse(el.dataset.ids || '[]')));
+    el.addEventListener('mouseover', () => { el.style.borderColor='var(--primary)'; el.style.background='#f0f4f8'; });
+    el.addEventListener('mouseout', () => { el.style.borderColor='var(--border)'; el.style.background= el.dataset.even==='1'?'white':'#f8fafc'; });
+  });
+}
+
 // Graphique glissant générique
 function renderGlissant(canvasId, dos, caKey, chartKey) {
   const ctx = document.getElementById(canvasId);
@@ -7618,13 +7788,15 @@ function renderStatsReseau(container) {
       '</div>' +
       '<div id="ic-content" style="padding:16px"></div>' +
     '</div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-reseau-delai" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-reseau-apporteurs" style="padding:16px"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
     '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📊 Analyse IA des performances</span>' +
-    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📈 Évolution du taux de transformation</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📈 Montée en puissance des nouveaux négos</span>' +
     '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">🎯 Suivi des objectifs</span>' +
-    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">💼 Préparation des salaires</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">💼 Turn-over du réseau</span>' +
     '</div></div>';
 
   const totN1 = buildAndRenderStatsTableau(dos, n1Year, 'stats-table-n1', header, true, null);
@@ -7645,6 +7817,8 @@ function renderStatsReseau(container) {
       allYears.map(y=>'<option value="'+y+'"'+(y===curYear?' selected':'')+'>'+y+'</option>').join('');
     refreshIntercabinet();
   }
+  buildDelaiPyramideSection('stats-reseau-delai', dos);
+  buildTopApporteursSection('stats-reseau-apporteurs', dos);
 }
 
 function renderStatsReseauGraphs() {
@@ -7696,7 +7870,8 @@ function renderStatsSociete(container, socId) {
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><select id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select></div><div style="padding:10px"><canvas id="fiche-societe-chart-nb" height="90"></canvas></div></div>' +
     '</div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-soc-chart-glissant" height="70"></canvas></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👤 Apporteurs actifs</span></div><div id="fiche-societe-apporteurs" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-soc-delai" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-soc-top-ap" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="fiche-societe-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
@@ -7728,7 +7903,8 @@ function renderStatsSociete(container, socId) {
   refreshFicheSocieteEquipe();
 
   // Apporteurs
-  buildApporteursSection('fiche-societe-apporteurs', dos);
+  buildDelaiPyramideSection('stats-soc-delai', dos);
+  buildTopApporteursSection('stats-soc-top-ap', dos);
   // Peupler sélecteur moyennes société
   const selMoyS = document.getElementById('stats-soc-sel-annee-moy');
   if (selMoyS) {
@@ -7760,7 +7936,8 @@ function renderStatsAgence(container, agNom) {
       '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><select id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()"> Toutes</label></div><div style="padding:10px"><canvas id="fiche-agence-chart-nb" height="90"></canvas></div></div>' +
     '</div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-ag-chart-glissant" height="70"></canvas></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👤 Apporteurs actifs</span></div><div id="stats-ag-apporteurs" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-ag-delai" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-ag-top-ap" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="stats-ag-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
@@ -7790,7 +7967,8 @@ function renderStatsAgence(container, agNom) {
   renderGlissant('stats-ag-chart-glissant', dosAgence, d=>d.ht||0, '_statsGlissantAg');
 
   // Apporteurs
-  buildApporteursSection('stats-ag-apporteurs', dosAgence);
+  buildDelaiPyramideSection('stats-ag-delai', dosAgence);
+  buildTopApporteursSection('stats-ag-top-ap', dosAgence);
   // Moyennes agence
   const selMoyA = document.getElementById('stats-ag-sel-annee-moy');
   if (selMoyA) {
@@ -7845,7 +8023,8 @@ function renderStatsNeg(container, negId) {
     '</div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-neg-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👤 Affaires avec apporteur</span></div><div id="stats-neg-apporteurs" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-neg-delai" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Affaires avec apporteur</span></div><div id="stats-neg-apporteurs" style="padding:16px"></div></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -7868,6 +8047,7 @@ function renderStatsNeg(container, negId) {
   refreshFicheTableau(dossiersVentes, curYear, 'fiche-tableau-annee', 'fiche-annee-titre', totN1C, false);
   refreshFicheMoyenne();
   // Apporteurs du négo — seulement ses dossiers avec apporteur
+  buildDelaiPyramideSection('stats-neg-delai', dossiersVentes);
   const dosAvecAp = dossiersVentes.filter(d => d.hasApporteur && d.apporteurNom);
   buildApporteursSection('stats-neg-apporteurs', dosAvecAp);
 
