@@ -7629,14 +7629,15 @@ function refreshIntercabinet() {
     html += '<tr>';
     html += `<td style="padding:8px 12px;background:#f8fafc;border:1px solid var(--border);font-weight:600;font-size:12px;white-space:nowrap">${a.replace('Saint-', 'St-')}</td>`;
     agences.forEach((b, j) => {
-      if (j < i) {
-        // Triangle inférieur → grisé
+      if (j > i) {
+        // Triangle supérieur → grisé/discret
         html += `<td style="padding:10px 12px;border:1px solid var(--border);background:#f8fafc;text-align:center;color:#e2e8f0">·</td>`;
       } else if (i === j) {
         html += `<td style="padding:10px 12px;border:1px solid var(--border);background:#f1f5f9;text-align:center;color:var(--text-muted)">—</td>`;
       } else {
-        const v = getVal(a, b);
-        const ids = getIds(a, b);
+        // Triangle inférieur (i > j) → les chiffres
+        const v = getVal(b, a); // b < a donc pairKey(b,a)
+        const ids = getIds(b, a);
         const bg = intensity(v);
         const tc = textColor(v);
         const clickStyle = `padding:10px 12px;border:1px solid var(--border);background:${bg};text-align:center;font-weight:${v>0?'700':'400'};color:${tc};min-width:70px${ids.length?';cursor:pointer':''}`;
@@ -7647,12 +7648,14 @@ function refreshIntercabinet() {
     html += '</tr>';
   });
 
-  // Ligne totaux par colonne
+  // Totaux colonne b = somme des chiffres dans sa colonne (triangle inférieur = lignes i > j=b)
   html += '<tr style="background:#f0f4f8;font-weight:700">';
   html += `<td style="padding:8px 12px;border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--primary)">TOTAL IC</td>`;
-  agences.forEach(b => {
-    const v = totalParAgence[b];
-    html += `<td style="padding:8px 12px;border:1px solid var(--border);text-align:center;font-weight:700;color:var(--primary)">${fmt(v)}</td>`;
+  agences.forEach((b, j) => {
+    // Somme de toutes les lignes i > j pour la colonne b
+    let tot = 0;
+    agences.forEach((a, i) => { if (i > j) tot += getVal(b, a); });
+    html += `<td style="padding:8px 12px;border:1px solid var(--border);text-align:center;font-weight:700;color:var(--primary)">${fmt(tot)}</td>`;
   });
   html += '</tr>';
 
