@@ -7557,7 +7557,8 @@ function renderGlissant(canvasId, dos, caKey, chartKey) {
   const now = new Date();
   const firstDate = dosDated.map(d => new Date(d.date)).filter(d => !isNaN(d)).sort((a,b) => a-b)[0];
   if (!firstDate) return;
-  const startBar = new Date(firstDate.getFullYear(), firstDate.getMonth() + 11, 1);
+  // Démarrer dès le premier mois (même si < 12 mois de recul — cumul partiel)
+  const startBar = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
   const labels = [], data = [];
   let cursor = new Date(startBar);
   while (cursor <= now) {
