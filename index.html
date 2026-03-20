@@ -4841,10 +4841,22 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
   const fmtCell = (v, isCa) => isCa ? (v > 0 ? fmtEuro(v) : '—') : (v > 0 ? v : '—');
 
   // CA et nb ventes signées (basé sur date SSP)
+  // Dédoublonner les ventes intercabinet : un groupId = 1 vente
+  const dedup = (arr) => {
+    const seen = new Set();
+    return arr.filter(d => {
+      if (d.groupId) {
+        if (seen.has(d.groupId)) return false;
+        seen.add(d.groupId);
+      }
+      return true;
+    });
+  };
+
   const caParMois = MONTH_NAMES.map((_, mi) =>
     dossiersAnnee.filter(d => d.date && new Date(d.date).getMonth() === mi).reduce((s, d) => s + (caKey(d)||0), 0));
   const nbParMois = MONTH_NAMES.map((_, mi) =>
-    dossiersAnnee.filter(d => d.date && new Date(d.date).getMonth() === mi).length);
+    dedup(dossiersAnnee.filter(d => d.date && new Date(d.date).getMonth() === mi)).length);
   const moyParMois = caParMois.map((ca, i) => nbParMois[i] > 0 ? ca / nbParMois[i] : 0);
   const totalCA = caParMois.reduce((s,v) => s+v, 0);
   const totalNb = nbParMois.reduce((s,v) => s+v, 0);
@@ -4855,7 +4867,7 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
     dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi)
       .reduce((s, d) => s + (caKey(d)||0), 0));
   const nbEncaisseParMois = MONTH_NAMES.map((_, mi) =>
-    dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi).length);
+    dedup(dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi)).length);
   const totalEncaisse = encaisseParMois.reduce((s,v) => s+v, 0);
   const totalNbEncaisse = nbEncaisseParMois.reduce((s,v) => s+v, 0);
 
@@ -4865,8 +4877,8 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
       d.dateButoire && new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi)
       .reduce((s, d) => s + (caKey(d)||0), 0));
   const nbAEncaisserParMois = MONTH_NAMES.map((_, mi) =>
-    (allDossiers||dossiersAnnee).filter(d => d.statut === 'SIGNÉ' && !d.dateActe &&
-      d.dateButoire && new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi).length);
+    dedup((allDossiers||dossiersAnnee).filter(d => d.statut === 'SIGNÉ' && !d.dateActe &&
+      d.dateButoire && new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi)).length);
   const totalAEncaisser = aEncaisserParMois.reduce((s,v) => s+v, 0);
   const totalNbAEncaisser = nbAEncaisserParMois.reduce((s,v) => s+v, 0);
 
@@ -7079,10 +7091,12 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // =====================
 // AFFAIRES APPORTEUR (modal)
 // =====================
-function openAffairesApporteur(nom) {
+function openAffairesApporteur(nom, dosIds) {
   if (!nom) return;
-  const dos = DB.dossiers.filter(d => d.apporteurNom === nom && d.statut !== 'ANNULÉ')
-    .sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+  let dos = DB.dossiers.filter(d => d.apporteurNom === nom && d.statut !== 'ANNULÉ');
+  // Si un périmètre est fourni (IDs), on filtre
+  if (dosIds && dosIds.length) dos = dos.filter(d => dosIds.includes(d.id));
+  dos = dos.sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
 
   document.getElementById('modal-apporteur-titre').textContent = nom;
   const totalCA = dos.reduce((s,d) => s + (d.ttcTotal||d.ttc||0), 0);
@@ -7215,7 +7229,7 @@ function buildStatCards(c1l, c1v, c2l, c2v, c3l, c3v, c4l, c4v) {
     '</div>';
   // Event listeners pour les cartes apporteurs
   container.querySelectorAll('.ap-card').forEach(el => {
-    el.addEventListener('click', () => openAffairesApporteur(el.dataset.nom));
+    el.addEventListener('click', () => openAffairesApporteur(el.dataset.nom, JSON.parse(el.dataset.ids || '[]')));
     el.addEventListener('mouseover', () => { el.style.borderColor='var(--primary)'; el.style.background='#f0f4f8'; });
     el.addEventListener('mouseout', () => { el.style.borderColor='var(--border)'; el.style.background='var(--bg)'; });
   });
@@ -7289,7 +7303,7 @@ function buildApporteursSection(containerId, dos) {
       const dosA = dos.filter(d => d.apporteurNom === a);
       const rev = dosA.reduce((s,d) => s+(d.apportHT||0), 0);
       const nb = dosA.length;
-      return `<div class="ap-card" data-nom="${a}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px;border:0.5px solid var(--border);cursor:pointer;transition:all .15s">
+      return `<div class="ap-card" data-nom="${a}" data-ids="${JSON.stringify(dosA.map(d=>d.id)).replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px;border:0.5px solid var(--border);cursor:pointer;transition:all .15s">
         <div style="flex:1;font-weight:600;font-size:13px">${a}</div>
         <div style="font-size:12px;color:var(--text-muted)">${nb} dossier${nb>1?'s':''}</div>
         <div style="font-weight:700;color:#92400e;font-size:13px">${fmtEuro(rev)}</div>
@@ -7298,7 +7312,7 @@ function buildApporteursSection(containerId, dos) {
     }).join('') +
     '</div>';
   container.querySelectorAll('.ap-card').forEach(el => {
-    el.addEventListener('click', () => openAffairesApporteur(el.dataset.nom));
+    el.addEventListener('click', () => openAffairesApporteur(el.dataset.nom, JSON.parse(el.dataset.ids || '[]')));
     el.addEventListener('mouseover', () => { el.style.borderColor='var(--primary)'; el.style.background='#f0f4f8'; });
     el.addEventListener('mouseout', () => { el.style.borderColor='var(--border)'; el.style.background='var(--bg)'; });
   });
