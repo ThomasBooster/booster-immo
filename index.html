@@ -7636,8 +7636,14 @@ function refreshIntercabinet() {
         html += `<td style="padding:10px 12px;border:1px solid var(--border);background:#f1f5f9;text-align:center;color:var(--text-muted)">—</td>`;
       } else {
         // Triangle inférieur (i > j) → les chiffres
-        const v = getVal(b, a); // b < a donc pairKey(b,a)
-        const ids = getIds(b, a);
+        // Chercher la paire (b=colonne, a=ligne) dans pairData
+        const _pairKey = Object.keys(pairData).find(k => {
+          const parts = k.split('|||');
+          return (parts[0] === b && parts[1] === a) || (parts[0] === a && parts[1] === b);
+        });
+        const _pair = _pairKey ? pairData[_pairKey] : null;
+        const v = _pair ? (metrique === 'nb' ? _pair.nb : _pair.ca) : 0;
+        const ids = _pair ? _pair.ids : [];
         const bg = intensity(v);
         const tc = textColor(v);
         const clickStyle = `padding:10px 12px;border:1px solid var(--border);background:${bg};text-align:center;font-weight:${v>0?'700':'400'};color:${tc};min-width:70px${ids.length?';cursor:pointer':''}`;
@@ -7652,9 +7658,20 @@ function refreshIntercabinet() {
   html += '<tr style="background:#f0f4f8;font-weight:700">';
   html += `<td style="padding:8px 12px;border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--primary)">TOTAL IC</td>`;
   agences.forEach((b, j) => {
-    // Somme de toutes les lignes i > j pour la colonne b
+    // Somme des cellules visibles dans cette colonne (toutes les lignes i > j)
     let tot = 0;
-    agences.forEach((a, i) => { if (i > j) tot += getVal(b, a); });
+    agences.forEach((a, i) => {
+      if (i > j) {
+        // La cellule [ligne=a, col=b] affiche la valeur de la paire (b, a)
+        const key = Object.keys(pairData).find(k => {
+          const parts = k.split('|||');
+          return (parts[0] === b && parts[1] === a) || (parts[0] === a && parts[1] === b);
+        });
+        if (key && pairData[key]) {
+          tot += metrique === 'nb' ? pairData[key].nb : pairData[key].ca;
+        }
+      }
+    });
     html += `<td style="padding:8px 12px;border:1px solid var(--border);text-align:center;font-weight:700;color:var(--primary)">${fmt(tot)}</td>`;
   });
   html += '</tr>';
