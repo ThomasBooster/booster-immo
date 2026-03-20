@@ -7214,6 +7214,16 @@ function buildStatCards(c1l, c1v, c2l, c2v, c3l, c3v, c4l, c4v) {
     '</div>';
 }
 
+function buildAndRenderStatsTableau(dos, annee, tableId, header, isN1, totauxN1) {
+  const ventesAnnee = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
+  const nbNegos = (DB.negociateurs||[]).filter(n=>n.actif!==false&&!n.nom.startsWith('🍒')&&['négociateur','les deux'].includes(n.poste)).length;
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1, nbNegos);
+  const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
+  const el = document.getElementById(tableId);
+  if (el) el.innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
+  return { totalCA, totalNb };
+}
+
 function renderStatsReseau(container) {
   const now = new Date();
   const curYear = now.getFullYear();
