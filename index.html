@@ -7159,9 +7159,13 @@ function getNegoAccessibles() {
 
 // Ouvre la page Statistiques avec le bon niveau/sélection
 function openStatsFor(type, value) {
-  // Peupler les selects stats
+  // 1. Naviguer vers la page stats d'abord (crée les éléments DOM)
+  showPage('stats', document.querySelector('[onclick*="showPage(\'stats\'"]'));
+
+  // 2. Peupler les selects APRÈS navigation
   populateStatsSels();
 
+  // 3. Appliquer la sélection
   const selNiveau = document.getElementById('stats-niveau');
   const selSoc = document.getElementById('stats-sel-societe');
   const selAg = document.getElementById('stats-sel-agence');
@@ -7169,7 +7173,7 @@ function openStatsFor(type, value) {
 
   if (type === 'agence') {
     if (selNiveau) selNiveau.value = 'agence';
-    if (selAg) selAg.value = value;
+    if (selAg) selAg.value = String(value);
   } else if (type === 'negociateur') {
     if (selNiveau) selNiveau.value = 'negociateur';
     if (selNeg) selNeg.value = String(value);
@@ -7178,8 +7182,10 @@ function openStatsFor(type, value) {
     if (selSoc) selSoc.value = String(value);
   }
 
+  // 4. Mettre à jour la visibilité des selects secondaires
   onStatsNiveauChange();
-  showPage('stats', document.querySelector('[onclick*="showPage(\'stats\'"]'));
+
+  // 5. Afficher les stats
   refreshStatsPage();
 }
 
