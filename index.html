@@ -2850,7 +2850,7 @@ function refreshRanking() {
   document.getElementById('rank-tbody').innerHTML = ranked.map((ag, i) => `
     <tr class="${i === 0 ? 'highlight-row' : ''}">
       <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
-      <td><strong style="cursor:pointer;color:var(--primary);text-decoration:underline" onclick="openFicheAgence('${ag.name}','ranking')">${ag.name}</strong></td>
+      <td><strong style="cursor:pointer;color:var(--primary);text-decoration:underline" onclick="openStatsFor('agence','${ag.name}')">${ag.name}</strong></td>
       <td style="font-weight:700;color:var(--primary)">${fmtEuro(ag.ht)}</td>
       <td>${fmtEuro(ag.ttc)}</td>
       <td>${fmtCount(ag.count)}</td>
@@ -2884,7 +2884,7 @@ function refreshRankingAnnuel() {
 
     return `<tr class="${i === 0 ? 'highlight-row' : ''}">
       <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-other'}">${i+1}</span></td>
-      <td><strong style="cursor:pointer;color:var(--primary);text-decoration:underline" onclick="openFicheAgence('${ag.name}','ranking')">${ag.name}</strong></td>
+      <td><strong style="cursor:pointer;color:var(--primary);text-decoration:underline" onclick="openStatsFor('agence','${ag.name}')">${ag.name}</strong></td>
       <td style="font-weight:700;color:var(--primary)">${fmtEuro(ag.ht)}</td>
       <td>${fmtEuro(ag.ttc)}</td>
       <td>${fmtCount(ag.count)}</td>
@@ -7028,7 +7028,7 @@ function renderNegRankingTable(ranked, tbodyId, podiumId, titleId, titre) {
   tbody.innerHTML = ranked.map((r, i) => {
     const canClick = currentUser.role !== 'agence' || r.neg.agence === currentUser.agence;
     const nameHtml = canClick
-      ? '<span style="cursor:pointer;color:var(--primary);font-weight:700;text-decoration:underline" onclick="openFicheCollab(' + r.neg.id + ',\'negociateurs-classement\')">' + r.neg.nom + '</span>'
+      ? '<span style="cursor:pointer;color:var(--primary);font-weight:700;text-decoration:underline" onclick="openStatsFor(\'negociateur\',' + r.neg.id + ')">' + r.neg.nom + '</span>'
       : '<strong style="color:var(--text-muted)">' + r.neg.nom + '</strong>';
     return '<tr><td><span class="rank-badge ' + (i < 3 ? 'rank-' + (i+1) : 'rank-other') + '">' + (i+1) + '</span></td>' +
       '<td>' + nameHtml + '</td>' +
@@ -7155,6 +7155,32 @@ function getNegoAccessibles() {
   }
   // Responsable/agence : uniquement ses collabs
   return (DB.negociateurs || []).filter(n => n.actif !== false && !n.nom.startsWith('🍒') && n.agence === currentUser.agence);
+}
+
+// Ouvre la page Statistiques avec le bon niveau/sélection
+function openStatsFor(type, value) {
+  // Peupler les selects stats
+  populateStatsSels();
+
+  const selNiveau = document.getElementById('stats-niveau');
+  const selSoc = document.getElementById('stats-sel-societe');
+  const selAg = document.getElementById('stats-sel-agence');
+  const selNeg = document.getElementById('stats-sel-neg');
+
+  if (type === 'agence') {
+    if (selNiveau) selNiveau.value = 'agence';
+    if (selAg) selAg.value = value;
+  } else if (type === 'negociateur') {
+    if (selNiveau) selNiveau.value = 'negociateur';
+    if (selNeg) selNeg.value = String(value);
+  } else if (type === 'societe') {
+    if (selNiveau) selNiveau.value = 'societe';
+    if (selSoc) selSoc.value = String(value);
+  }
+
+  onStatsNiveauChange();
+  showPage('stats', document.querySelector('[onclick*="showPage(\'stats\'"]'));
+  refreshStatsPage();
 }
 
 function initStatsPage() {
