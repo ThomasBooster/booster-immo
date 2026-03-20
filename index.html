@@ -7612,69 +7612,50 @@ function refreshIntercabinet() {
   // ── LAYOUT : matrice + camembert côte à côte ──
   let html = '<div style="display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start">';
 
-  // ── MATRICE triangle supérieur ──
+  // Fonction de lookup robuste
+  const getPair = (a, b) => {
+    const key = Object.keys(pairData).find(k => {
+      const parts = k.split('|||');
+      return (parts[0]===a&&parts[1]===b)||(parts[0]===b&&parts[1]===a);
+    });
+    return key ? pairData[key] : null;
+  };
+
+  // ── MATRICE SYMÉTRIQUE — totaux en fin de ligne ──
   html += '<div style="overflow-x:auto">';
   html += '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:8px">Matrice des flux</div>';
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">Triangle supérieur — cliquez sur une cellule pour voir les dossiers</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">Cliquez sur une cellule pour voir les dossiers concernés</div>';
   html += '<table style="border-collapse:collapse;font-size:12px">';
-
-  // En-tête colonnes (agences 2→n)
   html += '<thead><tr><th style="padding:8px;background:#f8fafc;border:1px solid var(--border)"></th>';
-  agences.forEach((b, j) => {
-    html += `<th style="padding:8px 12px;background:#f8fafc;border:1px solid var(--border);font-size:11px;white-space:nowrap">${b.replace('Saint-', 'St-')}</th>`;
+  agences.forEach(b => {
+    html += `<th style="padding:8px 12px;background:#f8fafc;border:1px solid var(--border);font-size:11px;white-space:nowrap">${b.replace('Saint-','St-')}</th>`;
   });
+  html += '<th style="padding:8px 12px;background:#f0f4f8;border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--primary)">TOTAL IC</th>';
   html += '</tr></thead><tbody>';
 
-  agences.forEach((a, i) => {
+  agences.forEach(a => {
+    let totLigne = 0;
+    agences.forEach(b => { if (a!==b) { const p=getPair(a,b); if(p) totLigne += metrique==='nb'?p.nb:p.ca; }});
+
     html += '<tr>';
-    html += `<td style="padding:8px 12px;background:#f8fafc;border:1px solid var(--border);font-weight:600;font-size:12px;white-space:nowrap">${a.replace('Saint-', 'St-')}</td>`;
-    agences.forEach((b, j) => {
-      if (j > i) {
-        // Triangle supérieur → grisé/discret
-        html += `<td style="padding:10px 12px;border:1px solid var(--border);background:#f8fafc;text-align:center;color:#e2e8f0">·</td>`;
-      } else if (i === j) {
+    html += `<td style="padding:8px 12px;background:#f8fafc;border:1px solid var(--border);font-weight:600;font-size:12px;white-space:nowrap">${a.replace('Saint-','St-')}</td>`;
+    agences.forEach(b => {
+      if (a === b) {
         html += `<td style="padding:10px 12px;border:1px solid var(--border);background:#f1f5f9;text-align:center;color:var(--text-muted)">—</td>`;
       } else {
-        // Triangle inférieur (i > j) → les chiffres
-        // Chercher la paire (b=colonne, a=ligne) dans pairData
-        const _pairKey = Object.keys(pairData).find(k => {
-          const parts = k.split('|||');
-          return (parts[0] === b && parts[1] === a) || (parts[0] === a && parts[1] === b);
-        });
-        const _pair = _pairKey ? pairData[_pairKey] : null;
-        const v = _pair ? (metrique === 'nb' ? _pair.nb : _pair.ca) : 0;
-        const ids = _pair ? _pair.ids : [];
+        const pair = getPair(a, b);
+        const v = pair ? (metrique==='nb'?pair.nb:pair.ca) : 0;
+        const ids = pair ? pair.ids : [];
         const bg = intensity(v);
         const tc = textColor(v);
-        const clickStyle = `padding:10px 12px;border:1px solid var(--border);background:${bg};text-align:center;font-weight:${v>0?'700':'400'};color:${tc};min-width:70px${ids.length?';cursor:pointer':''}`;
+        const st = `padding:10px 12px;border:1px solid var(--border);background:${bg};text-align:center;font-weight:${v>0?'700':'400'};color:${tc};min-width:70px${ids.length?';cursor:pointer':''}`;
         const click = ids.length ? ` onclick="openDossiersEncModal(${JSON.stringify(ids)})"` : '';
-        html += `<td style="${clickStyle}"${click}>${fmt(v)}</td>`;
+        html += `<td style="${st}"${click}>${fmt(v)}</td>`;
       }
     });
+    html += `<td style="padding:8px 12px;border:1px solid var(--border);background:#f0f4f8;text-align:center;font-weight:700;color:var(--primary)">${fmt(totLigne)}</td>`;
     html += '</tr>';
   });
-
-  // Totaux colonne b = somme des chiffres dans sa colonne (triangle inférieur = lignes i > j=b)
-  html += '<tr style="background:#f0f4f8;font-weight:700">';
-  html += `<td style="padding:8px 12px;border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--primary)">TOTAL IC</td>`;
-  agences.forEach((b, j) => {
-    // Somme des cellules visibles dans cette colonne (toutes les lignes i > j)
-    let tot = 0;
-    agences.forEach((a, i) => {
-      if (i > j) {
-        // La cellule [ligne=a, col=b] affiche la valeur de la paire (b, a)
-        const key = Object.keys(pairData).find(k => {
-          const parts = k.split('|||');
-          return (parts[0] === b && parts[1] === a) || (parts[0] === a && parts[1] === b);
-        });
-        if (key && pairData[key]) {
-          tot += metrique === 'nb' ? pairData[key].nb : pairData[key].ca;
-        }
-      }
-    });
-    html += `<td style="padding:8px 12px;border:1px solid var(--border);text-align:center;font-weight:700;color:var(--primary)">${fmt(tot)}</td>`;
-  });
-  html += '</tr>';
 
   html += '</tbody></table></div>';
 
