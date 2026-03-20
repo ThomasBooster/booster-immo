@@ -4833,11 +4833,10 @@ function refreshFicheMoyenne() {
 // ============================================================
 // HELPER TABLEAU N/N-1 — lignes encaissements + indicateur
 // ============================================================
-function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, clickFn, isN1) {
-  // caKey = fonction pour extraire le CA d'un dossier
-  // nbKey = non utilisé (on compte les dossiers)
-  // clickFn = fonction appelée au clic (reçoit tableau de dossiers)
-
+function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, clickFn, isN1, nbNegos) {
+  const now = new Date();
+  const curMois = now.getMonth();
+  const curAnnee = now.getFullYear();
   const fmtCell = (v, isCa) => isCa ? (v > 0 ? fmtEuro(v) : '—') : (v > 0 ? v : '—');
 
   // CA et nb ventes signées (basé sur date SSP)
@@ -4870,79 +4869,104 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
   const totalAEncaisser = aEncaisserParMois.reduce((s,v) => s+v, 0);
   const totalNbAEncaisser = nbAEncaisserParMois.reduce((s,v) => s+v, 0);
 
-  const tipEnc = '<span class="info-tip" data-tip="CA encaissé : dossiers ayant un acte authentique signé sur ce mois.&#10;En vert.">i</span>';
-  const tipNbEnc = '<span class="info-tip" data-tip="Nombre de dossiers ayant un acte authentique signé sur ce mois.">i</span>';
-  const tipAEnc = '<span class="info-tip" data-tip="CA à encaisser : dossiers signés sans acte authentique, dont la date butoire tombe sur ce mois.&#10;En orange.">i</span>';
-  const tipNbAEnc = '<span class="info-tip" data-tip="Nombre de dossiers signés sans acte authentique, dont la date butoire tombe sur ce mois.">i</span>';
+  // MMN = CA total / nb négos (si nbNegos fourni)
+  const mmnParMois = nbNegos > 0 ? caParMois.map(ca => ca > 0 ? ca / nbNegos : 0) : null;
+  const totalMMN = nbNegos > 0 && totalNb > 0 ? totalCA / nbNegos : 0;
 
-  // Cellule cliquable pour encaissements
-  const mkClickEnc = (dosListe, v, color) => {
-    if (!clickFn || v <= 0) return '<td style="font-size:12px;color:' + (v > 0 ? color : 'var(--text-muted)') + ';font-weight:' + (v > 0 ? '600' : '400') + '">' + fmtCell(v, true) + '</td>';
-    return '<td style="font-size:12px;color:' + color + ';font-weight:600;cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dosListe.map(d=>d.id)) + ')">' + fmtEuro(v) + '</td>';
+  const tipEnc = '<span class="info-tip" data-tip="Encaissements : vert = acte signé, orange = dateButoire sur ce mois sans acte.&#10;Mois passé avec orange = retard !">i</span>';
+  const tipNbEnc = '<span class="info-tip" data-tip="Nb dossiers : vert = actes signés, orange = en attente d&#39;acte (date butoire dépassée ou à venir).">i</span>';
+  const tipMMN = '<span class="info-tip" data-tip="Moyenne Mensuelle par Négociateur : CA du mois divisé par le nombre de négociateurs actifs.">i</span>';
+
+  // Helper clic
+  const mkClick = (dosListe, content, extraStyle) => {
+    if (!clickFn || !dosListe.length) return '<td style="font-size:12px;' + (extraStyle||'') + '">' + content + '</td>';
+    return '<td style="font-size:12px;cursor:pointer;text-decoration:underline dotted;' + (extraStyle||'') + '" onclick="' + clickFn + '(' + JSON.stringify(dosListe.map(d=>d.id)) + ')">' + content + '</td>';
   };
-  const mkClickNb = (dosListe, v) => {
-    if (!clickFn || v <= 0) return '<td style="font-size:12px">' + fmtCell(v, false) + '</td>';
-    return '<td style="font-size:12px;cursor:pointer;font-weight:600;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dosListe.map(d=>d.id)) + ')">' + v + '</td>';
+
+  // Cellule encaissement fusionnée (vert + orange sur même cellule)
+  const mkCellEnc = (dosEnc, dosAEnc, vEnc, vAEnc, isCa) => {
+    const hasEnc = vEnc > 0;
+    const hasAEnc = vAEnc > 0;
+    if (!hasEnc && !hasAEnc) return '<td style="font-size:12px;color:var(--text-muted)">—</td>';
+
+    let inner = '';
+    if (hasEnc && hasAEnc) {
+      // Format vert / orange — les deux cliquables
+      const encPart = clickFn
+        ? '<span style="color:#16a34a;font-weight:600;cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dosEnc.map(d=>d.id)) + ')">' + (isCa ? fmtEuro(vEnc) : vEnc) + '</span>'
+        : '<span style="color:#16a34a;font-weight:600">' + (isCa ? fmtEuro(vEnc) : vEnc) + '</span>';
+      const aEncPart = clickFn
+        ? '<span style="color:#ea580c;font-weight:600;cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dosAEnc.map(d=>d.id)) + ')"> / ' + (isCa ? fmtEuro(vAEnc) : vAEnc) + '</span>'
+        : '<span style="color:#ea580c;font-weight:600"> / ' + (isCa ? fmtEuro(vAEnc) : vAEnc) + '</span>';
+      inner = encPart + aEncPart;
+    } else if (hasEnc) {
+      inner = clickFn
+        ? '<span style="color:#16a34a;font-weight:600;cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dosEnc.map(d=>d.id)) + ')">' + (isCa ? fmtEuro(vEnc) : vEnc) + '</span>'
+        : '<span style="color:#16a34a;font-weight:600">' + (isCa ? fmtEuro(vEnc) : vEnc) + '</span>';
+    } else {
+      inner = clickFn
+        ? '<span style="color:#ea580c;font-weight:600;cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dosAEnc.map(d=>d.id)) + ')">' + (isCa ? fmtEuro(vAEnc) : vAEnc) + '</span>'
+        : '<span style="color:#ea580c;font-weight:600">' + (isCa ? fmtEuro(vAEnc) : vAEnc) + '</span>';
+    }
+    return '<td style="font-size:11px;background:' + (hasEnc && hasAEnc ? '#fffbeb' : hasEnc ? '#f0fdf4' : '#fff7ed') + '">' + inner + '</td>';
   };
 
   let rows =
+    // CA HT signé (cliquable)
     '<tr><td style="font-weight:600;font-size:12px">CA HT signé</td>' +
       MONTH_NAMES.map((_, mi) => {
         const v = caParMois[mi];
         const dosM = dossiersAnnee.filter(d => d.date && new Date(d.date).getMonth() === mi);
-        return mkClickEnc(dosM, v, 'var(--primary)');
+        return mkClick(dosM, v > 0 ? fmtEuro(v) : '—', v > 0 ? 'color:var(--primary);font-weight:600' : 'color:var(--text-muted)');
       }).join('') +
-      (clickFn && totalCA > 0
-        ? '<td style="font-weight:700;color:var(--primary);cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dossiersAnnee.map(d=>d.id)) + ')">' + fmtEuro(totalCA) + '</td>'
-        : '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(totalCA) + '</td>') +
-      '</tr>' +
+      mkClick(dossiersAnnee, fmtEuro(totalCA), 'font-weight:700;color:var(--primary)') +
+    '</tr>' +
+    // Nb ventes (cliquable)
     '<tr><td style="font-weight:600;font-size:12px">Nb ventes</td>' +
       MONTH_NAMES.map((_, mi) => {
         const v = nbParMois[mi];
         const dosM = dossiersAnnee.filter(d => d.date && new Date(d.date).getMonth() === mi);
-        return mkClickNb(dosM, v);
+        return mkClick(dosM, v > 0 ? v : '—', v > 0 ? 'font-weight:600' : 'color:var(--text-muted)');
       }).join('') +
-      (clickFn && totalNb > 0
-        ? '<td style="font-weight:700;cursor:pointer;text-decoration:underline dotted" onclick="' + clickFn + '(' + JSON.stringify(dossiersAnnee.map(d=>d.id)) + ')">' + totalNb + '</td>'
-        : '<td style="font-weight:700">' + totalNb + '</td>') +
-      '</tr>' +
+      mkClick(dossiersAnnee, totalNb > 0 ? totalNb : '—', 'font-weight:700') +
+    '</tr>' +
+    // CA moyen/vente
     '<tr><td style="font-weight:600;font-size:12px">CA moyen/vente</td>' +
-      moyParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + fmtCell(v,true) + '</td>').join('') +
-      '<td style="font-weight:700;color:var(--text-muted)">' + fmtEuro(totalMoy) + '</td></tr>' +
-    '<tr style="background:#f0fdf4"><td style="font-weight:600;font-size:12px;color:#16a34a">CA encaissé ' + tipEnc + '</td>' +
+      moyParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + (v > 0 ? fmtEuro(v) : '—') + '</td>').join('') +
+      '<td style="font-weight:700;color:var(--text-muted)">' + (totalMoy > 0 ? fmtEuro(totalMoy) : '—') + '</td>' +
+    '</tr>' +
+    // Encaissements fusionnés (CA) — toujours visible
+    '<tr><td style="font-weight:600;font-size:12px">Encaissements ' + tipEnc + '</td>' +
       MONTH_NAMES.map((_, mi) => {
-        const v = encaisseParMois[mi];
-        const dosM = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
-        return mkClickEnc(dosM, v, '#16a34a');
-      }).join('') +
-      '<td style="font-weight:700;color:#16a34a;' + (totalEncaisse>0?'cursor:pointer;text-decoration:underline dotted':'') + '"' +
-        (totalEncaisse>0 && clickFn ? ' onclick="' + clickFn + '(' + JSON.stringify(dossiersAnnee.filter(d=>d.dateActe&&new Date(d.dateActe).getFullYear()===annee).map(d=>d.id)) + ')"' : '') +
-        '>' + (totalEncaisse>0?fmtEuro(totalEncaisse):'—') + '</td></tr>' +
-    '<tr style="background:#f0fdf4"><td style="font-weight:600;font-size:12px;color:#16a34a">Nb encaissés ' + tipNbEnc + '</td>' +
+        const dosEnc = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
+        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
+        return mkCellEnc(dosEnc, dosAEnc, encaisseParMois[mi], !isN1 ? aEncaisserParMois[mi] : 0, true);
+      }).join('') + (() => {
+        // Total colonne
+        const dosEncAll = dossiersAnnee.filter(d=>d.dateActe&&new Date(d.dateActe).getFullYear()===annee);
+        const dosAEncAll = (!isN1) ? (allDossiers||dossiersAnnee).filter(d=>d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee) : [];
+        return mkCellEnc(dosEncAll, dosAEncAll, totalEncaisse, !isN1 ? totalAEncaisser : 0, true);
+      })() +
+    '</tr>' +
+    // Nb dossiers encaissements fusionnés
+    '<tr><td style="font-weight:600;font-size:12px">Nb encaissements ' + tipNbEnc + '</td>' +
       MONTH_NAMES.map((_, mi) => {
-        const v = nbEncaisseParMois[mi];
-        const dosM = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
-        return mkClickNb(dosM, v);
-      }).join('') +
-      '<td style="font-weight:700">' + (totalNbEncaisse>0?totalNbEncaisse:'—') + '</td></tr>';
+        const dosEnc = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
+        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
+        return mkCellEnc(dosEnc, dosAEnc, nbEncaisseParMois[mi], !isN1 ? nbAEncaisserParMois[mi] : 0, false);
+      }).join('') + (() => {
+        const dosEncAll = dossiersAnnee.filter(d=>d.dateActe&&new Date(d.dateActe).getFullYear()===annee);
+        const dosAEncAll = (!isN1) ? (allDossiers||dossiersAnnee).filter(d=>d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee) : [];
+        return mkCellEnc(dosEncAll, dosAEncAll, totalNbEncaisse, !isN1 ? totalNbAEncaisser : 0, false);
+      })() +
+    '</tr>';
 
-  // Lignes prévisionnelles masquées pour N-1 (c'est le passé)
-  if (!isN1) {
-    rows +=
-      '<tr style="background:#fff7ed"><td style="font-weight:600;font-size:12px;color:#ea580c">CA à encaisser ' + tipAEnc + '</td>' +
-      MONTH_NAMES.map((_, mi) => {
-        const v = aEncaisserParMois[mi];
-        const dosM = (allDossiers||dossiersAnnee).filter(d => d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi);
-        return mkClickEnc(dosM, v, '#ea580c');
-      }).join('') +
-      '<td style="font-weight:700;color:#ea580c">' + (totalAEncaisser>0?fmtEuro(totalAEncaisser):'—') + '</td></tr>' +
-      '<tr style="background:#fff7ed"><td style="font-weight:600;font-size:12px;color:#ea580c">Nb à encaisser ' + tipNbAEnc + '</td>' +
-      MONTH_NAMES.map((_, mi) => {
-        const v = nbAEncaisserParMois[mi];
-        const dosM = (allDossiers||dossiersAnnee).filter(d => d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi);
-        return mkClickNb(dosM, v);
-      }).join('') +
-      '<td style="font-weight:700;color:#ea580c">' + (totalNbAEncaisser>0?totalNbAEncaisser:'—') + '</td></tr>';
+  // MMN (si nbNegos fourni)
+  if (mmnParMois) {
+    rows += '<tr style="background:#f8fafc"><td style="font-weight:600;font-size:12px;color:var(--text-muted)">MMN ' + tipMMN + '</td>' +
+      mmnParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + (v > 0 ? fmtEuro(v) : '—') + '</td>').join('') +
+      '<td style="font-weight:700;color:var(--text-muted)">' + (totalMMN > 0 ? fmtEuro(totalMMN) : '—') + '</td>' +
+    '</tr>';
   }
 
   return { rows, totalCA, totalNb, totalEncaisse, totalNbEncaisse, totalAEncaisser, totalNbAEncaisser };
@@ -5004,10 +5028,7 @@ function refreshFicheTableau(dossiersVentes, annee, tableId, titleId, totauxN1, 
   document.getElementById(titleId).textContent = '📊 ' + annee;
   const ventesAnnee = dossiersVentes.filter(d => d.date && new Date(d.date).getFullYear() === annee);
   const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
-  // Pour les prévisionnels collab, filtrer les dossiers du collab sans dateActe
-  // On passe dossiersVentes qui contient les dossiers du négo (avec caCollab)
-  // MAIS pour le prévisionnel on a besoin des dossiers SIGNÉS sans acte → les chercher dans dossiersVentes eux-mêmes
-  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dossiersVentes, annee, d => d.caCollab||0, null, 'openDossiersEncModal', isN1);
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dossiersVentes, annee, d => d.caCollab||0, null, 'openDossiersEncModal', isN1, null);
   const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
   document.getElementById(tableId).innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
   return { totalCA, totalNb };
@@ -6042,7 +6063,8 @@ function refreshFicheSocieteTableau(dos, annee, tableId, titleId, totauxN1, isN1
   document.getElementById(titleId).textContent = '📊 ' + annee;
   const ventesAnnee = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
   const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
-  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1);
+  const nbNegos = (()=>{const agNoms=getSocieteAgences();return (DB.negociateurs||[]).filter(n=>agNoms.includes(n.agence)&&n.actif!==false&&!n.nom.startsWith('🍒')&&['négociateur','les deux'].includes(n.poste)).length;})();
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1, nbNegos);
   const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
   document.getElementById(tableId).innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
   return { totalCA, totalNb };
@@ -6498,7 +6520,8 @@ function refreshFicheAgenceTableau(dossiersAgence, annee, tableId, titleId, tota
   document.getElementById(titleId).textContent = '📊 ' + annee;
   const ventesAnnee = dossiersAgence.filter(d => d.date && new Date(d.date).getFullYear() === annee);
   const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
-  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dossiersAgence, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1);
+  const nbNegos = (DB.negociateurs||[]).filter(n=>n.agence===ficheAgenceNom&&n.actif!==false&&!n.nom.startsWith('🍒')&&['négociateur','les deux'].includes(n.poste)).length;
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dossiersAgence, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1, nbNegos);
   const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
   document.getElementById(tableId).innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
   return { totalCA, totalNb };
@@ -7181,88 +7204,295 @@ function refreshStatsPage() {
 }
 
 // ── Réseau ──
+
+function buildStatCards(c1l, c1v, c2l, c2v, c3l, c3v, c4l, c4v) {
+  return '<div class="stats-grid" style="margin-bottom:20px">' +
+    '<div class="stat-card"><div class="stat-label">' + c1l + '</div><div class="stat-value">' + c1v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c2l + '</div><div class="stat-value">' + c2v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c3l + '</div><div class="stat-value">' + c3v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c4l + '</div><div class="stat-value">' + c4v + '</div></div>' +
+    '</div>';
+}
+
 function renderStatsReseau(container) {
   const now = new Date();
   const curYear = now.getFullYear();
   const n1Year = curYear - 1;
   const dos = DB.dossiers.filter(d => d.statut === 'SIGNÉ');
-
-  // Stats rapides
   const totalCA = dos.reduce((s,d) => s+(d.ht||0), 0);
-  const totalTTC = dos.reduce((s,d) => s+(d.ttc||0), 0);
+  const caN = dos.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear).reduce((s,d)=>s+(d.ht||0),0);
+  const caN1 = dos.filter(d=>d.date&&new Date(d.date).getFullYear()===n1Year).reduce((s,d)=>s+(d.ht||0),0);
+  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m=>'<th style="font-size:11px">'+m.substring(0,3)+'</th>').join('') + '<th>Total</th></tr></thead>';
+
   container.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🌐 Réseau Booster Immobilier</div>' +
-    '<div class="stats-grid" style="margin-bottom:20px">' +
-    '<div class="stat-card"><div class="stat-label">CA HT TOTAL</div><div class="stat-value">' + fmtEuro(totalCA) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">VENTES SIGNÉES</div><div class="stat-value">' + dos.length + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">CA ' + curYear + '</div><div class="stat-value">' + fmtEuro(dos.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear).reduce((s,d)=>s+(d.ht||0),0)) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">AGENCES ACTIVES</div><div class="stat-value">' + AGENCES.length + '</div></div>' +
-    '</div>' +
+    buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="stats-table-n"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="stats-table-n1"></table></div></div>';
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="stats-table-n1"></table></div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="stats-graph-annee" onchange="renderStatsReseauGraphs()" style="font-size:11px;padding:3px 6px" class="filter-select"></select></div><div style="padding:10px"><canvas id="stats-chart-ca" height="90"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span></div><div style="padding:10px"><canvas id="stats-chart-nb" height="90"></canvas></div></div>' +
+    '</div>' +
+    '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
+    '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
+    '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📊 Analyse IA des performances</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📈 Évolution du taux de transformation</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">🎯 Suivi des objectifs</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">💼 Préparation des salaires</span>' +
+    '</div></div>';
 
-  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m=>'<th style="font-size:11px">'+m.substring(0,3)+'</th>').join('') + '<th>Total</th></tr></thead>';
-  const totN1 = buildAndRenderStatsTableau(dos, n1Year, 'stats-table-n1', header, true);
+  const totN1 = buildAndRenderStatsTableau(dos, n1Year, 'stats-table-n1', header, true, null);
   buildAndRenderStatsTableau(dos, curYear, 'stats-table-n', header, false, totN1);
+  renderStatsReseauGraphs();
 }
 
-function buildAndRenderStatsTableau(dos, annee, tableId, header, isN1, totauxN1) {
-  const ventesAnnee = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
-  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1);
-  const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
-  const el = document.getElementById(tableId);
-  if (el) el.innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
-  return { totalCA, totalNb };
+function renderStatsReseauGraphs() {
+  const dos = DB.dossiers.filter(d => d.statut === 'SIGNÉ' && d.date);
+  const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
+  const selAnnee = document.getElementById('stats-graph-annee');
+  if (selAnnee && !selAnnee.options.length) {
+    selAnnee.innerHTML = years.map(y => '<option value="'+y+'">'+y+'</option>').join('');
+    selAnnee.value = new Date().getFullYear();
+  }
+  const annee = parseInt(selAnnee?.value || new Date().getFullYear());
+  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b'];
+  const datasets = [{
+    label: String(annee),
+    data: MONTH_NAMES.map((_,mi) => dos.filter(d=>new Date(d.date).getFullYear()===annee&&new Date(d.date).getMonth()===mi).reduce((s,d)=>s+(d.ht||0),0)),
+    borderColor: palette[0], backgroundColor: palette[0]+'22', tension:0.3, fill:false, pointRadius:3
+  }];
+  const ctxCA = document.getElementById('stats-chart-ca');
+  const ctxNb = document.getElementById('stats-chart-nb');
+  if (!ctxCA || !ctxNb) return;
+  if (window._statsChartCA) window._statsChartCA.destroy();
+  if (window._statsChartNb) window._statsChartNb.destroy();
+  window._statsChartCA = new Chart(ctxCA, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ ticks:{ callback:v=>fmtEuro(v), font:{ size:10 } }, beginAtZero:true }, x:{ ticks:{ font:{ size:10 } } } } } });
+  window._statsChartNb = new Chart(ctxNb, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets:[{ ...datasets[0], data: MONTH_NAMES.map((_,mi)=>dos.filter(d=>new Date(d.date).getFullYear()===annee&&new Date(d.date).getMonth()===mi).length) }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 } } }, x:{ ticks:{ font:{ size:10 } } } } } });
 }
 
-// ── Société ──
 function renderStatsSociete(container, socId) {
   ficheSocieteId = socId;
   const s = (DB.societes||[]).find(x => x.id === socId);
   if (!s) return;
-  // Réutiliser la logique de refreshFicheSociete mais dans stats-content
-  container.innerHTML = '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏛 ' + (s.forme_juridique?s.forme_juridique+' ':'') + s.nom + '</div>' +
-    '<div id="fiche-societe-stats" class="stats-grid" style="margin-bottom:20px"></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 Année en cours</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 N-1</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div></div>';
-  refreshFicheSociete();
+  const agenceNoms = getSocieteAgences();
+  const dos = DB.dossiers.filter(d => agenceNoms.includes(d.agence) && d.statut === 'SIGNÉ');
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const n1Year = curYear - 1;
+  const totalCA = dos.reduce((s,d)=>s+(d.ht||0),0);
+  const caN = dos.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear).reduce((s,d)=>s+(d.ht||0),0);
+  const caN1 = dos.filter(d=>d.date&&new Date(d.date).getFullYear()===n1Year).reduce((s,d)=>s+(d.ht||0),0);
+
+  container.innerHTML =
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏛 ' + (s.forme_juridique?s.forme_juridique+' ':'') + s.nom + '</div>' +
+    buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="fiche-societe-graph-annee" onchange="refreshFicheSocieteGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select></div><div style="padding:10px"><canvas id="fiche-societe-chart-ca" height="90"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><select id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select></div><div style="padding:10px"><canvas id="fiche-societe-chart-nb" height="90"></canvas></div></div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="fiche-societe-chart-glissant" height="70"></canvas></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👤 Apporteurs actifs</span></div><div id="fiche-societe-apporteurs" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="fiche-societe-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
+    '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
+    '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
+    '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📊 Analyse IA des performances</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📈 Évolution du taux de transformation</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">🎯 Suivi des objectifs</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">💼 Préparation des salaires</span>' +
+    '</div></div>';
+
+  // Peupler les données
+  const last10 = dos.slice(0,10);
+  document.getElementById('fiche-societe-ventes').innerHTML = last10.map((d,i) =>
+    '<tr style="border-bottom:1px solid var(--border);' + (i%2?'background:#f8fafc':'') + '"><td style="padding:8px;font-weight:600">' + d.client + '</td><td style="padding:8px;font-size:12px">' + d.agence + '</td><td style="padding:8px;font-size:12px">' + fmtDate(d.date) + '</td><td style="padding:8px;font-weight:700;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td><td style="padding:8px">' + statusBadge(d.statut) + '</td></tr>'
+  ).join('');
+
+  const years = [...new Set(dos.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
+  const yearOpts = years.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+  ['fiche-societe-graph-annee','fiche-societe-graph-annee-nb'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = yearOpts; el.value = curYear; }
+  });
+
+  const totN1Soc = refreshFicheSocieteTableau(dos, n1Year, 'fiche-societe-tableau-n1', 'fiche-societe-annee-n1-titre', null, true);
+  refreshFicheSocieteTableau(dos, curYear, 'fiche-societe-tableau-annee', 'fiche-societe-annee-titre', totN1Soc, false);
+  refreshFicheSocieteGraphs();
+  refreshFicheSocieteGraphNb();
+  refreshFicheSocieteGraphGlissant();
+  refreshFicheSocieteEquipe();
+
+  // Apporteurs
+  const apports = [...new Set(dos.filter(d=>d.hasApporteur&&d.apporteurNom).map(d=>d.apporteurNom))].sort();
+  document.getElementById('fiche-societe-apporteurs').innerHTML = apports.length
+    ? apports.map(a => {
+        const dosA = dos.filter(d=>d.apporteurNom===a);
+        return '<span style="padding:6px 12px;background:var(--bg);border-radius:8px;font-size:13px;border:0.5px solid var(--border)">' + a + ' <strong style="color:#92400e">' + fmtEuro(dosA.reduce((s,d)=>s+(d.apportHT||0),0)) + '</strong></span>';
+      }).join(' ')
+    : '<span style="color:var(--text-muted);font-size:13px">Aucun apporteur</span>';
 }
 
-// ── Agence ──
 function renderStatsAgence(container, agNom) {
   ficheAgenceNom = agNom;
-  container.innerHTML = '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
-    '<div id="fiche-collab-stats" class="stats-grid" style="margin-bottom:20px"></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 Année en cours</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 N-1</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div></div>';
-  // Réutiliser refreshFicheAgence mais injecter les stats dans stats-content
   const dosAgence = DB.dossiers.filter(d => d.agence === agNom && d.statut === 'SIGNÉ');
   const now = new Date();
   const curYear = now.getFullYear();
   const n1Year = curYear - 1;
   const totalCA = dosAgence.reduce((s,d)=>s+(d.ht||0),0);
-  document.getElementById('fiche-collab-stats').innerHTML =
-    '<div class="stat-card"><div class="stat-label">CA HT TOTAL</div><div class="stat-value">' + fmtEuro(totalCA) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">VENTES</div><div class="stat-value">' + dosAgence.length + '</div></div>';
-  const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m=>'<th style="font-size:11px">'+m.substring(0,3)+'</th>').join('') + '<th>Total</th></tr></thead>';
-  const totN1 = refreshFicheAgenceTableau(dosAgence, n1Year, 'fiche-agence-tableau-n1', 'fiche-agence-annee-n1-titre', null, true);
-  refreshFicheAgenceTableau(dosAgence, curYear, 'fiche-agence-tableau-annee', 'fiche-agence-annee-titre', totN1, false);
+  const caN = dosAgence.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear).reduce((s,d)=>s+(d.ht||0),0);
+  const caN1 = dosAgence.filter(d=>d.date&&new Date(d.date).getFullYear()===n1Year).reduce((s,d)=>s+(d.ht||0),0);
+
+  container.innerHTML =
+    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
+    buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dosAgence.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="fiche-agence-graph-annee" onchange="refreshFicheAgenceGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all" onchange="refreshFicheAgenceGraphs()"> Toutes</label></div><div style="padding:10px"><canvas id="fiche-agence-chart-ca" height="90"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><select id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()"> Toutes</label></div><div style="padding:10px"><canvas id="fiche-agence-chart-nb" height="90"></canvas></div></div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="fiche-agence-chart-glissant" height="70"></canvas></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👤 Apporteurs actifs</span></div><div id="stats-ag-apporteurs" style="padding:16px"></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="stats-ag-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
+    '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
+    '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
+    '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📊 Analyse IA des performances</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📈 Évolution du taux de transformation</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">🎯 Suivi des objectifs</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">💼 Préparation des salaires</span>' +
+    '</div></div>';
+
+  // 10 dernières ventes
+  document.getElementById('stats-ag-ventes').innerHTML = dosAgence.slice(0,10).map((d,i) =>
+    '<tr style="border-bottom:1px solid var(--border);' + (i%2?'background:#f8fafc':'') + '"><td style="padding:8px;font-weight:600">' + d.client + '</td><td style="padding:8px;font-size:12px">' + fmtDate(d.date) + '</td><td style="padding:8px;font-weight:700;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td><td style="padding:8px">' + statusBadge(d.statut) + '</td></tr>'
+  ).join('');
+
+  const years = [...new Set(dosAgence.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
+  const yearOpts = years.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+  ['fiche-agence-graph-annee','fiche-agence-graph-annee-nb'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = yearOpts; el.value = curYear; }
+  });
+
+  const totN1Ag = refreshFicheAgenceTableau(dosAgence, n1Year, 'fiche-agence-tableau-n1', 'fiche-agence-annee-n1-titre', null, true);
+  refreshFicheAgenceTableau(dosAgence, curYear, 'fiche-agence-tableau-annee', 'fiche-agence-annee-titre', totN1Ag, false);
+  refreshFicheAgenceGraphs();
+  refreshFicheAgenceGraphNb();
+  refreshFicheAgenceGraphGlissant();
+
+  // Apporteurs
+  const apports = [...new Set(dosAgence.filter(d=>d.hasApporteur&&d.apporteurNom).map(d=>d.apporteurNom))].sort();
+  document.getElementById('stats-ag-apporteurs').innerHTML = apports.length
+    ? apports.map(a => {
+        const dosA = dosAgence.filter(d=>d.apporteurNom===a);
+        return '<span style="padding:6px 12px;background:var(--bg);border-radius:8px;font-size:13px;border:0.5px solid var(--border)">' + a + ' <strong style="color:#92400e">' + fmtEuro(dosA.reduce((s,d)=>s+(d.apportHT||0),0)) + '</strong></span>';
+      }).join(' ')
+    : '<span style="color:var(--text-muted);font-size:13px">Aucun apporteur</span>';
+
+  // Équipe
+  const equipe = (DB.negociateurs||[]).filter(n=>n.agence===agNom&&n.actif!==false&&!n.nom.startsWith('🍒'));
+  const statsAgEquipe = document.getElementById('stats-ag-equipe');
+  statsAgEquipe.innerHTML = equipe.map(n => {
+    const initiales = n.nom.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const nbV = (DB.dossierNeg||[]).filter(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id);return l.negociateur_id===n.id&&d&&d.statut==='SIGNÉ';}).length;
+    return '<div class="sc-collab-card" data-negid="'+n.id+'" style="cursor:pointer;padding:12px;border:1.5px solid var(--border);border-radius:12px;min-width:120px;text-align:center;transition:all .2s"><div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:white;font-family:Syne,sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px">'+initiales+'</div><div style="font-weight:600;font-size:12px">'+n.nom+'</div><div style="font-size:11px;color:var(--primary);font-weight:600;margin-top:4px">'+nbV+' vente(s)</div></div>';
+  }).join('');
+  statsAgEquipe.querySelectorAll('.sc-collab-card').forEach(el => {
+    el.addEventListener('click', () => {
+      document.getElementById('stats-niveau').value = 'negociateur';
+      document.getElementById('stats-sel-neg').value = el.dataset.negid;
+      onStatsNiveauChange();
+      refreshStatsPage();
+    });
+    el.addEventListener('mouseover', () => { el.style.borderColor='var(--primary)'; el.style.background='#f0f4f8'; });
+    el.addEventListener('mouseout', () => { el.style.borderColor='var(--border)'; el.style.background=''; });
+  });
 }
 
-// ── Négociateur ──
 function renderStatsNeg(container, negId) {
   const n = DB.negociateurs.find(x => x.id === negId);
   if (!n) return;
   ficheCollabId = negId;
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const n1Year = curYear - 1;
+  const dosNeg = (DB.dossierNeg||[]).filter(l=>l.negociateur_id===n.id);
+  const dossiersVentes = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&x.statut==='SIGNÉ');if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100),pctCollab:l.pct_ca};}).filter(Boolean).sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000'));
+  const totalCA = dossiersVentes.reduce((s,d)=>s+d.caCollab,0);
+  const caN = dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear).reduce((s,d)=>s+d.caCollab,0);
+  const caN1 = dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===n1Year).reduce((s,d)=>s+d.caCollab,0);
+
   container.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:4px">👤 ' + n.nom + '</div>' +
     '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + n.agence + ' · ' + (n.poste||'négociateur') + '</div>' +
-    '<div id="fiche-collab-stats" class="stats-grid" style="margin-bottom:20px"></div>' +
-    '<div id="fiche-collab-ventes-wrap" class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-titre">📊 Année en cours</span></div><div style="overflow-x:auto"><table id="fiche-tableau-annee"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-n1-titre">📊 N-1</span></div><div style="overflow-x:auto"><table id="fiche-tableau-n1"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>';
-  refreshFicheCollab(n);
+    buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dossiersVentes.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-annee"></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-n1"></table></div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span></div><div style="padding:10px"><canvas id="stats-neg-chart-ca" height="90"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span></div><div style="padding:10px"><canvas id="stats-neg-chart-nb" height="90"></canvas></div></div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-neg-chart-glissant" height="70"></canvas></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>' +
+    '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
+    '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
+    '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📊 Analyse IA des performances</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">📈 Évolution du taux de transformation</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">🎯 Suivi des objectifs</span>' +
+    '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">💼 Préparation des salaires</span>' +
+    '</div></div>';
+
+  // 10 dernières ventes
+  document.getElementById('fiche-collab-ventes').innerHTML = dossiersVentes.slice(0,10).map(d => {
+    const j = d.date?Math.floor((now-new Date(d.date))/86400000):'—';
+    return '<tr><td><strong>'+d.client+'</strong></td><td>'+d.agence+'</td><td>'+fmtDate(d.date)+'</td><td style="color:'+(j>90?'#dc2626':j>30?'#f59e0b':'#10b981')+';font-weight:600">'+(j!=='—'?j+'j':'—')+'</td><td style="font-weight:600;color:var(--primary)">'+fmtEuro(d.caCollab)+'</td><td>'+statusBadge(d.statut)+'</td></tr>';
+  }).join('');
+
+  // Tableaux
+  const years = [...new Set(dossiersVentes.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort();
+  document.getElementById('fiche-collab-annee-moy').innerHTML = '<option value="">Depuis arrivée</option>' + years.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+  const totN1C = refreshFicheTableau(dossiersVentes, n1Year, 'fiche-tableau-n1', 'fiche-annee-n1-titre', null, true);
+  refreshFicheTableau(dossiersVentes, curYear, 'fiche-tableau-annee', 'fiche-annee-titre', totN1C, false);
+  refreshFicheMoyenne();
+
+  // Graphiques négo
+  const palette = ['#2D455A'];
+  const dataCA = MONTH_NAMES.map((_,mi)=>dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear&&new Date(d.date).getMonth()===mi).reduce((s,d)=>s+d.caCollab,0));
+  const dataNb = MONTH_NAMES.map((_,mi)=>dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear&&new Date(d.date).getMonth()===mi).length);
+  const ctxCA = document.getElementById('stats-neg-chart-ca');
+  const ctxNb = document.getElementById('stats-neg-chart-nb');
+  if (ctxCA) { if(window._statsNegChartCA) window._statsNegChartCA.destroy(); window._statsNegChartCA = new Chart(ctxCA, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets:[{ label:String(curYear), data:dataCA, borderColor:palette[0], backgroundColor:palette[0]+'22', tension:0.3, fill:false, pointRadius:3 }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ticks:{callback:v=>fmtEuro(v),font:{size:10}},beginAtZero:true}, x:{ticks:{font:{size:10}}} } } }); }
+  if (ctxNb) { if(window._statsNegChartNb) window._statsNegChartNb.destroy(); window._statsNegChartNb = new Chart(ctxNb, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets:[{ label:String(curYear), data:dataNb, borderColor:palette[0], backgroundColor:palette[0]+'22', tension:0.3, fill:false, pointRadius:3 }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}}}, x:{ticks:{font:{size:10}}} } } }); }
+
+  // Graphique glissant négo
+  const ctxG = document.getElementById('stats-neg-chart-glissant');
+  if (ctxG) {
+    const dosDated = dossiersVentes.filter(d=>d.date);
+    if (dosDated.length > 0) {
+      const firstDate = dosDated.map(d=>new Date(d.date)).sort((a,b)=>a-b)[0];
+      const startBar = new Date(firstDate.getFullYear(), firstDate.getMonth()+11, 1);
+      const labels=[], data=[];
+      let cursor = new Date(startBar);
+      while (cursor <= now) {
+        const y=cursor.getFullYear(), m=cursor.getMonth();
+        let cumul=0;
+        for(let i=0;i<12;i++){const ref=new Date(y,m-i,1);cumul+=dosDated.filter(d=>{const dd=new Date(d.date);return dd.getFullYear()===ref.getFullYear()&&dd.getMonth()===ref.getMonth();}).reduce((s,d)=>s+d.caCollab,0);}
+        labels.push(MONTH_NAMES[m].substring(0,3)+' '+String(y).substring(2));
+        data.push(cumul);
+        cursor=new Date(y,m+1,1);
+      }
+      if(window._statsNegChartG) window._statsNegChartG.destroy();
+      window._statsNegChartG = new Chart(ctxG, { type:'bar', data:{ labels, datasets:[{ label:'CA 12m', data, backgroundColor:data.map((v,i)=>i===data.length-1?'#2D455A':i>0&&v>data[i-1]?'#10b981aa':i>0&&v<data[i-1]?'#ef4444aa':'#2D455Aaa'), borderRadius:3 }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:false,ticks:{callback:v=>fmtEuro(v),font:{size:10}}}, x:{ticks:{font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:24}} } } });
+    }
+  }
 }
 
 </script>
