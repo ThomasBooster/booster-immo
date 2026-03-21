@@ -4892,7 +4892,7 @@ function refreshFicheMoyenne() {
 // ============================================================
 // HELPER TABLEAU N/N-1 — lignes encaissements + indicateur
 // ============================================================
-function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, clickFn, isN1, nbNegos) {
+function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, clickFn, isN1, negosFiltre) {
   const now = new Date();
   const curMois = now.getMonth();
   const curAnnee = now.getFullYear();
@@ -4940,9 +4940,17 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
   const totalAEncaisser = aEncaisserParMois.reduce((s,v) => s+v, 0);
   const totalNbAEncaisser = nbAEncaisserParMois.reduce((s,v) => s+v, 0);
 
-  // MMN = CA total / nb négos (si nbNegos fourni)
-  const mmnParMois = nbNegos > 0 ? caParMois.map(ca => ca > 0 ? ca / nbNegos : 0) : null;
-  const totalMMN = nbNegos > 0 && totalNb > 0 ? totalCA / nbNegos : 0;
+  // Nb négos actifs par mois (option B : dynamique selon date_entree/date_inactivite)
+  const negosParMois = negosFiltre
+    ? MONTH_NAMES.map((_, mi) => nbNegosActifsSurMois(annee, mi, negosFiltre))
+    : null;
+  const mmnParMois = negosParMois
+    ? caParMois.map((ca, mi) => negosParMois[mi] > 0 ? ca / negosParMois[mi] : 0)
+    : null;
+  // MMN total = CA total / moyenne du nb de négos sur les mois avec activité
+  const moisAvecNegos = negosParMois ? negosParMois.filter(n => n > 0) : [];
+  const moyNegosAnnee = moisAvecNegos.length > 0 ? Math.round(moisAvecNegos.reduce((s,v)=>s+v,0) / moisAvecNegos.length) : 0;
+  const totalMMN = moyNegosAnnee > 0 && totalNb > 0 ? totalCA / moyNegosAnnee : 0;
 
   const tipEnc = '<span class="info-tip" data-tip="Encaissements : vert = acte signé, orange = dateButoire sur ce mois sans acte.&#10;Mois passé avec orange = retard !">i</span>';
   const tipNbEnc = '<span class="info-tip" data-tip="Nb dossiers : vert = actes signés, orange = en attente d&#39;acte (date butoire dépassée ou à venir).">i</span>';
@@ -5032,8 +5040,13 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
       })() +
     '</tr>';
 
-  // MMN (si nbNegos fourni)
-  if (mmnParMois) {
+  // Nb négos + MMN (si negosFiltre fourni)
+  if (negosParMois) {
+    const tipNbNegs = '<span class="info-tip" data-tip="Nombre de négociateurs actifs sur ce mois (hors rentreurs purs). Calculé selon les dates d&#39;entrée et d&#39;inactivité.">i</span>';
+    rows += '<tr style="background:#f8fafc"><td style="font-weight:600;font-size:12px;color:var(--text-muted)">Nb négos ' + tipNbNegs + '</td>' +
+      negosParMois.map(v => '<td style="font-size:12px;color:var(--text-muted);text-align:center">' + (v > 0 ? v : '—') + '</td>').join('') +
+      '<td style="font-weight:700;color:var(--text-muted);text-align:center">' + (moyNegosAnnee > 0 ? '~' + moyNegosAnnee : '—') + '</td>' +
+    '</tr>';
     rows += '<tr style="background:#f8fafc"><td style="font-weight:600;font-size:12px;color:var(--text-muted)">MMN ' + tipMMN + '</td>' +
       mmnParMois.map(v => '<td style="font-size:12px;color:var(--text-muted)">' + (v > 0 ? fmtEuro(v) : '—') + '</td>').join('') +
       '<td style="font-weight:700;color:var(--text-muted)">' + (totalMMN > 0 ? fmtEuro(totalMMN) : '—') + '</td>' +
@@ -6134,8 +6147,9 @@ function refreshFicheSocieteTableau(dos, annee, tableId, titleId, totauxN1, isN1
   document.getElementById(titleId).textContent = '📊 ' + annee;
   const ventesAnnee = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
   const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
-  const nbNegos = (()=>{const agNoms=getSocieteAgences();return (DB.negociateurs||[]).filter(n=>agNoms.includes(n.agence)&&n.actif!==false&&!n.nom.startsWith('🍒')&&['négociateur','les deux'].includes(n.poste)).length;})();
-  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1, nbNegos);
+  const agNomsSoc = getSocieteAgences();
+  const negosFiltreSoc = n => agNomsSoc.includes(n.agence);
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1, negosFiltreSoc);
   const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
   document.getElementById(tableId).innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
   return { totalCA, totalNb };
@@ -6591,8 +6605,8 @@ function refreshFicheAgenceTableau(dossiersAgence, annee, tableId, titleId, tota
   document.getElementById(titleId).textContent = '📊 ' + annee;
   const ventesAnnee = dossiersAgence.filter(d => d.date && new Date(d.date).getFullYear() === annee);
   const header = '<thead><tr><th>Indicateur</th>' + MONTH_NAMES.map(m => '<th style="font-size:11px">' + m.substring(0,3) + '</th>').join('') + '<th>Total</th></tr></thead>';
-  const nbNegos = (DB.negociateurs||[]).filter(n=>n.agence===ficheAgenceNom&&n.actif!==false&&!n.nom.startsWith('🍒')&&['négociateur','les deux'].includes(n.poste)).length;
-  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dossiersAgence, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1, nbNegos);
+  const negosFiltre = n => n.agence === ficheAgenceNom;
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dossiersAgence, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1, negosFiltre);
   const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
   document.getElementById(tableId).innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
   return { totalCA, totalNb };
@@ -7281,6 +7295,30 @@ function buildRetroBoosterSection(containerId, dos) {
     '</div>';
 }
 
+// Nb de négos (sortie ou les deux) actifs sur un mois donné
+// annee = int, mois = int (0-11)
+// filtre = fonction optionnelle sur le négo (ex: n => n.agence === 'X')
+function nbNegosActifsSurMois(annee, mois, filtre) {
+  const debutMois = new Date(annee, mois, 1);
+  const finMois = new Date(annee, mois + 1, 0, 23, 59, 59);
+  return (DB.negociateurs || []).filter(n => {
+    if (n.nom.startsWith('🍒')) return false;
+    if (!['négociateur','les deux'].includes(n.poste)) return false;
+    if (filtre && !filtre(n)) return false;
+    // Date d'entrée doit être ≤ fin du mois
+    if (!n.date_entree) return false;
+    const entree = new Date(n.date_entree);
+    if (entree > finMois) return false;
+    // Actif ou date_inactivite > début du mois
+    if (n.actif === false) {
+      if (!n.date_inactivite) return false;
+      const inactif = new Date(n.date_inactivite);
+      if (inactif < debutMois) return false;
+    }
+    return true;
+  }).length;
+}
+
 // ── Helpers statuts ──
 // CA brut = SSP signé (SIGNÉ + SRU + REFUS DE CRÉDIT)
 // Agences actives uniquement (exclure actif === false)
@@ -7601,8 +7639,8 @@ function refreshStatsMoyenneReseau() {
 
 function buildAndRenderStatsTableau(dos, annee, tableId, header, isN1, totauxN1) {
   const ventesAnnee = dos.filter(d => d.date && new Date(d.date).getFullYear() === annee);
-  const nbNegos = (DB.negociateurs||[]).filter(n=>n.actif!==false&&!n.nom.startsWith('🍒')&&['négociateur','les deux'].includes(n.poste)).length;
-  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1, nbNegos);
+  const negosRes = () => true; // Tous les négos du réseau
+  const { rows, totalCA, totalNb } = buildTableauRows(ventesAnnee, dos, annee, d => d.ht||0, null, 'openDossiersEncModal', isN1, negosRes);
   const indicateur = totauxN1 ? buildIndicateurNvsN1(totalCA, totauxN1.totalCA, 'CA HT') : '';
   const el = document.getElementById(tableId);
   if (el) el.innerHTML = header + '<tbody>' + rows + indicateur + '</tbody>';
