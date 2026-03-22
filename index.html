@@ -6191,7 +6191,7 @@ function refreshFicheSocieteGraphs() {
   const allYears = document.getElementById('fiche-societe-graph-all')?.checked || false;
   const dos = getSocieteDossiers().filter(d => d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
-  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+  const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9e7bb5','#6b8fa3'];
   const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
   const datasets = yearsToShow.map((y,yi) => ({
     label: String(y),
@@ -6209,7 +6209,7 @@ function refreshFicheSocieteGraphNb() {
   const allYears = document.getElementById('fiche-societe-graph-all-nb')?.checked || false;
   const dos = getSocieteDossiers().filter(d => d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
-  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+  const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9e7bb5','#6b8fa3'];
   const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
   const datasets = yearsToShow.map((y,yi) => ({
     label: String(y),
@@ -6730,7 +6730,7 @@ function refreshFicheAgenceGraphs() {
   const allYears = document.getElementById('fiche-agence-graph-all')?.checked || false;
   const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
-  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+  const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9e7bb5','#6b8fa3','#5ba0a0'];
   const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
 
   const datasets = yearsToShow.map((y, yi) => {
@@ -6754,7 +6754,7 @@ function refreshFicheAgenceGraphNb() {
   const allYears = document.getElementById('fiche-agence-graph-all-nb')?.checked || false;
   const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
-  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+  const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9e7bb5','#6b8fa3','#5ba0a0'];
   const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
 
   const datasets = yearsToShow.map((y, yi) => ({
@@ -7751,8 +7751,20 @@ function refreshIntercabinet() {
   const maxVal = Math.max(...vals, 1);
 
   const fmt = (v) => metrique === 'nb' ? (v > 0 ? v : '—') : (v > 0 ? fmtEuro(v) : '—');
-  const intensity = (v) => v === 0 ? 'transparent' : `rgba(45,69,90,${(0.08 + Math.sqrt(v/maxVal)*0.75).toFixed(2)})`;
-  const textColor = (v) => Math.sqrt(v/maxVal) > 0.5 ? 'white' : 'var(--primary)';
+  // Nuances de bleu-gris Scorim : 4 paliers
+  const intensity = (v) => {
+    if (!v || v === 0) return '#e4ecf1';
+    const ratio = Math.sqrt(v / maxVal);
+    if (ratio < 0.25) return '#d6e4ed';
+    if (ratio < 0.5)  return '#c8d5df';
+    if (ratio < 0.75) return '#8fadbf';
+    return '#6b93a8';
+  };
+  const textColor = (v) => {
+    if (!v || v === 0) return 'var(--text-muted)';
+    const ratio = Math.sqrt(v / maxVal);
+    return ratio >= 0.5 ? 'white' : '#1a2e3d';
+  };
 
   // Totaux par colonne (= par agence, triangle sup)
   const totalParAgence = {};
@@ -7785,9 +7797,9 @@ function refreshIntercabinet() {
   html += '<table style="border-collapse:collapse;font-size:12px">';
   html += '<thead><tr><th style="padding:8px;background:#f8fafc;border:1px solid var(--border)"></th>';
   agences.forEach(b => {
-    html += `<th style="padding:8px 12px;background:#f8fafc;border:1px solid var(--border);font-size:11px;white-space:nowrap">${b.replace('Saint-','St-')}</th>`;
+    html += `<th style="padding:6px 8px;background:#f8fafc;border:0.5px solid #e2e8f0;font-size:11px;font-weight:500;color:var(--text-muted);white-space:nowrap">${b.replace('Saint-','St-')}</th>`;
   });
-  html += '<th style="padding:8px 12px;background:#f0f4f8;border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--primary)">TOTAL IC</th>';
+  html += '<th style="padding:6px 10px;background:#f0f4f8;border:0.5px solid #e2e8f0;font-size:11px;font-weight:700;color:var(--primary)">Total IC</th>';
   html += '</tr></thead><tbody>';
 
   agences.forEach(a => {
@@ -7795,26 +7807,34 @@ function refreshIntercabinet() {
     agences.forEach(b => { if (a!==b) { const p=getPair(a,b); if(p) totLigne += metrique==='nb'?p.nb:p.ca; }});
 
     html += '<tr>';
-    html += `<td style="padding:8px 12px;background:#f8fafc;border:1px solid var(--border);font-weight:600;font-size:12px;white-space:nowrap">${a.replace('Saint-','St-')}</td>`;
+    html += `<td style="padding:6px 10px;background:#f8fafc;border:0.5px solid #e2e8f0;font-weight:600;font-size:12px;white-space:nowrap;color:var(--primary)">${a.replace('Saint-','St-')}</td>`;
     agences.forEach(b => {
       if (a === b) {
-        html += `<td style="padding:10px 12px;border:1px solid var(--border);background:#f1f5f9;text-align:center;color:var(--text-muted)">—</td>`;
+        html += `<td style="padding:6px 8px;border:0.5px solid #e2e8f0;background:#f1f5f9;text-align:center;color:#b0bec5;font-size:13px">—</td>`;
       } else {
         const pair = getPair(a, b);
         const v = pair ? (metrique==='nb'?pair.nb:pair.ca) : 0;
         const ids = pair ? pair.ids : [];
         const bg = intensity(v);
         const tc = textColor(v);
-        const st = `padding:10px 12px;border:1px solid var(--border);background:${bg};text-align:center;font-weight:${v>0?'700':'400'};color:${tc};min-width:70px${ids.length?';cursor:pointer':''}`;
+        const st = `padding:6px 8px;border:0.5px solid #e2e8f0;background:${bg};text-align:center;font-weight:${v>0?'700':'400'};color:${tc};min-width:50px${ids.length?';cursor:pointer':''}`;
         const click = ids.length ? ` onclick="openDossiersEncModal(${JSON.stringify(ids)})"` : '';
         html += `<td style="${st}"${click}>${fmt(v)}</td>`;
       }
     });
-    html += `<td style="padding:8px 12px;border:1px solid var(--border);background:#f0f4f8;text-align:center;font-weight:700;color:var(--primary)">${fmt(totLigne)}</td>`;
+    html += `<td style="padding:6px 10px;border:0.5px solid #e2e8f0;background:#f0f4f8;text-align:center;font-weight:700;color:var(--primary);font-size:12px">${fmt(totLigne)}</td>`;
     html += '</tr>';
   });
 
-  html += '</tbody></table></div>';
+  html += '</tbody></table>';
+  html += '<div style="margin-top:10px;display:flex;align-items:center;gap:14px;font-size:11px;color:var(--text-muted);flex-wrap:wrap">' +
+    '<span style="font-weight:600">Intensité :</span>' +
+    '<span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#e4ecf1;border-radius:3px;display:inline-block;border:0.5px solid #c8d5df"></span> 0</span>' +
+    '<span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#c8d5df;border-radius:3px;display:inline-block;border:0.5px solid #a0bece"></span> 1–2</span>' +
+    '<span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#8fadbf;border-radius:3px;display:inline-block;border:0.5px solid #6b93a8"></span> 3</span>' +
+    '<span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#6b93a8;border-radius:3px;display:inline-block;border:0.5px solid #2D455A"></span> 4+</span>' +
+  '</div>';
+  html += '</div>';
 
   // ── CAMEMBERT ──
   const icData = agences.map(a => ({ agence: a, val: metrique === 'nb' ? (icPerAgence[a]?.nb||0) : (icPerAgence[a]?.ca||0) }))
@@ -7863,7 +7883,7 @@ function refreshIntercabinet() {
   // Dessiner le camembert
   const pieCtx = document.getElementById('ic-pie-chart');
   if (pieCtx && icData.length > 0) {
-    const palette = ['#2D455A','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ef4444'];
+    const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#8b7db5','#6b8fa3'];
     if (window._icPieChart) window._icPieChart.destroy();
     window._icPieChart = new Chart(pieCtx, {
       type: 'pie',
@@ -8178,7 +8198,7 @@ function renderStatsReseauGraphs() {
     selAnnee.value = new Date().getFullYear();
   }
   const annee = parseInt(selAnnee?.value || new Date().getFullYear());
-  const palette = ['#2D455A','#3b82f6','#10b981','#f59e0b'];
+  const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a'];
   const datasets = [{
     label: String(annee),
     data: MONTH_NAMES.map((_,mi) => dos.filter(d=>new Date(d.date).getFullYear()===annee&&new Date(d.date).getMonth()===mi).reduce((s,d)=>s+(d.ht||0),0)),
