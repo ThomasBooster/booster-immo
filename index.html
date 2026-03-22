@@ -1236,9 +1236,9 @@
             </div>
           </div>
           <div style="margin-top:16px;padding:16px;background:white;border-radius:10px;border:1px solid var(--border)">
-            <div style="font-weight:600;font-size:13px;margin-bottom:4px">🧪 Mail de test</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Envoyé à thomas.godard@booster-immobilier.com</div>
-            <button class="btn btn-outline btn-sm" onclick="sendTestMail()" id="btn-test-mail">Envoyer un mail de test</button>
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px">🧪 Tests d'envoi</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Chaque bouton envoie un exemple à thomas.godard@booster-immobilier.com</div>
+            <div style="display:flex;flex-direction:column;gap:8px" id="mail-test-buttons"></div>
           </div>
         </div>
 
@@ -2615,6 +2615,7 @@ async function initApp() {
     document.getElementById('params-reseau-section').style.display = 'block';
     document.getElementById('params-mail-section').style.display = 'block';
     renderMailToggles();
+    renderMailTestButtons();
     document.getElementById('nav-saisie-section').style.display = 'block';
     renderUsersList();
   } else if (currentUser.role === 'agence') {
@@ -9129,18 +9130,107 @@ function renderMailToggles() {
     </div>`).join('');
 }
 
-async function sendTestMail() {
-  const btn = document.getElementById('btn-test-mail');
-  if (btn) { btn.textContent = 'Envoi en cours...'; btn.disabled = true; }
-  await sendEmail('test', 'thomas.godard@booster-immobilier.com', {
-    date: new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
-    heure: new Date().toLocaleTimeString('fr-FR'),
-    nbDossiers: DB.dossiers?.length || 0,
-    nbNegos: DB.negociateurs?.length || 0,
-  });
-  if (btn) { btn.textContent = 'Mail envoyé ✓'; setTimeout(() => { btn.textContent = 'Envoyer un mail de test'; btn.disabled = false; }, 3000); }
-  showToast('Mail de test envoyé à thomas.godard@booster-immobilier.com ✓', 'success');
+const MAIL_TEST_DEFS = [
+  {
+    key: 'test', label: 'Mail de test général', icon: '🧪',
+    getData: () => ({
+      date: new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
+      heure: new Date().toLocaleTimeString('fr-FR'),
+      nbDossiers: DB.dossiers?.length || 0,
+      nbNegos: DB.negociateurs?.length || 0,
+    })
+  },
+  {
+    key: 'nouvelle_vente', label: 'Nouvelle vente', icon: '🏠',
+    getData: () => ({
+      agence: 'Saint-Agne', client: 'DUPONT Martin', caHT: '18 500 €',
+      negociateurs: 'Sophie Martin', rentreurs: 'Thomas Godard',
+      dateSSP: '22/03/2026', saisiPar: 'Laurie',
+    })
+  },
+  {
+    key: 'alerte_butoire', label: 'Alertes dates butoires', icon: '⚠️',
+    getData: () => ({ dossiers: [
+      { client: 'BERNARD Claire', agence: 'Minimes', dateButoire: '23/03/2026', joursRestants: 1, negociateurs: 'Thomas Godard' },
+      { client: 'MARTIN Paul', agence: 'Saint-Agne', dateButoire: '26/03/2026', joursRestants: 4, negociateurs: 'Sophie Martin' },
+      { client: 'GARCIA Luis', agence: 'Bonnefoy', dateButoire: '19/03/2026', joursRestants: -3, negociateurs: 'Kevin Barbier' },
+    ]})
+  },
+  {
+    key: 'alerte_pe', label: "Alertes périodes d'essai", icon: '⏰',
+    getData: () => ({ collaborateurs: [
+      { nom: 'Julie Moreau', agence: 'Côte Pavée', finPE: '28/03/2026', joursRestants: 6 },
+      { nom: 'Antoine Dubois', agence: 'Roseraie', finPE: '24/03/2026', joursRestants: 2 },
+    ]})
+  },
+  {
+    key: 'alerte_cci', label: 'Alertes CCI manquantes', icon: '🏛',
+    getData: () => ({ collaborateurs: [
+      { nom: 'Kevin Barbier', agence: 'Bonnefoy', typeContrat: 'agent-co' },
+      { nom: 'Maurine Boiron', agence: 'Saint-Agne', typeContrat: 'salarié' },
+    ]})
+  },
+  {
+    key: 'record_beaten', label: 'Record battu (individuel)', icon: '🏆',
+    getData: () => ({
+      key: 'indiv_ca_annuel',
+      recordLabel: 'CA Annuel Individuel',
+      description: "Le badge CA Annuel recompense le meilleur chiffre d'affaires annuel depuis l'ouverture du reseau.",
+      badgeSvg: badgeSvgLarge('indiv_ca_annuel'),
+      mailBg: '#FAEEDA', mailBorder: '#BA7517', textColor: '#633806',
+      isAgence: false, isCA: true,
+      recipientNom: 'Sophie Martin', recipientAgence: 'Saint-Agne',
+      newValue: '147 300 €', oldValue: '132 000 €', pctGain: '+11,6%',
+      period: '2026', dossierClient: 'DUPONT Martin', dossierCA: '18 500 €', dossierDate: '22/03/2026',
+      teamMembers: null,
+    })
+  },
+  {
+    key: 'record_beaten', label: 'Record battu (agence)', icon: '🔥',
+    getData: () => ({
+      key: 'agence_ca_annuel',
+      recordLabel: 'CA Annuel Agence',
+      description: "Le badge CA Annuel Agence recompense l'agence avec le meilleur chiffre d'affaires annuel depuis la creation du reseau.",
+      badgeSvg: badgeSvgLarge('agence_ca_annuel'),
+      mailBg: '#FCEBEB', mailBorder: '#E24B4A', textColor: '#791F1F',
+      isAgence: true, isCA: true,
+      recipientNom: 'Saint-Agne', recipientAgence: null,
+      newValue: '387 400 €', oldValue: '341 000 €', pctGain: '+13,6%',
+      period: '2026', dossierClient: 'DUPONT Martin', dossierCA: '18 500 €', dossierDate: '22/03/2026',
+      teamMembers: ['Sophie Martin', 'Thomas Godard', 'Kevin Barbier'],
+    })
+  },
+];
+
+function renderMailTestButtons() {
+  const el = document.getElementById('mail-test-buttons');
+  if (!el) return;
+  el.innerHTML = MAIL_TEST_DEFS.map((def, i) =>
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:8px;border:0.5px solid var(--border)">' +
+      '<span style="font-size:13px">' + def.icon + ' ' + def.label + '</span>' +
+      '<button class="btn btn-outline btn-sm" id="btn-test-' + i + '" onclick="sendSpecificTestMail(' + i + ')">Tester</button>' +
+    '</div>'
+  ).join('');
 }
+
+async function sendSpecificTestMail(i) {
+  const def = MAIL_TEST_DEFS[i];
+  const btn = document.getElementById('btn-test-' + i);
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  try {
+    await sendEmail(def.key, 'thomas.godard@booster-immobilier.com', def.getData());
+    if (btn) { btn.textContent = '✓ Envoyé'; btn.style.color = '#16a34a'; }
+    showToast(def.icon + ' ' + def.label + ' envoyé ✓', 'success');
+  } catch(e) {
+    if (btn) { btn.textContent = '✗ Erreur'; btn.style.color = '#dc2626'; }
+    showToast('Erreur envoi : ' + e.message, 'error');
+  }
+  setTimeout(() => {
+    if (btn) { btn.textContent = 'Tester'; btn.disabled = false; btn.style.color = ''; }
+  }, 4000);
+}
+
+async function sendTestMail() { await sendSpecificTestMail(0); }
 
 // Données en attente pour la modale mail
 let _pendingMailData = null;
