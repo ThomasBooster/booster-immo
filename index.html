@@ -7396,9 +7396,15 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // =====================
 function openAffairesApporteur(nom, dosIds) {
   if (!nom) return;
-  let dos = DB.dossiers.filter(d => d.apporteurNom === nom && d.statut !== 'ANNULÉ');
-  // Si un périmètre est fourni (IDs), on filtre
-  if (dosIds && dosIds.length) dos = dos.filter(d => dosIds.includes(d.id));
+  let dos;
+  if (dosIds && dosIds.length) {
+    // Périmètre fourni : on filtre UNIQUEMENT sur ces IDs
+    // puis on vérifie que l'apporteur correspond bien
+    dos = DB.dossiers.filter(d => dosIds.includes(d.id) && d.apporteurNom === nom && d.statut !== 'ANNULÉ');
+  } else {
+    // Pas de périmètre : tous les dossiers de cet apporteur
+    dos = DB.dossiers.filter(d => d.apporteurNom === nom && d.statut !== 'ANNULÉ');
+  }
   dos = dos.sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
 
   document.getElementById('modal-apporteur-titre').textContent = nom;
