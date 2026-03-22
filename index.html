@@ -8939,9 +8939,11 @@ async function checkRecordsAfterVente(dossier, negoLinks) {
   DB.records = newRecords;
 
   const beaten = [];
+  // Ne déclencher que si l'ancien record existait ET que la valeur a augmenté
+  // (évite les fausses alertes au premier chargement)
   Object.entries(newRecords).forEach(([key, rec]) => {
     const old = oldRecords[key];
-    if (!old || rec.value > old.value) {
+    if (old && rec.value > old.value) {
       beaten.push({ key, rec, old });
     }
   });
@@ -9109,7 +9111,7 @@ function renderMailToggles() {
   const el = document.getElementById('mail-toggles-list');
   if (!el) return;
   if (!DB.mailSettings) DB.mailSettings = {};
-  const testIndexMap = { nouvelle_vente: 1, alerte_butoire: 2, alerte_pe: 3, alerte_cci: 4, record_beaten: 5 };
+  const testIndexMap = { resume_hebdo: 1, nouvelle_vente: 2, alerte_butoire: 3, alerte_pe: 4, alerte_cci: 5, record_beaten: 6 };
   const rows = MAIL_SETTINGS_DEFS.map(d => {
     const isOn = DB.mailSettings[d.key] !== false;
     const ti = testIndexMap[d.key];
@@ -9160,6 +9162,19 @@ const MAIL_TEST_DEFS = [
       heure: new Date().toLocaleTimeString('fr-FR'),
       nbDossiers: DB.dossiers?.length || 0,
       nbNegos: DB.negociateurs?.length || 0,
+    })
+  },
+  {
+    key: 'resume_hebdo', label: 'Résumé hebdomadaire', icon: '📊',
+    getData: () => ({
+      agence: 'Saint-Agne',
+      periode: '16 au 22 mars 2026',
+      stats: { caNet: '47 300 €', nbVentes: 3, nbActes: 2, nbEnAttente: 4 },
+      topNegos: [
+        { nom: 'Sophie Martin', ca: '28 500 €', nbVentes: 2 },
+        { nom: 'Thomas Godard', ca: '18 800 €', nbVentes: 1 },
+      ],
+      alertes: ['2 dossiers avec date butoire dans moins de 7 jours', '1 période d essai à valider avant le 28/03'],
     })
   },
   {
@@ -9493,8 +9508,8 @@ function buildRecordsSection(containerId, filtreNiveauKey, filtreNiveauVal) {
   </div>
 
       <!-- Modal confirmation envoi mail nouvelle vente -->
-      <div class="modal" id="modal-confirm-mail" style="z-index:10000">
-        <div class="modal-content" style="max-width:460px;padding:28px">
+      <div class="modal-overlay" id="modal-confirm-mail" style="z-index:10000">
+        <div class="modal" style="max-width:460px;padding:28px">
           <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px">
             <div style="width:40px;height:40px;border-radius:50%;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">✅</div>
             <div>
@@ -9522,8 +9537,8 @@ function buildRecordsSection(containerId, filtreNiveauKey, filtreNiveauVal) {
       </div>
 
       <!-- Modal record battu -->
-      <div class="modal" id="modal-record" style="z-index:10001">
-        <div class="modal-content" style="max-width:460px;text-align:center;padding:0;overflow:hidden">
+      <div class="modal-overlay" id="modal-record" style="z-index:10001">
+        <div class="modal" style="max-width:460px;text-align:center;padding:0;overflow:hidden">
           <div id="modal-record-header" style="padding:24px 32px 16px">
             <div id="modal-record-type" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px"></div>
             <div id="modal-record-title" style="font-size:20px;font-weight:700;color:var(--primary)"></div>
