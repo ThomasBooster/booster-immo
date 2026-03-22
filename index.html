@@ -8496,8 +8496,9 @@ function getEmailsAdmin() {
 
 // ── Notification nouvelle vente ──
 async function notifyNouvelleVente(dossier, negociateurs, rentreurs, saisiPar) {
+  const agences = getMailAgences('nouvelle_vente');
+  if (!agences.includes(dossier.agence)) return; // Agence non configurée
   const emails = getEmailsForAgence(dossier.agence);
-  // Ajouter emails des collabs si dispo
   const links = (DB.dossierNeg||[]).filter(l=>l.dossier_id===dossier.id);
   const collabEmails = links.map(l=>{ const n=DB.negociateurs.find(x=>x.id===l.negociateur_id); return n?.email||''; }).filter(Boolean);
   const allEmails = [...new Set([...emails, ...collabEmails])];
@@ -8525,7 +8526,9 @@ async function sendAlertesButoires() {
 
   // Grouper par agence
   const parAgence = {};
+  const agButoire = getMailAgences('alerte_butoire');
   dossiers.forEach(d => {
+    if (agButoire.length > 0 && !agButoire.includes(d.agence)) return;
     if (!parAgence[d.agence]) parAgence[d.agence] = [];
     const jours = Math.ceil((new Date(d.dateButoire) - now) / 86400000);
     const links = (DB.dossierNeg||[]).filter(l=>l.dossier_id===d.id);
@@ -8546,7 +8549,9 @@ async function sendAlertesButoires() {
 // ── Alertes PE à J-15 ──
 async function sendAlertesPE() {
   const now = new Date();
+  const agPE = getMailAgences('alerte_pe');
   const collabs = (DB.negociateurs||[]).filter(n => {
+    if (agPE.length > 0 && !agPE.includes(n.agence)) return false;
     if (!n.actif || !n.date_fin_periode_essai) return false;
     if (n.periode_essai_validee === true || n.periode_essai_validee === false) return false;
     const jours = Math.ceil((new Date(n.date_fin_periode_essai) - now) / 86400000);
@@ -8563,7 +8568,9 @@ async function sendAlertesPE() {
 
 // ── Alertes CCI manquante ──
 async function sendAlertesCCI() {
+  const agCCI = getMailAgences('alerte_cci');
   const collabs = (DB.negociateurs||[]).filter(n => {
+    if (agCCI.length > 0 && !agCCI.includes(n.agence)) return false;
     if (!n.actif || n.nom.startsWith('🍒')) return false;
     const needsCCI = ['salarié','responsable','agent-co','alternant'].includes(n.statut_emploi);
     if (!needsCCI) return false;
@@ -9044,6 +9051,10 @@ async function notifyRecordBeaten(key, rec, old, dossierDeclencheur) {
   const isCA = key.includes('ca');
 
   // Destinataires
+  const agRecord = getMailAgences('record_beaten');
+  // Vérifier que l'agence concernée est dans la liste
+  const agenceConcernee = isAgence ? rec.agence : (DB.negociateurs.find(n=>n.id===rec.negoId)?.agence);
+  if (agRecord.length > 0 && agenceConcernee && !agRecord.includes(agenceConcernee)) return;
   let emails = getEmailsAdmin();
   if (!isAgence && rec.negoId) {
     const nego = DB.negociateurs.find(n => n.id === rec.negoId);
@@ -9091,10 +9102,27 @@ async function loadMailSettings() {
   try {
     const rows = await sbSelect('settings', 'key,value', 'key=like.mail_%');
     DB.mailSettings = {};
-    (rows || []).forEach(r => { DB.mailSettings[r.key.replace('mail_', '')] = r.value === 'true'; });
-    // Valeurs par défaut : tout activé
-    MAIL_SETTINGS_DEFS.forEach(d => { if (DB.mailSettings[d.key] === undefined) DB.mailSettings[d.key] = true; });
-  } catch(e) { DB.mailSettings = {}; MAIL_SETTINGS_DEFS.forEach(d => DB.mailSettings[d.key] = true); }
+    DB.mailAgences = {}; // { 'nouvelle_vente': ['Saint-Agne', 'Minimes', ...], ... }
+    (rows || []).forEach(r => {
+      const k = r.key.replace('mail_', '');
+      if (k.startsWith('agences_')) {
+        // mail_agences_nouvelle_vente => DB.mailAgences['nouvelle_vente'] = [...]
+        const mailKey = k.replace('agences_', '');
+        try { DB.mailAgences[mailKey] = JSON.parse(r.value); } catch(e) { DB.mailAgences[mailKey] = []; }
+      } else {
+        DB.mailSettings[k] = r.value === 'true';
+      }
+    });
+    // Valeurs par défaut : tout activé, agences vides (tout décoché)
+    MAIL_SETTINGS_DEFS.forEach(d => {
+      if (DB.mailSettings[d.key] === undefined) DB.mailSettings[d.key] = true;
+      if (DB.mailAgences[d.key] === undefined) DB.mailAgences[d.key] = [];
+    });
+  } catch(e) {
+    DB.mailSettings = {};
+    DB.mailAgences = {};
+    MAIL_SETTINGS_DEFS.forEach(d => { DB.mailSettings[d.key] = true; DB.mailAgences[d.key] = []; });
+  }
 }
 
 async function toggleMailSetting(key, val) {
@@ -9107,36 +9135,84 @@ async function toggleMailSetting(key, val) {
   } catch(e) { console.error('toggleMailSetting error', e); }
 }
 
+async function saveMailAgences(mailKey, agences) {
+  if (!DB.mailAgences) DB.mailAgences = {};
+  DB.mailAgences[mailKey] = agences;
+  const settingKey = 'mail_agences_' + mailKey;
+  const val = JSON.stringify(agences);
+  try {
+    const rows = await sbSelect('settings', 'key', 'key=eq.' + settingKey);
+    if (rows && rows.length > 0) await sbPatch('settings', { value: val }, 'key=eq.' + settingKey);
+    else await sbInsert('settings', { key: settingKey, value: val });
+  } catch(e) { console.error('saveMailAgences error', e); }
+}
+
+// Retourner les agences actives pour un type de mail ([] = aucune)
+function getMailAgences(mailKey) {
+  return DB.mailAgences?.[mailKey] || [];
+}
+
+// Filtre les emails selon les agences configurées pour ce type de mail
+function getEmailsForMailType(mailKey, agenceNom) {
+  const agences = getMailAgences(mailKey);
+  if (agences.length === 0) return []; // Aucune agence configurée = pas d'envoi
+  if (agenceNom && !agences.includes(agenceNom)) return []; // Agence exclue
+  return (DB.users || [])
+    .filter(u => u.email && (
+      u.role === 'admin' ||
+      u.role === 'saisie' ||
+      (u.role === 'agence' && agences.includes(u.agence))
+    ))
+    .map(u => u.email)
+    .filter(Boolean);
+}
+
 function renderMailToggles() {
   const el = document.getElementById('mail-toggles-list');
   if (!el) return;
   if (!DB.mailSettings) DB.mailSettings = {};
+  if (!DB.mailAgences) DB.mailAgences = {};
+  const agencesActives = getAgencesActives();
   const testIndexMap = { resume_hebdo: 1, nouvelle_vente: 2, alerte_butoire: 3, alerte_pe: 4, alerte_cci: 5, record_beaten: 6 };
-  const rows = MAIL_SETTINGS_DEFS.map(d => {
+
+  el.innerHTML = '';
+  MAIL_SETTINGS_DEFS.forEach(d => {
     const isOn = DB.mailSettings[d.key] !== false;
+    const selectedAgs = DB.mailAgences[d.key] || [];
     const ti = testIndexMap[d.key];
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;background:white;border-radius:10px;border:1px solid var(--border)';
-    // Label
-    const label = document.createElement('div');
-    label.style.flex = '1';
-    label.innerHTML = '<div style="font-weight:600;font-size:13px">' + d.label + '</div><div style="font-size:11px;color:var(--text-muted)">' + d.desc + '</div>';
-    row.appendChild(label);
-    // Bouton test
+
+    // Carte principale
+    const card = document.createElement('div');
+    card.style.cssText = 'background:white;border-radius:10px;border:1px solid var(--border);overflow:hidden;margin-bottom:2px';
+
+    // Ligne header : label + test + toggle
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px';
+
+    const labelDiv = document.createElement('div');
+    labelDiv.style.flex = '1';
+    labelDiv.innerHTML = '<div style="font-weight:600;font-size:13px">' + d.label + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted)">' + d.desc + '</div>' +
+      '<div style="font-size:11px;margin-top:3px;color:' + (selectedAgs.length > 0 ? '#16a34a' : '#dc2626') + '">' +
+        (selectedAgs.length === 0 ? '⚠️ Aucune agence — mail désactivé' :
+         selectedAgs.length === agencesActives.length ? '✅ Toutes les agences' :
+         '✅ ' + selectedAgs.length + ' agence(s) : ' + selectedAgs.map(a => a.replace('Saint-','St-')).join(', ')) +
+      '</div>';
+    header.appendChild(labelDiv);
+
     if (ti !== undefined) {
       const btn = document.createElement('button');
       btn.className = 'btn btn-outline btn-sm';
-      btn.style.cssText = 'white-space:nowrap;font-size:11px;padding:4px 10px';
+      btn.style.cssText = 'white-space:nowrap;font-size:11px;padding:4px 10px;flex-shrink:0';
       btn.textContent = 'Tester';
       btn.onclick = () => sendSpecificTestMail(ti);
-      row.appendChild(btn);
+      header.appendChild(btn);
     }
-    // Toggle
+
     const wrap = document.createElement('div');
     wrap.style.cssText = 'position:relative;width:44px;height:24px;flex-shrink:0';
     const inp = document.createElement('input');
-    inp.type = 'checkbox';
-    inp.checked = isOn;
+    inp.type = 'checkbox'; inp.checked = isOn;
     inp.style.cssText = 'opacity:0;width:0;height:0;position:absolute';
     inp.onchange = function() { toggleMailSetting(d.key, this.checked).then(()=>renderMailToggles()); };
     const track = document.createElement('span');
@@ -9144,14 +9220,55 @@ function renderMailToggles() {
     track.onclick = () => inp.click();
     const thumb = document.createElement('span');
     thumb.style.cssText = 'position:absolute;top:3px;left:' + (isOn?'22px':'3px') + ';width:18px;height:18px;background:white;border-radius:50%;transition:left .2s';
-    track.appendChild(thumb);
-    wrap.appendChild(inp);
-    wrap.appendChild(track);
-    row.appendChild(wrap);
-    return row;
+    track.appendChild(thumb); wrap.appendChild(inp); wrap.appendChild(track);
+    header.appendChild(wrap);
+    card.appendChild(header);
+
+    // Section agences (toujours visible)
+    const agSection = document.createElement('div');
+    agSection.style.cssText = 'padding:10px 16px 12px;border-top:1px solid var(--border);background:var(--bg)';
+
+    const agLabel = document.createElement('div');
+    agLabel.style.cssText = 'font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em';
+    agLabel.textContent = 'Agences destinataires';
+    agSection.appendChild(agLabel);
+
+    const agGrid = document.createElement('div');
+    agGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
+
+    agencesActives.forEach(ag => {
+      const checked = selectedAgs.includes(ag);
+      const pill = document.createElement('label');
+      pill.style.cssText = 'display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;border:1px solid ' +
+        (checked ? 'var(--primary)' : 'var(--border)') + ';background:' + (checked ? '#e8edf2' : 'white') + ';color:' + (checked ? 'var(--primary)' : 'var(--text-muted)');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = checked;
+      cb.style.cssText = 'width:13px;height:13px;accent-color:var(--primary)';
+      cb.onchange = function() {
+        const current = DB.mailAgences[d.key] || [];
+        const updated = this.checked ? [...current, ag] : current.filter(x => x !== ag);
+        saveMailAgences(d.key, updated).then(() => renderMailToggles());
+      };
+      pill.appendChild(cb);
+      pill.appendChild(document.createTextNode(ag.replace('Saint-', 'St-')));
+      agGrid.appendChild(pill);
+    });
+
+    // Bouton "Toutes" / "Aucune"
+    const btnAll = document.createElement('button');
+    btnAll.className = 'btn btn-outline btn-sm';
+    btnAll.style.cssText = 'font-size:11px;padding:3px 8px;border-radius:20px';
+    btnAll.textContent = selectedAgs.length === agencesActives.length ? 'Tout décocher' : 'Toutes';
+    btnAll.onclick = () => {
+      const newList = selectedAgs.length === agencesActives.length ? [] : [...agencesActives];
+      saveMailAgences(d.key, newList).then(() => renderMailToggles());
+    };
+    agGrid.appendChild(btnAll);
+
+    agSection.appendChild(agGrid);
+    card.appendChild(agSection);
+    el.appendChild(card);
   });
-  el.innerHTML = '';
-  rows.forEach(r => el.appendChild(r));
 }
 
 const MAIL_TEST_DEFS = [
