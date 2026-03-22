@@ -1235,10 +1235,8 @@
               <button class="btn btn-outline btn-sm" onclick="sendAlertesCCI().then(()=>showToast('Alertes CCI envoyées ✓','success'))">🏛 CCI manquantes</button>
             </div>
           </div>
-          <div style="margin-top:16px;padding:16px;background:white;border-radius:10px;border:1px solid var(--border)">
-            <div style="font-weight:600;font-size:13px;margin-bottom:4px">🧪 Tests d'envoi</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Chaque bouton envoie un exemple à thomas.godard@booster-immobilier.com</div>
-            <div style="display:flex;flex-direction:column;gap:8px" id="mail-test-buttons"></div>
+          <div style="margin-top:4px;padding:12px 16px;background:white;border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--text-muted)">🧪 Les boutons "Tester" envoient un exemple à thomas.godard@booster-immobilier.com</div>
           </div>
         </div>
 
@@ -2615,7 +2613,6 @@ async function initApp() {
     document.getElementById('params-reseau-section').style.display = 'block';
     document.getElementById('params-mail-section').style.display = 'block';
     renderMailToggles();
-    renderMailTestButtons();
     document.getElementById('nav-saisie-section').style.display = 'block';
     renderUsersList();
   } else if (currentUser.role === 'agence') {
@@ -9099,6 +9096,7 @@ async function loadMailSettings() {
 }
 
 async function toggleMailSetting(key, val) {
+  if (!DB.mailSettings) DB.mailSettings = {};
   DB.mailSettings[key] = val;
   try {
     const rows = await sbSelect('settings', 'key', 'key=eq.mail_' + key);
@@ -9110,24 +9108,48 @@ async function toggleMailSetting(key, val) {
 function renderMailToggles() {
   const el = document.getElementById('mail-toggles-list');
   if (!el) return;
-  el.innerHTML = MAIL_SETTINGS_DEFS.map(d => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:white;border-radius:10px;border:1px solid var(--border)">
-      <div>
-        <div style="font-weight:600;font-size:13px">${d.label}</div>
-        <div style="font-size:12px;color:var(--text-muted)">${d.desc}</div>
-      </div>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <div style="position:relative;width:44px;height:24px">
-          <input type="checkbox" id="mail-toggle-${d.key}" ${DB.mailSettings?.[d.key] ? 'checked' : ''}
-            onchange="toggleMailSetting('${d.key}', this.checked)"
-            style="opacity:0;width:0;height:0;position:absolute">
-          <span onclick="document.getElementById('mail-toggle-${d.key}').click()"
-            style="position:absolute;inset:0;background:${DB.mailSettings?.[d.key] ? 'var(--primary)' : '#cbd5e1'};border-radius:12px;cursor:pointer;transition:background .2s">
-            <span style="position:absolute;top:3px;left:${DB.mailSettings?.[d.key] ? '22px' : '3px'};width:18px;height:18px;background:white;border-radius:50%;transition:left .2s"></span>
-          </span>
-        </div>
-      </label>
-    </div>`).join('');
+  if (!DB.mailSettings) DB.mailSettings = {};
+  const testIndexMap = { nouvelle_vente: 1, alerte_butoire: 2, alerte_pe: 3, alerte_cci: 4, record_beaten: 5 };
+  const rows = MAIL_SETTINGS_DEFS.map(d => {
+    const isOn = DB.mailSettings[d.key] !== false;
+    const ti = testIndexMap[d.key];
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;background:white;border-radius:10px;border:1px solid var(--border)';
+    // Label
+    const label = document.createElement('div');
+    label.style.flex = '1';
+    label.innerHTML = '<div style="font-weight:600;font-size:13px">' + d.label + '</div><div style="font-size:11px;color:var(--text-muted)">' + d.desc + '</div>';
+    row.appendChild(label);
+    // Bouton test
+    if (ti !== undefined) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-outline btn-sm';
+      btn.style.cssText = 'white-space:nowrap;font-size:11px;padding:4px 10px';
+      btn.textContent = 'Tester';
+      btn.onclick = () => sendSpecificTestMail(ti);
+      row.appendChild(btn);
+    }
+    // Toggle
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;width:44px;height:24px;flex-shrink:0';
+    const inp = document.createElement('input');
+    inp.type = 'checkbox';
+    inp.checked = isOn;
+    inp.style.cssText = 'opacity:0;width:0;height:0;position:absolute';
+    inp.onchange = function() { toggleMailSetting(d.key, this.checked).then(()=>renderMailToggles()); };
+    const track = document.createElement('span');
+    track.style.cssText = 'position:absolute;inset:0;background:' + (isOn?'var(--primary)':'#cbd5e1') + ';border-radius:12px;cursor:pointer;transition:background .2s';
+    track.onclick = () => inp.click();
+    const thumb = document.createElement('span');
+    thumb.style.cssText = 'position:absolute;top:3px;left:' + (isOn?'22px':'3px') + ';width:18px;height:18px;background:white;border-radius:50%;transition:left .2s';
+    track.appendChild(thumb);
+    wrap.appendChild(inp);
+    wrap.appendChild(track);
+    row.appendChild(wrap);
+    return row;
+  });
+  el.innerHTML = '';
+  rows.forEach(r => el.appendChild(r));
 }
 
 const MAIL_TEST_DEFS = [
