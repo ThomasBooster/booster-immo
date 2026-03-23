@@ -965,8 +965,11 @@
       <!-- SAISIE -->
       <div class="page" id="page-saisie">
         <div class="card">
-          <div class="card-header">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
             <span class="card-title">Nouveau dossier SSP</span>
+            <button class="btn btn-primary btn-sm" onclick="openSaisieFacile()" style="display:flex;align-items:center;gap:6px;padding:8px 16px">
+              <span style="font-size:15px">✨</span> Saisie facile
+            </button>
           </div>
           <div class="card-body">
             <!-- Infos générales -->
@@ -9139,15 +9142,15 @@ async function loadMailSettings() {
         DB.mailSettings[k] = r.value === 'true';
       }
     });
-    // Valeurs par défaut : tout activé, agences vides (tout décoché)
+    // Valeur par défaut : false si jamais sauvegardé (pas de valeur par défaut à true)
     MAIL_SETTINGS_DEFS.forEach(d => {
-      if (DB.mailSettings[d.key] === undefined) DB.mailSettings[d.key] = true;
+      if (DB.mailSettings[d.key] === undefined) DB.mailSettings[d.key] = false;
       if (DB.mailAgences[d.key] === undefined) DB.mailAgences[d.key] = [];
     });
   } catch(e) {
     DB.mailSettings = {};
     DB.mailAgences = {};
-    MAIL_SETTINGS_DEFS.forEach(d => { DB.mailSettings[d.key] = true; DB.mailAgences[d.key] = []; });
+    MAIL_SETTINGS_DEFS.forEach(d => { DB.mailSettings[d.key] = false; DB.mailAgences[d.key] = []; });
   }
 }
 
@@ -9503,6 +9506,572 @@ function buildRecordsSection(containerId, filtreNiveauKey, filtreNiveauVal) {
   el.innerHTML = recordsHtml || '<span style="color:var(--text-muted);font-size:13px">Aucun record enregistré sur ce périmètre</span>';
 }
 
+
+// ═══════════════════════════════════════════════════════════
+// SAISIE FACILE
+// ═══════════════════════════════════════════════════════════
+const SF_TOTAL = 11;
+const SF_NAMES = ['Client','Montant','Statut','Dates','Remarque','Diag & Apporteur','Rétrocession','Agences','Négociateurs','Rentreurs','Récap'];
+
+let sfCur = 1;
+let sfNbAg = 1;
+let sfNbRent = 1;
+let sfNegLines = {};
+let sfData = {};
+
+function sfGoHome() {
+  closeSaisieFacile();
+  const navDashboard = document.querySelector('.nav-item');
+  if (navDashboard) showPage('dashboard', navDashboard);
+}
+function sfOnKeyEnter(e) { if (e.key === 'Enter') sfNext(); }
+function sfReset() {
+  sfCur = 1; sfNbAg = 1; sfNbRent = 1; sfNegLines = {};
+  sfData = { client:'', ttc:0, ht:0, statut:'', ssp:'', butoire:'', remarque:'',
+             diag:false, apporteur:false, apNom:'', apPct:0, retro:false, retroMt:0 };
+}
+
+function openSaisieFacile() {
+  sfReset();
+  const dotsEl = document.getElementById('sf-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 1; i <= SF_TOTAL; i++) {
+    const d = document.createElement('div');
+    d.id = 'sf-dot' + i;
+    d.style.cssText = 'width:8px;height:8px;border-radius:50%;background:' + (i===1?'var(--primary)':'var(--border)') + ';transition:background .3s' + (i===1?';box-shadow:0 0 0 3px #e8edf2':'');
+    dotsEl.appendChild(d);
+  }
+  sfGoStep(1);
+  document.getElementById('modal-saisie-facile').classList.add('open');
+}
+
+function closeSaisieFacile() {
+  document.getElementById('modal-saisie-facile').classList.remove('open');
+}
+
+function sfGoStep(n) {
+  sfCur = n;
+  const prog = Math.round(n / SF_TOTAL * 100);
+  document.getElementById('sf-prog').style.width = prog + '%';
+  document.getElementById('sf-step-label').textContent = 'Étape ' + n + ' / ' + SF_TOTAL;
+  document.getElementById('sf-step-name').textContent = SF_NAMES[n - 1] || '';
+  for (let i = 1; i <= SF_TOTAL; i++) {
+    const d = document.getElementById('sf-dot' + i);
+    if (!d) continue;
+    if (i < n)      { d.style.background = 'var(--primary)'; d.style.boxShadow = ''; }
+    else if (i === n) { d.style.background = 'var(--primary)'; d.style.boxShadow = '0 0 0 3px #e8edf2'; }
+    else             { d.style.background = 'var(--border)';  d.style.boxShadow = ''; }
+  }
+  const body = document.getElementById('sf-body');
+  body.innerHTML = sfBuildStep(n);
+  body.scrollTop = 0;
+  // Focus premier input
+  setTimeout(() => {
+    const inp = body.querySelector('input:not([readonly]),select');
+    if (inp) inp.focus();
+  }, 60);
+  // Reconstruire les sections dynamiques
+  if (n === 9) sfRenderNegSections();
+  if (n === 10) sfRenderRentRows();
+  if (n === 11) sfFillRecap();
+}
+
+function sfNext() { sfGoStep(sfCur + 1); }
+function sfPrev() { sfGoStep(sfCur - 1); }
+
+// ── NAV HTML ──
+function sfNav(showPrev=true) {
+  return '<div style="display:flex;gap:8px;margin-top:16px;align-items:center">' +
+    (showPrev ? '<button onclick="sfPrev()" style="padding:9px 14px;background:none;border:0.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted);cursor:pointer">← Retour</button>' : '') +
+    '<button onclick="sfNext()" style="flex:1;padding:10px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Suivant →</button>' +
+    '</div>';
+}
+
+// ── CONSTRUCTION DE CHAQUE ÉTAPE ──
+function sfBuildStep(n) {
+  const q = (txt) => '<p style="font-size:17px;font-weight:700;color:var(--primary);margin:0 0 14px">' + txt + '</p>';
+  const lbl = (txt, extra='') => '<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">' + txt + extra + '</div>';
+  const hint = (txt, warn=false) => '<p style="font-size:11px;color:' + (warn?'#d97706':'var(--text-muted)') + ';margin-top:4px">' + txt + '</p>';
+  const chip = (txt, field, auto=false) => '<span onclick="sfPickChip(this,\''+field+'\','+auto+')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:white;cursor:pointer;font-size:13px;margin:4px" class="sf-chip">'+txt+'</span>';
+
+  switch(n) {
+    // ── 1. CLIENT ──
+    case 1: return q('Nom du client ?') +
+      '<input id="sf-client" type="text" placeholder="DUPONT" style="width:100%;text-transform:uppercase;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px" oninput="this.value=this.value.toUpperCase()" onkeydown="sfOnKeyEnter(event)">' +
+      hint('Appuyez sur Entrée pour continuer') +
+      sfNav(false);
+
+    // ── 2. MONTANT ──
+    case 2: return q('Montant des honoraires ?') +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px">' +
+        '<div>' + lbl('Brut TTC (€)') + '<input id="sf-ttc" type="number" placeholder="180 000" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px" oninput="sfCalcHt()" onkeydown="sfOnKeyEnter(event)"></div>' +
+        '<div>' + lbl('Net HT (auto)') + '<input id="sf-ht-disp" type="text" readonly style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--bg);color:var(--text-muted)"></div>' +
+      '</div>' + hint('TVA 20% — modifiable dans la fiche si besoin') + sfNav();
+
+    // ── 3. STATUT ──
+    case 3: return q('Statut du dossier ?') +
+      '<div style="margin-bottom:4px">' +
+        ['📋 À signer','✅ Signé','⏳ Report','❌ Annulé','🔄 SRU','🏦 Refus de crédit'].map(s => chip(s, 'statut', true)).join('') +
+      '</div>' +
+      sfNav();
+
+    // ── 4. DATES ──
+    case 4: return q('Dates du dossier') +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">' +
+        '<div>' + lbl('Date SSP') + '<input id="sf-ssp" type="date" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px" oninput="sfCalcButoire()" onkeydown="sfOnKeyEnter(event)"></div>' +
+        '<div>' + lbl('Date butoire', ' <span style="color:var(--text-muted);font-size:10px">(auto +3 mois)</span>') +
+          '<input id="sf-butoire" type="date" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px">' +
+          '<p id="sf-but-info" style="font-size:11px;color:var(--text-muted);margin-top:4px"></p>' +
+        '</div>' +
+      '</div>' + sfNav();
+
+    // ── 5. REMARQUE ──
+    case 5: return q('Une remarque ?') +
+      '<p style="font-size:13px;color:var(--text-muted);margin:-10px 0 12px">Optionnel</p>' +
+      '<input id="sf-remarque" type="text" placeholder="Ex: sous condition de pret" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px" onkeydown="sfOnKeyEnter(event)">' +
+      sfNav();
+
+    // ── 6. DIAG + APPORTEUR ──
+    case 6: return q('Options complémentaires') +
+      '<div style="padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:12px">' +
+        '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">' +
+          '<input type="checkbox" id="sf-diag" style="width:16px;height:16px;accent-color:var(--primary)"> 🔍 Prise en charge des diagnostics' +
+        '</label>' +
+      '</div>' +
+      '<div style="padding:12px 14px;border:1.5px solid var(--border);border-radius:10px">' +
+        '<div style="font-size:13px;font-weight:600;margin-bottom:10px">🤝 Apporteur d&apos;affaires ?</div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:10px" id="sf-ap-chips">' +
+          '<span class="sf-chip sf-chip-on" onclick="sfToggleAp(false)" style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:20px;border:1px solid var(--primary);background:#e8edf2;cursor:pointer;font-size:13px;color:var(--primary);font-weight:600">Non</span>' +
+          '<span class="sf-chip" onclick="sfToggleAp(true)" style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:white;cursor:pointer;font-size:13px">Oui</span>' +
+        '</div>' +
+        '<div id="sf-ap-fields" style="display:none">' +
+          '<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:8px">' +
+            '<div>' + lbl('Apporteur') +
+              '<select id="sf-ap-nom" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px" onchange="sfOnApSelect()">' +
+                '<option value="">— Sélectionner —</option>' +
+                (DB.apporteurs || []).map(a => '<option>' + a + '</option>').join('') +
+                '<option value="__nouveau__">Nouveau apporteur...</option>' +
+              '</select>' +
+            '</div>' +
+            '<div>' + lbl('Commission (%)') + '<input id="sf-ap-pct" type="number" placeholder="10" min="0" max="100" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px" oninput="sfCalcApport()"></div>' +
+          '</div>' +
+          '<div id="sf-ap-custom" style="display:none;margin-bottom:8px">' + lbl('Nom du nouvel apporteur') +
+            '<input id="sf-ap-nom-txt" type="text" placeholder="Nom..." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px">' +
+          '</div>' +
+          '<div id="sf-ap-montant" style="font-size:12px;color:var(--text-muted)"></div>' +
+        '</div>' +
+      '</div>' + sfNav();
+
+    // ── 7. RÉTROCESSION ──
+    case 7: return q('Vente hors secteur réseau ?') +
+      '<p style="font-size:13px;color:var(--text-muted);margin:-10px 0 12px">Si oui, une retrocession Booster s&apos;applique.</p>' +
+      '<div style="display:flex;gap:8px;margin-bottom:14px" id="sf-retro-chips">' +
+        '<span class="sf-chip sf-chip-on" onclick="sfSetRetro(false)" style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:20px;border:1px solid var(--primary);background:#e8edf2;cursor:pointer;font-size:13px;color:var(--primary);font-weight:600">Non — dans le secteur</span>' +
+        '<span class="sf-chip" onclick="sfSetRetro(true)" style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:white;cursor:pointer;font-size:13px">Oui — hors secteur</span>' +
+      '</div>' +
+      '<div id="sf-retro-fields" style="display:none">' + lbl('Montant rétrocession Booster (HT)') +
+        '<input id="sf-retro-mt" type="number" value="1500" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px" onkeydown="sfOnKeyEnter(event)">' +
+        hint('Montant par défaut : 1 500 € HT — modifiable si besoin') +
+      '</div>' + sfNav();
+
+    // ── 8. AGENCES ──
+    case 8: return q('Répartition entre agences') +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
+        '<button onclick="sfChangeNbAg(-1)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;color:var(--text)">−</button>' +
+        '<span id="sf-nb-ag-disp" style="font-size:18px;font-weight:700;min-width:24px;text-align:center;color:var(--primary)">' + sfNbAg + '</span>' +
+        '<button onclick="sfChangeNbAg(1)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;color:var(--text)">+</button>' +
+        '<span style="font-size:13px;color:var(--text-muted)">agence(s)</span>' +
+      '</div>' +
+      '<div id="sf-ag-rows"></div>' +
+      '<div id="sf-ag-warn" style="font-size:12px;margin-top:4px;display:none"></div>' +
+      sfNav() +
+      '<script>sfRenderAgRows();<\/script>';
+
+    // ── 9. NÉGOCIATEURS ──
+    case 9: return q('Négociateurs') +
+      '<div id="sf-neg-sections"></div>' + sfNav();
+
+    // ── 10. RENTREURS ──
+    case 10: return q('Rentreur(s)') +
+      '<p style="font-size:13px;color:var(--text-muted);margin:-10px 0 12px">Le CA rentrée est celui percu par l&apos;agence du rentreur.</p>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
+        '<button onclick="sfChangeNbRent(-1)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;color:var(--text)">−</button>' +
+        '<span id="sf-nb-rent-disp" style="font-size:18px;font-weight:700;min-width:24px;text-align:center;color:var(--primary)">' + sfNbRent + '</span>' +
+        '<button onclick="sfChangeNbRent(1)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;color:var(--text)">+</button>' +
+        '<span style="font-size:13px;color:var(--text-muted)">rentreur(s)</span>' +
+      '</div>' +
+      '<div id="sf-rent-rows"></div>' + sfNav();
+
+    // ── 11. RÉCAP ──
+    case 11: return q('Tout est correct ?') +
+      '<div id="sf-recap-body" style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px"></div>' +
+      '<div style="display:flex;gap:8px;margin-top:16px">' +
+        '<button onclick="sfPrev()" style="padding:9px 14px;background:none;border:0.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted);cursor:pointer">← Retour</button>' +
+        '<button onclick="sfValider()" style="flex:1;padding:10px;background:#16a34a;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">✅ Enregistrer</button>' +
+      '</div>';
+
+    default: return '';
+  }
+}
+
+// ── ÉTAPE 2 : calcul HT ──
+function sfCalcHt() {
+  const el = document.getElementById('sf-ttc');
+  if (!el) return;
+  const ttc = parseFloat(el.value) || 0;
+  sfData.ttc = ttc; sfData.ht = Math.round(ttc / 1.2);
+  const disp = document.getElementById('sf-ht-disp');
+  if (disp) disp.value = sfData.ht > 0 ? sfData.ht.toLocaleString('fr-FR') + ' €' : '';
+}
+
+// ── ÉTAPE 3 : chips statut ──
+function sfPickChip(el, field, autoNext=false) {
+  el.closest('div').querySelectorAll('.sf-chip').forEach(c => {
+    c.style.borderColor = 'var(--border)'; c.style.background = 'white';
+    c.style.color = 'inherit'; c.style.fontWeight = '';
+  });
+  el.style.borderColor = 'var(--primary)'; el.style.background = '#e8edf2';
+  el.style.color = 'var(--primary)'; el.style.fontWeight = '600';
+  sfData[field] = el.textContent.replace(/^[^\w]+/, '').trim();
+  if (autoNext) setTimeout(sfNext, 220);
+}
+
+// ── ÉTAPE 4 : date butoire sans timezone ──
+function sfCalcButoire() {
+  const el = document.getElementById('sf-ssp'); if (!el || !el.value) return;
+  const [y, m, d] = el.value.split('-').map(Number);
+  let nm = m - 1 + 3;
+  let ny = y + Math.floor(nm / 12); nm = nm % 12;
+  const maxD = new Date(ny, nm + 1, 0).getDate();
+  const nd = Math.min(d, maxD);
+  const date = new Date(ny, nm, nd);
+  const dow = date.getDay();
+  let msg = '';
+  if (dow === 6) { date.setDate(date.getDate() - 1); msg = '⚠️ Tombait un samedi → avancé au vendredi'; }
+  else if (dow === 0) { date.setDate(date.getDate() + 1); msg = '⚠️ Tombait un dimanche → repoussé au lundi'; }
+  const fy = date.getFullYear();
+  const fm = String(date.getMonth() + 1).padStart(2, '0');
+  const fd = String(date.getDate()).padStart(2, '0');
+  const iso = fy + '-' + fm + '-' + fd;
+  const but = document.getElementById('sf-butoire'); if (but) { but.value = iso; sfData.butoire = iso; }
+  const info = document.getElementById('sf-but-info');
+  if (info) { info.textContent = msg || '→ ' + fd + '/' + fm + '/' + fy; info.style.color = msg ? '#d97706' : 'var(--text-muted)'; }
+}
+
+// ── ÉTAPE 6 : apporteur ──
+function sfToggleAp(v) {
+  sfData.apporteur = v;
+  const chips = document.getElementById('sf-ap-chips');
+  if (chips) chips.querySelectorAll('.sf-chip').forEach((c, i) => {
+    const on = i === (v ? 1 : 0);
+    c.style.borderColor = on ? 'var(--primary)' : 'var(--border)';
+    c.style.background = on ? '#e8edf2' : 'white';
+    c.style.color = on ? 'var(--primary)' : 'inherit';
+    c.style.fontWeight = on ? '600' : '';
+  });
+  const f = document.getElementById('sf-ap-fields'); if (f) f.style.display = v ? 'block' : 'none';
+}
+function sfOnApSelect() {
+  const sel = document.getElementById('sf-ap-nom'); if (!sel) return;
+  const custom = document.getElementById('sf-ap-custom');
+  if (custom) custom.style.display = sel.value === '__nouveau__' ? 'block' : 'none';
+  sfCalcApport();
+}
+function sfCalcApport() {
+  const pct = parseFloat(document.getElementById('sf-ap-pct')?.value) || 0;
+  const mt = Math.round(sfData.ht * pct / 100);
+  const el = document.getElementById('sf-ap-montant');
+  if (el) el.textContent = mt > 0 ? '→ ' + mt.toLocaleString('fr-FR') + ' € HT reversé' : '';
+}
+
+// ── ÉTAPE 7 : rétrocession ──
+function sfSetRetro(v) {
+  sfData.retro = v;
+  const chips = document.getElementById('sf-retro-chips');
+  if (chips) chips.querySelectorAll('.sf-chip').forEach((c, i) => {
+    const on = i === (v ? 1 : 0);
+    c.style.borderColor = on ? 'var(--primary)' : 'var(--border)';
+    c.style.background = on ? '#e8edf2' : 'white';
+    c.style.color = on ? 'var(--primary)' : 'inherit';
+    c.style.fontWeight = on ? '600' : '';
+  });
+  const f = document.getElementById('sf-retro-fields'); if (f) f.style.display = v ? 'block' : 'none';
+  if (v) setTimeout(() => { const el = document.getElementById('sf-retro-mt'); if (el) el.focus(); }, 50);
+}
+
+// ── ÉTAPE 8 : agences ──
+function sfChangeNbAg(d) {
+  sfNbAg = Math.max(1, Math.min(6, sfNbAg + d));
+  const el = document.getElementById('sf-nb-ag-disp'); if (el) el.textContent = sfNbAg;
+  sfRenderAgRows();
+}
+function sfRenderAgRows() {
+  const c = document.getElementById('sf-ag-rows'); if (!c) return;
+  c.innerHTML = '';
+  for (let i = 0; i < sfNbAg; i++) {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:grid;grid-template-columns:1fr' + (sfNbAg > 1 ? ' 80px 90px' : '') + ';gap:8px;align-items:end;margin-bottom:8px;padding:10px;background:var(--bg);border-radius:10px';
+    div.innerHTML =
+      '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Agence ' + (sfNbAg > 1 ? i + 1 : '') + '</div>' +
+      '<select id="sf-ag-sel-' + i + '" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px" onchange="sfCheckAgPct()">' +
+      '<option value="">— Sélectionner —</option>' +
+      AGENCES.map(a => '<option>' + a + '</option>').join('') +
+      '</select></div>' +
+      (sfNbAg > 1 ? '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">%</div><input type="number" id="sf-ag-pct-' + i + '" placeholder="50" min="0" max="100" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px" oninput="sfCheckAgPct()"></div>' : '<div></div>') +
+      '<div style="font-size:12px;color:var(--text-muted)" id="sf-ag-ht-' + i + '"></div>';
+    c.appendChild(div);
+  }
+  if (sfNbAg === 1 && sfData.ht) { const el = document.getElementById('sf-ag-ht-0'); if (el) el.textContent = sfData.ht.toLocaleString('fr-FR') + ' € HT'; }
+}
+function sfCheckAgPct() {
+  if (sfNbAg <= 1) { document.getElementById('sf-ag-warn').style.display = 'none'; return; }
+  let tot = 0;
+  for (let i = 0; i < sfNbAg; i++) tot += parseFloat(document.getElementById('sf-ag-pct-' + i)?.value) || 0;
+  const w = document.getElementById('sf-ag-warn'); if (!w) return;
+  const diff = Math.abs(tot - 100);
+  w.style.display = diff > 0.01 ? 'block' : 'none';
+  if (diff > 0.01) { w.style.color = tot > 100 ? '#dc2626' : '#d97706'; w.textContent = tot > 100 ? '⚠️ Total ' + tot.toFixed(1) + '% — dépasse 100%' : 'ℹ️ Total ' + tot.toFixed(1) + '% — reste ' + (100 - tot).toFixed(1) + '%'; }
+  if (sfData.ht) for (let i = 0; i < sfNbAg; i++) {
+    const pct = parseFloat(document.getElementById('sf-ag-pct-' + i)?.value) || 0;
+    const el = document.getElementById('sf-ag-ht-' + i); if (el) el.textContent = pct > 0 ? Math.round(sfData.ht * pct / 100).toLocaleString('fr-FR') + ' € HT' : '';
+  }
+}
+
+// ── ÉTAPE 9 : négociateurs ──
+function sfRenderNegSections() {
+  const c = document.getElementById('sf-neg-sections'); if (!c) return;
+  c.innerHTML = '';
+  for (let i = 0; i < sfNbAg; i++) {
+    const sel = document.getElementById('sf-ag-sel-' + i);
+    const ag = sel ? sel.value : '';
+    if (!ag) continue;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:14px;padding:12px;background:var(--bg);border-radius:10px';
+    wrap.innerHTML = '<div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px">🏢 ' + ag + '</div>' +
+      '<div id="sf-neg-lignes-' + i + '"></div>' +
+      '<button onclick="sfAddNegLine(' + i + ')" style="font-size:12px;color:var(--primary);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:2px">+ Ajouter un négociateur</button>';
+    c.appendChild(wrap);
+    sfRenderNegLines(i, ag);
+  }
+  if (!c.children.length) c.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">Selectionnez une agence a l&apos;etape 8.</p>';
+}
+function sfRenderNegLines(agIdx, ag) {
+  if (!sfNegLines[agIdx]) sfNegLines[agIdx] = [{ val: '', pct: '' }];
+  const negos = negosByAgence(ag).map(n => n.nom);
+  const c = document.getElementById('sf-neg-lignes-' + agIdx); if (!c) return;
+  c.innerHTML = sfNegLines[agIdx].map((l, li) =>
+    '<div style="display:grid;grid-template-columns:1fr 90px 28px;gap:6px;align-items:center;margin-bottom:6px">' +
+      '<select onchange="sfNegLines[' + agIdx + '][' + li + '].val=this.value" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">' +
+        '<option value="">— Négociateur —</option>' +
+        negos.map(n => '<option' + (n === l.val ? ' selected' : '') + '>' + n + '</option>').join('') +
+      '</select>' +
+      '<div style="display:flex;align-items:center;gap:4px">' +
+        '<input type="number" placeholder="%" value="' + l.pct + '" style="width:62px;min-width:0;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" oninput="sfNegLines[' + agIdx + '][' + li + '].pct=this.value;sfAutoNegPct(' + agIdx + ',' + li + ')">' +
+        '<span style="font-size:11px;color:var(--text-muted)">%</span>' +
+      '</div>' +
+      (li > 0 ? '<button onclick="sfRemoveNegLine(' + agIdx + ',' + li + ')" style="color:#dc2626;background:none;border:none;cursor:pointer;font-size:14px">✕</button>' : '<div></div>') +
+    '</div>'
+  ).join('');
+}
+function sfAddNegLine(agIdx) {
+  const sel = document.getElementById('sf-ag-sel-' + agIdx); const ag = sel ? sel.value : '';
+  if (!sfNegLines[agIdx]) sfNegLines[agIdx] = [];
+  const used = sfNegLines[agIdx].reduce((s, l) => s + (parseFloat(l.pct) || 0), 0);
+  sfNegLines[agIdx].push({ val: '', pct: Math.max(0, 100 - used) || '' });
+  sfRenderNegLines(agIdx, ag);
+}
+function sfRemoveNegLine(agIdx, li) {
+  sfNegLines[agIdx].splice(li, 1);
+  if (!sfNegLines[agIdx].length) sfNegLines[agIdx] = [{ val: '', pct: '' }];
+  const sel = document.getElementById('sf-ag-sel-' + agIdx);
+  sfRenderNegLines(agIdx, sel ? sel.value : '');
+}
+function sfAutoNegPct(agIdx, li) {
+  const lines = sfNegLines[agIdx];
+  if (lines.length === 2) {
+    const pct = parseFloat(lines[li].pct) || 0;
+    lines[li === 0 ? 1 : 0].pct = Math.max(0, 100 - pct);
+    const sel = document.getElementById('sf-ag-sel-' + agIdx);
+    sfRenderNegLines(agIdx, sel ? sel.value : '');
+  }
+}
+
+// ── ÉTAPE 10 : rentreurs ──
+function sfChangeNbRent(d) {
+  sfNbRent = Math.max(1, Math.min(6, sfNbRent + d));
+  const el = document.getElementById('sf-nb-rent-disp'); if (el) el.textContent = sfNbRent;
+  sfRenderRentRows();
+}
+function sfRenderRentRows() {
+  const c = document.getElementById('sf-rent-rows'); if (!c) return; c.innerHTML = '';
+  const allNegos = [];
+  for (let i = 0; i < sfNbAg; i++) {
+    const s = document.getElementById('sf-ag-sel-' + i);
+    if (s && s.value) negosByAgence(s.value).forEach(n => { if (!allNegos.includes(n.nom)) allNegos.push(n.nom); });
+  }
+  for (let i = 0; i < sfNbRent; i++) {
+    const showPct = sfNbRent > 1;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:' + (showPct ? '1fr 90px' : '1fr') + ';gap:8px;margin-bottom:8px;padding:10px;background:var(--bg);border-radius:10px';
+    row.innerHTML =
+      '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Rentreur' + (sfNbRent > 1 ? ' ' + (i + 1) : '') + '</div>' +
+      '<select id="sf-rent-sel-' + i + '" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px">' +
+        '<option value="">— Sélectionner —</option>' +
+        allNegos.map(n => '<option>' + n + '</option>').join('') +
+      '</select></div>' +
+      (showPct ?
+        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">% partage</div>' +
+        '<div style="display:flex;align-items:center;gap:4px">' +
+          '<input type="number" id="sf-rent-pct-' + i + '" placeholder="50" style="width:62px;min-width:0;padding:10px 8px;border:1.5px solid var(--border);border-radius:10px;font-size:13px" oninput="sfAutoRentPct(' + i + ')">' +
+          '<span style="font-size:11px;color:var(--text-muted)">%</span>' +
+        '</div></div>' : '');
+    c.appendChild(row);
+  }
+}
+function sfAutoRentPct(li) {
+  if (sfNbRent === 2) {
+    const pct = parseFloat(document.getElementById('sf-rent-pct-' + li)?.value) || 0;
+    const el = document.getElementById('sf-rent-pct-' + (li === 0 ? 1 : 0));
+    if (el) el.value = Math.max(0, 100 - pct);
+  }
+}
+
+// ── ÉTAPE 11 : récap ──
+function sfFmt(iso) { if (!iso) return '—'; const [y,m,d] = iso.split('-'); return d+'/'+m+'/'+y; }
+function sfFillRecap() {
+  sfData.client = document.getElementById('sf-client')?.value?.toUpperCase() || '';
+  sfData.ttc = parseFloat(document.getElementById('sf-ttc')?.value) || 0;
+  sfData.ht = Math.round(sfData.ttc / 1.2);
+  sfData.remarque = document.getElementById('sf-remarque')?.value || '';
+  sfData.diag = document.getElementById('sf-diag')?.checked || false;
+  sfData.ssp = document.getElementById('sf-ssp')?.value || '';
+  sfData.butoire = document.getElementById('sf-butoire')?.value || '';
+  if (sfData.apporteur) {
+    const sel = document.getElementById('sf-ap-nom');
+    sfData.apNom = sel?.value === '__nouveau__' ? (document.getElementById('sf-ap-nom-txt')?.value || '') : (sel?.value || '');
+    sfData.apPct = parseFloat(document.getElementById('sf-ap-pct')?.value) || 0;
+  }
+  if (sfData.retro) sfData.retroMt = parseFloat(document.getElementById('sf-retro-mt')?.value) || 1500;
+
+  const row = (l, v, show=true) => show ? '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text-muted)">' + l + '</span><span style="font-weight:600;text-align:right;max-width:60%">' + v + '</span></div>' : '';
+  const sep = (l) => '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">' + l + '</div>';
+  const ags = []; for (let i = 0; i < sfNbAg; i++) { const s = document.getElementById('sf-ag-sel-' + i); const p = document.getElementById('sf-ag-pct-' + i); if (s?.value) ags.push(s.value + (sfNbAg > 1 && p?.value ? ' (' + p.value + '%)' : '')); }
+  const negs = []; for (let i = 0; i < sfNbAg; i++) { const ag = document.getElementById('sf-ag-sel-' + i); (sfNegLines[i]||[]).forEach(l => { if (l.val) negs.push(l.val + (sfNbAg > 1 ? ' (' + (ag?.value||'') + ')' : '') + (l.pct ? ' — ' + l.pct + '%' : '')); }); }
+  const rents = []; for (let i = 0; i < sfNbRent; i++) { const s = document.getElementById('sf-rent-sel-' + i); const p = document.getElementById('sf-rent-pct-' + i); if (s?.value) rents.push(s.value + (p?.value ? ' — ' + p.value + '%' : '')); }
+
+  const el = document.getElementById('sf-recap-body');
+  if (el) el.innerHTML =
+    sep('Dossier') +
+    row('Client', sfData.client || '—') +
+    row('Montant TTC', sfData.ttc ? sfData.ttc.toLocaleString('fr-FR') + ' €' : '—') +
+    row('Montant HT net', sfData.ht ? sfData.ht.toLocaleString('fr-FR') + ' € HT' : '—') +
+    row('Statut', sfData.statut || '—') +
+    row('Date SSP', sfFmt(sfData.ssp)) +
+    row('Date butoire', sfFmt(sfData.butoire)) +
+    row('Remarque', sfData.remarque, !!sfData.remarque) +
+    row('Diagnostics', 'Pris en charge', sfData.diag) +
+    row('Apporteur', (sfData.apNom||'—') + ' — ' + sfData.apPct + '%', sfData.apporteur && !!sfData.apNom) +
+    row('Rétrocession Booster', sfData.retroMt ? sfData.retroMt.toLocaleString('fr-FR') + ' € HT' : '—', sfData.retro) +
+    sep('Équipe') +
+    row('Agence(s)', ags.join(' + ') || '—') +
+    row('Négociateur(s)', negs.join(' · ') || '—') +
+    row('Rentreur(s)', rents.join(' · ') || '—');
+}
+
+// ── VALIDATION ──
+async function sfValider() {
+  // Collecte toutes les données et les envoie à saveDossier
+  sfData.client = document.getElementById('sf-client')?.value?.toUpperCase() || '';
+  sfData.ttc = parseFloat(document.getElementById('sf-ttc')?.value) || 0;
+  sfData.ht = Math.round(sfData.ttc / 1.2);
+  sfData.ssp = document.getElementById('sf-ssp')?.value || '';
+  sfData.butoire = document.getElementById('sf-butoire')?.value || '';
+  sfData.remarque = document.getElementById('sf-remarque')?.value || '';
+  sfData.diag = document.getElementById('sf-diag')?.checked || false;
+  if (sfData.retro) sfData.retroMt = parseFloat(document.getElementById('sf-retro-mt')?.value) || 1500;
+  if (sfData.apporteur) {
+    const sel = document.getElementById('sf-ap-nom');
+    sfData.apNom = sel?.value === '__nouveau__' ? (document.getElementById('sf-ap-nom-txt')?.value || '') : (sel?.value || '');
+    sfData.apPct = parseFloat(document.getElementById('sf-ap-pct')?.value) || 0;
+  }
+
+  // Agences
+  const agenceParts = [];
+  for (let i = 0; i < sfNbAg; i++) {
+    const sel = document.getElementById('sf-ag-sel-' + i);
+    const pct = sfNbAg === 1 ? 100 : (parseFloat(document.getElementById('sf-ag-pct-' + i)?.value) || 0);
+    if (sel?.value) agenceParts.push({ agence: sel.value, pct });
+  }
+  if (!agenceParts.length) { showToast('Sélectionnez au moins une agence', 'error'); return; }
+  if (!sfData.client) { showToast('Le nom du client est requis', 'error'); return; }
+  if (!sfData.ttc) { showToast('Le montant est requis', 'error'); return; }
+
+  // Pré-remplir le formulaire de saisie standard et l'enregistrer
+  document.getElementById('s-client').value = sfData.client;
+  document.getElementById('s-ttc').value = sfData.ttc;
+  document.getElementById('s-statut').value = sfData.statut || 'À SIGNER';
+  document.getElementById('s-date').value = sfData.ssp;
+  document.getElementById('s-date-butoire').value = sfData.butoire;
+  document.getElementById('s-remarque').value = sfData.remarque;
+  document.getElementById('s-diag').checked = sfData.diag;
+  document.getElementById('s-has-apporteur').checked = sfData.apporteur;
+  if (sfData.apporteur) {
+    document.getElementById('s-apporteur-select').value = sfData.apNom;
+    document.getElementById('s-apporteur-pct').value = sfData.apPct;
+  }
+  document.getElementById('s-has-retro-booster').checked = sfData.retro;
+  if (sfData.retro) document.getElementById('s-retro-booster-ht').value = sfData.retroMt;
+
+  // Agences & négociateurs
+  nbAgences = sfNbAg;
+  negLignesSaisie = {};
+  for (let i = 0; i < sfNbAg; i++) {
+    negLignesSaisie[i] = (sfNegLines[i] || [{ negId: '', pct: '' }]).map(l => ({
+      negId: negosByAgence(agenceParts[i]?.agence || '').find(n => n.nom === l.val)?.id || '',
+      pct: l.pct
+    }));
+  }
+
+  // Déclencher la sauvegarde
+  await saveDossier();
+
+  // Afficher l'écran de confirmation avec confettis
+  sfShowOk(agenceParts);
+}
+
+function sfShowOk(agenceParts) {
+  const body = document.getElementById('sf-body');
+  const ag0 = agenceParts[0]?.agence || '';
+  const negs = []; for (let i = 0; i < sfNbAg; i++) (sfNegLines[i]||[]).forEach(l => { if (l.val) negs.push(l.val); });
+  const mails = getEmailsForAgence(ag0);
+  const collabMails = negs.map(n => { const neg = DB.negociateurs.find(x => x.nom === n); return neg?.email || ''; }).filter(Boolean);
+  const allMails = [...new Set([...mails, ...collabMails])];
+
+  body.innerHTML =
+    '<div style="text-align:center;padding:1rem 0">' +
+      '<div style="width:64px;height:64px;border-radius:50%;background:#f0fdf4;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:28px">🎉</div>' +
+      '<p style="font-size:20px;font-weight:700;color:var(--primary);margin:0 0 6px">Dossier enregistré !</p>' +
+      '<p style="font-size:13px;color:var(--text-muted);margin:0 0 16px">' + (sfData.client||'') + ' · ' + ag0 + ' · ' + (sfData.ht ? sfData.ht.toLocaleString('fr-FR') + ' € HT' : '—') + '</p>' +
+      (allMails.length ? '<div style="background:var(--bg);border-radius:10px;padding:12px 14px;text-align:left;margin-bottom:20px">' +
+        '<div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px">📧 Mails envoyés à :</div>' +
+        '<div style="font-size:12px;color:var(--text-muted)">' + allMails.map(m => '<div style="padding:2px 0">• ' + m + '</div>').join('') + '</div>' +
+      '</div>' : '') +
+      '<div style="display:flex;gap:10px;justify-content:center">' +
+        '<button onclick="sfReset();sfGoStep(1);" style="padding:10px 20px;background:white;color:var(--primary);border:1px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Nouveau dossier</button>' +
+        '<button onclick="closeSaisieFacile();sfGoHome();" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">OK — Fermer</button>' +
+      '</div>' +
+    '</div>';
+
+  // Confettis
+  if (typeof confetti !== 'undefined') {
+    setTimeout(() => {
+      confetti({ particleCount: 120, spread: 80, origin: { x: 0.5, y: 0.5 }, colors: ['#2D455A','#C9A84C','#fff','#10b981','#3b82f6'] });
+      setTimeout(() => confetti({ particleCount: 60, spread: 60, origin: { x: 0.3, y: 0.6 } }), 300);
+      setTimeout(() => confetti({ particleCount: 60, spread: 60, origin: { x: 0.7, y: 0.6 } }), 500);
+    }, 150);
+  }
+}
+
 </script>
 
   <!-- MODAL AFFAIRES COLLABORATEUR -->
@@ -9696,6 +10265,40 @@ function buildRecordsSection(containerId, filtreNiveauKey, filtreNiveauVal) {
             <button class="btn btn-outline" onclick="closeModal('modal-record');showNextRecord()">Suivant</button>
             <button class="btn btn-primary" onclick="closeModal('modal-record')">Fermer</button>
           </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           MODALE SAISIE FACILE
+      ══════════════════════════════════════════════════════ -->
+      <div class="modal-overlay" id="modal-saisie-facile" style="z-index:10002">
+        <div class="modal" style="max-width:540px;padding:0;overflow:hidden;max-height:90vh;overflow-y:auto">
+
+          <!-- Header fixe -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:white;z-index:1">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:18px">✨</span>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--primary)" id="sf-step-label">Étape 1 / 11</div>
+                <div style="font-size:11px;color:var(--text-muted)" id="sf-step-name">Client</div>
+              </div>
+            </div>
+            <button onclick="closeSaisieFacile()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-muted);padding:4px">✕</button>
+          </div>
+
+          <!-- Barre de progression -->
+          <div style="height:3px;background:var(--border)">
+            <div id="sf-prog" style="height:100%;background:var(--primary);transition:width .3s;width:9%"></div>
+          </div>
+
+          <!-- Dots -->
+          <div style="display:flex;gap:4px;flex-wrap:wrap;padding:12px 20px 0" id="sf-dots"></div>
+
+          <!-- Corps -->
+          <div style="padding:20px" id="sf-body">
+            <!-- Généré par JS -->
+          </div>
+
         </div>
       </div>
 </body>
