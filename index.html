@@ -9571,6 +9571,7 @@ function sfGoStep(n) {
     if (inp) inp.focus();
   }, 60);
   // Reconstruire les sections dynamiques
+  if (n === 8) { setTimeout(() => { sfRenderAgRows(); sfRestoreAgRows(); }, 0); }
   if (n === 9) sfRenderNegSections();
   if (n === 10) sfRenderRentRows();
   if (n === 11) sfFillRecap();
@@ -9695,8 +9696,7 @@ function sfBuildStep(n) {
       '</div>' +
       '<div id="sf-ag-rows"></div>' +
       '<div id="sf-ag-warn" style="font-size:12px;margin-top:4px;display:none"></div>' +
-      sfNav() +
-      '<script>sfRenderAgRows();<\/script>';
+      sfNav();
 
     // ── 9. NÉGOCIATEURS ──
     case 9: return q('Négociateurs') +
@@ -9816,6 +9816,23 @@ function sfChangeNbAg(d) {
   const el = document.getElementById('sf-nb-ag-disp'); if (el) el.textContent = sfNbAg;
   sfRenderAgRows();
 }
+function sfRestoreAgRows() {
+  const parts = sfData.agenceParts || [];
+  if (!parts.length) return;
+  // Restaurer les valeurs dans les selects reconstruits
+  parts.forEach((p, i) => {
+    const sel = document.getElementById('sf-ag-sel-' + i);
+    const pct = document.getElementById('sf-ag-pct-' + i);
+    if (sel) sel.value = p.agence;
+    if (pct && sfNbAg > 1) pct.value = p.pct;
+    const ht = document.getElementById('sf-ag-ht-' + i);
+    if (ht && sfData.ht && p.agence) {
+      ht.textContent = sfNbAg === 1 ? sfData.ht.toLocaleString('fr-FR') + ' € HT' :
+        (p.pct ? Math.round(sfData.ht * p.pct / 100).toLocaleString('fr-FR') + ' € HT' : '');
+    }
+  });
+}
+
 function sfRenderAgRows() {
   const c = document.getElementById('sf-ag-rows'); if (!c) return;
   c.innerHTML = '';
