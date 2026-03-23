@@ -9516,8 +9516,8 @@ function buildRecordsSection(containerId, filtreNiveauKey, filtreNiveauVal) {
 // ═══════════════════════════════════════════════════════════
 // SAISIE FACILE
 // ═══════════════════════════════════════════════════════════
-const SF_TOTAL = 11;
-const SF_NAMES = ['Affaire','Montant','Statut','Dates','Remarque','Diag & Apporteur','Rétrocession','Agences','Négociateurs','Rentreurs','Récap'];
+const SF_TOTAL = 10;
+const SF_NAMES = ['Affaire','Montant','Dates','Remarque','Diag & Apporteur','Rétrocession','Agences','Négociateurs','Rentreurs','Récap'];
 
 let sfCur = 1;
 let sfNbAg = 1;
@@ -9533,7 +9533,7 @@ function sfGoHome() {
 function sfOnKeyEnter(e) { if (e.key === 'Enter') sfNext(); }
 function sfReset() {
   sfCur = 1; sfNbAg = 1; sfNbRent = 1; sfNegLines = {};
-  sfData = { client:'', ttc:0, ht:0, statut:'', ssp:'', butoire:'', remarque:'',
+  sfData = { client:'', ttc:0, ht:0, statut:'À SIGNER', ssp:'', butoire:'', remarque:'',
              diag:false, apporteur:false, apNom:'', apPct:0, retro:false, retroMt:0 };
 }
 
@@ -9577,10 +9577,10 @@ function sfGoStep(n) {
     if (inp) inp.focus();
   }, 60);
   // Reconstruire les sections dynamiques
-  if (n === 8) { setTimeout(() => { sfRenderAgRows(); sfRestoreAgRows(); }, 0); }
-  else if (n === 9) sfRenderNegSections();
-  else if (n === 10) sfRenderRentRows();
-  else if (n === 11) sfFillRecap();
+  if (n === 7) { setTimeout(() => { sfRenderAgRows(); sfRestoreAgRows(); }, 0); }
+  else if (n === 8) sfRenderNegSections();
+  else if (n === 9) sfRenderRentRows();
+  else if (n === 10) sfFillRecap();
   else setTimeout(() => sfRestoreStep(n), 0);
 }
 
@@ -9596,14 +9596,14 @@ function sfSaveCurrentStep() {
     case 3:
       // statut déjà sauvegardé via sfPickChip
       break;
-    case 4:
+    case 3:
       sfData.ssp = document.getElementById('sf-ssp')?.value || '';
       sfData.butoire = document.getElementById('sf-butoire')?.value || '';
       break;
-    case 5:
+    case 3:
       sfData.remarque = document.getElementById('sf-remarque')?.value || '';
       break;
-    case 6:
+    case 3:
       sfData.diag = document.getElementById('sf-diag')?.checked || false;
       if (sfData.apporteur) {
         const sel = document.getElementById('sf-ap-nom');
@@ -9611,10 +9611,10 @@ function sfSaveCurrentStep() {
         sfData.apPct = parseFloat(document.getElementById('sf-ap-pct')?.value) || 0;
       }
       break;
-    case 7:
+    case 3:
       if (sfData.retro) sfData.retroMt = parseFloat(document.getElementById('sf-retro-mt')?.value) || 1500;
       break;
-    case 8:
+    case 3:
       sfData.agenceParts = [];
       for (let i = 0; i < sfNbAg; i++) {
         const sel = document.getElementById('sf-ag-sel-' + i);
@@ -9622,10 +9622,10 @@ function sfSaveCurrentStep() {
         if (sel && sel.value) sfData.agenceParts.push({ agence: sel.value, pct });
       }
       break;
-    case 9:
+    case 3:
       // negLines déjà sauvegardés en temps réel via onchange/oninput
       break;
-    case 10:
+    case 3:
       sfData.rentreurs = [];
       for (let i = 0; i < sfNbRent; i++) {
         const s = document.getElementById('sf-rent-sel-' + i);
@@ -9671,15 +9671,8 @@ function sfBuildStep(n) {
         '<div>' + lbl('Net HT (auto)') + '<input id="sf-ht-disp" type="text" readonly style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--bg);color:var(--text-muted)"></div>' +
       '</div>' + hint('TVA 20% — modifiable dans la fiche si besoin') + sfNav();
 
-    // ── 3. STATUT ──
-    case 3: return q('Statut du dossier ?') +
-      '<div style="margin-bottom:4px">' +
-        ['📋 À signer','✅ Signé','⏳ Report','❌ Annulé','🔄 SRU','🏦 Refus de crédit'].map(s => chip(s, 'statut', true)).join('') +
-      '</div>' +
-      sfNav();
-
-    // ── 4. DATES ──
-    case 4: return q('Dates du dossier') +
+    // ── 3. DATES ──
+    case 3: return q('Dates du dossier') +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">' +
         '<div>' + lbl('Date SSP') + '<input id="sf-ssp" type="date" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px" oninput="sfCalcButoire()" onkeydown="sfOnKeyEnter(event)"></div>' +
         '<div>' + lbl('Date butoire', ' <span style="color:var(--text-muted);font-size:10px">(auto +3 mois)</span>') +
@@ -9688,14 +9681,14 @@ function sfBuildStep(n) {
         '</div>' +
       '</div>' + sfNav();
 
-    // ── 5. REMARQUE ──
-    case 5: return q('Une remarque ?') +
+    // ── 4. REMARQUE ──
+    case 4: return q('Une remarque ?') +
       '<p style="font-size:13px;color:var(--text-muted);margin:-10px 0 12px">Optionnel</p>' +
       '<input id="sf-remarque" type="text" placeholder="Ex: sous condition de pret" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px" onkeydown="sfOnKeyEnter(event)">' +
       sfNav();
 
-    // ── 6. DIAG + APPORTEUR ──
-    case 6: return q('Options complémentaires') +
+    // ── 4. DIAG + APPORTEUR ──
+    case 4: return q('Options complémentaires') +
       '<div style="padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:12px">' +
         '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">' +
           '<input type="checkbox" id="sf-diag" style="width:16px;height:16px;accent-color:var(--primary)"> 🔍 Prise en charge des diagnostics' +
@@ -9725,8 +9718,8 @@ function sfBuildStep(n) {
         '</div>' +
       '</div>' + sfNav();
 
-    // ── 7. RÉTROCESSION ──
-    case 7: return q('Vente hors secteur réseau ?') +
+    // ── 4. RÉTROCESSION ──
+    case 4: return q('Vente hors secteur réseau ?') +
       '<p style="font-size:13px;color:var(--text-muted);margin:-10px 0 12px">Si oui, une retrocession Booster s&apos;applique.</p>' +
       '<div style="display:flex;gap:8px;margin-bottom:14px" id="sf-retro-chips">' +
         '<span class="sf-chip sf-chip-on" onclick="sfSetRetro(false)" style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:20px;border:1px solid var(--primary);background:#e8edf2;cursor:pointer;font-size:13px;color:var(--primary);font-weight:600">Non — dans le secteur</span>' +
@@ -9737,8 +9730,8 @@ function sfBuildStep(n) {
         hint('Montant par défaut : 1 500 € HT — modifiable si besoin') +
       '</div>' + sfNav();
 
-    // ── 8. AGENCES ──
-    case 8: return q('Répartition entre agences') +
+    // ── 4. AGENCES ──
+    case 4: return q('Répartition entre agences') +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
         '<button onclick="sfChangeNbAg(-1)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;color:var(--text)">−</button>' +
         '<span id="sf-nb-ag-disp" style="font-size:18px;font-weight:700;min-width:24px;text-align:center;color:var(--primary)">' + sfNbAg + '</span>' +
@@ -9749,12 +9742,12 @@ function sfBuildStep(n) {
       '<div id="sf-ag-warn" style="font-size:12px;margin-top:4px;display:none"></div>' +
       sfNav();
 
-    // ── 9. NÉGOCIATEURS ──
-    case 9: return q('Négociateurs') +
+    // ── 4. NÉGOCIATEURS ──
+    case 4: return q('Négociateurs') +
       '<div id="sf-neg-sections"></div>' + sfNav();
 
-    // ── 10. RENTREURS ──
-    case 10: return q('Rentreur(s)') +
+    // ── 4. RENTREURS ──
+    case 4: return q('Rentreur(s)') +
       '<p style="font-size:13px;color:var(--text-muted);margin:-10px 0 12px">Le CA rentrée est celui percu par l&apos;agence du rentreur.</p>' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
         '<button onclick="sfChangeNbRent(-1)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;color:var(--text)">−</button>' +
@@ -9764,8 +9757,8 @@ function sfBuildStep(n) {
       '</div>' +
       '<div id="sf-rent-rows"></div>' + sfNav();
 
-    // ── 11. RÉCAP ──
-    case 11: return q('Tout est correct ?') +
+    // ── 4. RÉCAP ──
+    case 4: return q('Tout est correct ?') +
       '<div id="sf-recap-body" style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px"></div>' +
       '<div style="display:flex;gap:8px;margin-top:16px">' +
         '<button onclick="sfPrev()" style="padding:9px 14px;background:none;border:0.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted);cursor:pointer">← Retour</button>' +
@@ -9879,7 +9872,7 @@ function sfRestoreStep(n) {
       if (ttc && sfData.ttc) { ttc.value = sfData.ttc; }
       if (htd && sfData.ht) htd.value = sfData.ht.toLocaleString('fr-FR') + ' €';
       break;
-    case 4:
+    case 3:
       const ssp = document.getElementById('sf-ssp');
       const but = document.getElementById('sf-butoire');
       if (ssp && sfData.ssp) ssp.value = sfData.ssp;
@@ -9890,11 +9883,11 @@ function sfRestoreStep(n) {
         if (info) info.textContent = '→ ' + d + '/' + m + '/' + y;
       }
       break;
-    case 5:
+    case 3:
       const rem = document.getElementById('sf-remarque');
       if (rem && sfData.remarque) rem.value = sfData.remarque;
       break;
-    case 6:
+    case 3:
       // Restaurer diag
       const diag = document.getElementById('sf-diag');
       if (diag) diag.checked = sfData.diag || false;
@@ -9922,7 +9915,7 @@ function sfRestoreStep(n) {
         }
       }
       break;
-    case 7:
+    case 3:
       if (sfData.retro) {
         sfSetRetro(true);
         const mt = document.getElementById('sf-retro-mt');
@@ -10048,6 +10041,12 @@ function sfChangeNbRent(d) {
 }
 function sfRenderRentRows() {
   const c = document.getElementById('sf-rent-rows'); if (!c) return; c.innerHTML = '';
+  // Restaurer le nombre de rentreurs sauvegardé
+  if (sfData.rentreurs && sfData.rentreurs.length > sfNbRent) {
+    sfNbRent = sfData.rentreurs.length;
+    const disp = document.getElementById('sf-nb-rent-disp');
+    if (disp) disp.textContent = sfNbRent;
+  }
   const allNegos = [];
   const parts = sfData.agenceParts || [];
   parts.forEach(p => {
@@ -10070,6 +10069,15 @@ function sfRenderRentRows() {
           '<span style="font-size:11px;color:var(--text-muted)">%</span>' +
         '</div></div>' : '');
     c.appendChild(row);
+  }
+  // Restaurer les valeurs sauvegardées
+  if (sfData.rentreurs) {
+    sfData.rentreurs.forEach((r, i) => {
+      const sel = document.getElementById('sf-rent-sel-' + i);
+      const pct = document.getElementById('sf-rent-pct-' + i);
+      if (sel && r.nom) sel.value = r.nom;
+      if (pct && r.pct) pct.value = r.pct;
+    });
   }
 }
 function sfAutoRentPct(li) {
