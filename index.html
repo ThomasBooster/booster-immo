@@ -9142,11 +9142,17 @@ async function loadMailSettings() {
         DB.mailSettings[k] = r.value === 'true';
       }
     });
-    // Valeur par défaut : false si jamais sauvegardé (pas de valeur par défaut à true)
+    // Si une clé n'existe pas en base, la créer avec false et la sauvegarder
+    const saveTasks = [];
     MAIL_SETTINGS_DEFS.forEach(d => {
-      if (DB.mailSettings[d.key] === undefined) DB.mailSettings[d.key] = false;
+      if (DB.mailSettings[d.key] === undefined) {
+        DB.mailSettings[d.key] = false;
+        // Sauvegarder en base pour que ce soit persistant
+        saveTasks.push(sbInsert('settings', { key: 'mail_' + d.key, value: 'false' }).catch(() => {}));
+      }
       if (DB.mailAgences[d.key] === undefined) DB.mailAgences[d.key] = [];
     });
+    if (saveTasks.length) await Promise.all(saveTasks);
   } catch(e) {
     DB.mailSettings = {};
     DB.mailAgences = {};
@@ -9206,7 +9212,7 @@ function renderMailToggles() {
 
   el.innerHTML = '';
   MAIL_SETTINGS_DEFS.forEach(d => {
-    const isOn = DB.mailSettings[d.key] !== false;
+    const isOn = DB.mailSettings[d.key] === true;
     const selectedAgs = DB.mailAgences[d.key] || [];
     const ti = testIndexMap[d.key];
 
@@ -9577,16 +9583,60 @@ function sfGoStep(n) {
   if (n === 11) sfFillRecap();
 }
 
-function sfNext() {
-  // Sauvegarder les agences avant de quitter l'étape 8
-  if (sfCur === 8) {
-    sfData.agenceParts = [];
-    for (let i = 0; i < sfNbAg; i++) {
-      const sel = document.getElementById('sf-ag-sel-' + i);
-      const pct = sfNbAg === 1 ? 100 : (parseFloat(document.getElementById('sf-ag-pct-' + i)?.value) || 0);
-      if (sel && sel.value) sfData.agenceParts.push({ agence: sel.value, pct });
-    }
+function sfSaveCurrentStep() {
+  switch(sfCur) {
+    case 1:
+      sfData.client = document.getElementById('sf-client')?.value?.toUpperCase() || '';
+      break;
+    case 2:
+      sfData.ttc = parseFloat(document.getElementById('sf-ttc')?.value) || 0;
+      sfData.ht = Math.round(sfData.ttc / 1.2);
+      break;
+    case 3:
+      // statut déjà sauvegardé via sfPickChip
+      break;
+    case 4:
+      sfData.ssp = document.getElementById('sf-ssp')?.value || '';
+      sfData.butoire = document.getElementById('sf-butoire')?.value || '';
+      break;
+    case 5:
+      sfData.remarque = document.getElementById('sf-remarque')?.value || '';
+      break;
+    case 6:
+      sfData.diag = document.getElementById('sf-diag')?.checked || false;
+      if (sfData.apporteur) {
+        const sel = document.getElementById('sf-ap-nom');
+        sfData.apNom = sel?.value === '__nouveau__' ? (document.getElementById('sf-ap-nom-txt')?.value || '') : (sel?.value || '');
+        sfData.apPct = parseFloat(document.getElementById('sf-ap-pct')?.value) || 0;
+      }
+      break;
+    case 7:
+      if (sfData.retro) sfData.retroMt = parseFloat(document.getElementById('sf-retro-mt')?.value) || 1500;
+      break;
+    case 8:
+      sfData.agenceParts = [];
+      for (let i = 0; i < sfNbAg; i++) {
+        const sel = document.getElementById('sf-ag-sel-' + i);
+        const pct = sfNbAg === 1 ? 100 : (parseFloat(document.getElementById('sf-ag-pct-' + i)?.value) || 0);
+        if (sel && sel.value) sfData.agenceParts.push({ agence: sel.value, pct });
+      }
+      break;
+    case 9:
+      // negLines déjà sauvegardés en temps réel via onchange/oninput
+      break;
+    case 10:
+      sfData.rentreurs = [];
+      for (let i = 0; i < sfNbRent; i++) {
+        const s = document.getElementById('sf-rent-sel-' + i);
+        const p = document.getElementById('sf-rent-pct-' + i);
+        if (s?.value) sfData.rentreurs.push({ nom: s.value, pct: p?.value || '' });
+      }
+      break;
   }
+}
+
+function sfNext() {
+  sfSaveCurrentStep();
   sfGoStep(sfCur + 1);
 }
 function sfPrev() { sfGoStep(sfCur - 1); }
@@ -9967,25 +10017,25 @@ function sfAutoRentPct(li) {
 // ── ÉTAPE 11 : récap ──
 function sfFmt(iso) { if (!iso) return '—'; const [y,m,d] = iso.split('-'); return d+'/'+m+'/'+y; }
 function sfFillRecap() {
-  sfData.client = document.getElementById('sf-client')?.value?.toUpperCase() || '';
-  sfData.ttc = parseFloat(document.getElementById('sf-ttc')?.value) || 0;
-  sfData.ht = Math.round(sfData.ttc / 1.2);
-  sfData.remarque = document.getElementById('sf-remarque')?.value || '';
-  sfData.diag = document.getElementById('sf-diag')?.checked || false;
-  sfData.ssp = document.getElementById('sf-ssp')?.value || '';
-  sfData.butoire = document.getElementById('sf-butoire')?.value || '';
-  if (sfData.apporteur) {
-    const sel = document.getElementById('sf-ap-nom');
-    sfData.apNom = sel?.value === '__nouveau__' ? (document.getElementById('sf-ap-nom-txt')?.value || '') : (sel?.value || '');
-    sfData.apPct = parseFloat(document.getElementById('sf-ap-pct')?.value) || 0;
+  // Toutes les données sont déjà dans sfData grâce à sfSaveCurrentStep()
+  // (on sauvegarde aussi l'étape 10 rentreurs ici au cas où)
+  if (!sfData.rentreurs) sfData.rentreurs = [];
+  for (let i = 0; i < sfNbRent; i++) {
+    const s = document.getElementById('sf-rent-sel-' + i);
+    const p = document.getElementById('sf-rent-pct-' + i);
+    if (s?.value && !sfData.rentreurs[i]) sfData.rentreurs[i] = { nom: s.value, pct: p?.value || '' };
   }
-  if (sfData.retro) sfData.retroMt = parseFloat(document.getElementById('sf-retro-mt')?.value) || 1500;
 
   const row = (l, v, show=true) => show ? '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text-muted)">' + l + '</span><span style="font-weight:600;text-align:right;max-width:60%">' + v + '</span></div>' : '';
   const sep = (l) => '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">' + l + '</div>';
   const ags = (sfData.agenceParts||[]).map(p => p.agence + (sfNbAg > 1 ? ' (' + p.pct + '%)' : ''));
-  const negs = []; for (let i = 0; i < sfNbAg; i++) { const ag = document.getElementById('sf-ag-sel-' + i); (sfNegLines[i]||[]).forEach(l => { if (l.val) negs.push(l.val + (sfNbAg > 1 ? ' (' + (ag?.value||'') + ')' : '') + (l.pct ? ' — ' + l.pct + '%' : '')); }); }
-  const rents = []; for (let i = 0; i < sfNbRent; i++) { const s = document.getElementById('sf-rent-sel-' + i); const p = document.getElementById('sf-rent-pct-' + i); if (s?.value) rents.push(s.value + (p?.value ? ' — ' + p.value + '%' : '')); }
+  const negs = [];
+  (sfData.agenceParts||[]).forEach((part, i) => {
+    (sfNegLines[i]||[]).forEach(l => {
+      if (l.val) negs.push(l.val + (sfNbAg > 1 ? ' (' + part.agence + ')' : '') + (l.pct ? ' — ' + l.pct + '%' : ''));
+    });
+  });
+  const rents = (sfData.rentreurs||[]).map(r => r.nom + (r.pct ? ' — ' + r.pct + '%' : ''));
 
   const el = document.getElementById('sf-recap-body');
   if (el) el.innerHTML =
@@ -10009,19 +10059,7 @@ function sfFillRecap() {
 // ── VALIDATION ──
 async function sfValider() {
   // Collecte toutes les données et les envoie à saveDossier
-  sfData.client = document.getElementById('sf-client')?.value?.toUpperCase() || '';
-  sfData.ttc = parseFloat(document.getElementById('sf-ttc')?.value) || 0;
-  sfData.ht = Math.round(sfData.ttc / 1.2);
-  sfData.ssp = document.getElementById('sf-ssp')?.value || '';
-  sfData.butoire = document.getElementById('sf-butoire')?.value || '';
-  sfData.remarque = document.getElementById('sf-remarque')?.value || '';
-  sfData.diag = document.getElementById('sf-diag')?.checked || false;
-  if (sfData.retro) sfData.retroMt = parseFloat(document.getElementById('sf-retro-mt')?.value) || 1500;
-  if (sfData.apporteur) {
-    const sel = document.getElementById('sf-ap-nom');
-    sfData.apNom = sel?.value === '__nouveau__' ? (document.getElementById('sf-ap-nom-txt')?.value || '') : (sel?.value || '');
-    sfData.apPct = parseFloat(document.getElementById('sf-ap-pct')?.value) || 0;
-  }
+  // Toutes les données sont déjà dans sfData — rien à recollecterdu DOM
 
   // Agences — déjà sauvegardées dans sfData.agenceParts à l'étape 8
   const agenceParts = sfData.agenceParts || [];
@@ -10048,12 +10086,12 @@ async function sfValider() {
   // Agences & négociateurs
   nbAgences = sfNbAg;
   negLignesSaisie = {};
-  for (let i = 0; i < sfNbAg; i++) {
-    negLignesSaisie[i] = (sfNegLines[i] || [{ negId: '', pct: '' }]).map(l => ({
-      negId: negosByAgence(agenceParts[i]?.agence || '').find(n => n.nom === l.val)?.id || '',
+  agenceParts.forEach((part, i) => {
+    negLignesSaisie[i] = (sfNegLines[i] || [{ val: '', pct: '' }]).map(l => ({
+      negId: negosByAgence(part.agence).find(n => n.nom === l.val)?.id || '',
       pct: l.pct
     }));
-  }
+  });
 
   // Déclencher la sauvegarde
   await saveDossier();
