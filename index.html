@@ -845,7 +845,7 @@
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Client</th><th>Agence</th><th>Date butoire</th><th>Statut</th><th>Jours restants</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Affaire</th><th>Agence</th><th>Date butoire</th><th>Statut</th><th>Jours restants</th><th>Actions</th></tr></thead>
               <tbody id="butoires-tbody"></tbody>
             </table>
           </div>
@@ -860,7 +860,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>Client</th>
+                  <th>Affaire</th>
                   <th>Agence</th>
                   <th>Brut TTC</th>
                   <th>Apporteur</th>
@@ -975,7 +975,7 @@
             <!-- Infos générales -->
             <div class="form-grid">
               <div class="form-group">
-                <label>Nom du client *</label>
+                <label>Nom de l'affaire *</label>
                 <input type="text" id="s-client" placeholder="ex: DUPONT" style="text-transform:uppercase">
               </div>
               <div class="form-group">
@@ -1131,7 +1131,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>Client</th><th>Agence</th><th>Brut TTC</th><th>Apport</th><th>Net HT</th><th>Statut</th><th>Date SSP</th><th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Actions</th>
+                  <th>Affaire</th><th>Agence</th><th>Brut TTC</th><th>Apport</th><th>Net HT</th><th>Statut</th><th>Date SSP</th><th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody id="my-dossiers-tbody"></tbody>
@@ -1173,7 +1173,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>Client</th><th>Agence</th><th>Brut TTC</th><th>Apporteur</th><th>Apport HT</th><th>Net HT</th><th>Statut</th><th>Date SSP</th><th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Saisi par</th><th>Actions</th>
+                  <th>Affaire</th><th>Agence</th><th>Brut TTC</th><th>Apporteur</th><th>Apport HT</th><th>Net HT</th><th>Statut</th><th>Date SSP</th><th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Saisi par</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody id="dos-tbody"></tbody>
@@ -1306,7 +1306,7 @@
             </div>
             <div style="overflow-x:auto">
               <table>
-                <thead><tr><th>Mois</th><th>Agence</th><th>Client</th><th>Date acte</th><th>Montant HT</th></tr></thead>
+                <thead><tr><th>Mois</th><th>Agence</th><th>Affaire</th><th>Date acte</th><th>Montant HT</th></tr></thead>
                 <tbody id="enc-hist-tbody"></tbody>
               </table>
             </div>
@@ -1334,7 +1334,7 @@
             </div>
             <div style="overflow-x:auto">
               <table>
-                <thead><tr><th>Mois prévu</th><th>Agence</th><th>Client</th><th>Date butoire</th><th>Montant HT</th><th>Statut</th></tr></thead>
+                <thead><tr><th>Mois prévu</th><th>Agence</th><th>Affaire</th><th>Date butoire</th><th>Montant HT</th><th>Statut</th></tr></thead>
                 <tbody id="enc-prev-tbody"></tbody>
               </table>
             </div>
@@ -1755,7 +1755,7 @@
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>Jours depuis SSP</th><th>CA HT (part)</th><th>Statut</th></tr></thead>
+              <thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>Jours depuis SSP</th><th>CA HT (part)</th><th>Statut</th></tr></thead>
               <tbody id="fiche-collab-ventes"></tbody>
             </table>
           </div>
@@ -1826,7 +1826,7 @@
           <div class="card-header"><span class="card-title">📋 10 dernières ventes (toutes agences)</span></div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead>
+              <thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead>
               <tbody id="fiche-societe-ventes"></tbody>
             </table>
           </div>
@@ -1922,7 +1922,7 @@
           <div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Client</th><th>Négociateur</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead>
+              <thead><tr><th>Affaire</th><th>Négociateur</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead>
               <tbody id="fiche-agence-ventes"></tbody>
             </table>
           </div>
@@ -1997,7 +1997,7 @@
           <div id="fiche-agence-apporteurs-stats" style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap;background:#f8fafc;border-bottom:1px solid var(--border)"></div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Client</th><th>Apporteur</th><th>Date SSP</th><th>CA HT total</th><th>Apport HT</th><th>% apport</th><th>Statut</th></tr></thead>
+              <thead><tr><th>Affaire</th><th>Apporteur</th><th>Date SSP</th><th>CA HT total</th><th>Apport HT</th><th>% apport</th><th>Statut</th></tr></thead>
               <tbody id="fiche-agence-apporteurs-tbody"></tbody>
             </table>
           </div>
@@ -2188,7 +2188,7 @@
     </div>
     <div class="form-grid">
       <div class="form-group">
-        <label>Client</label>
+        <label>Affaire</label>
         <input type="text" id="edit-client" style="text-transform:uppercase">
       </div>
       <div class="form-group">
@@ -4233,7 +4233,7 @@ function genererRapportPDF() {
   <div class="section-title">⚖️ Frais de dossier juridique — ${mois}</div>
   ${dosActe.length > 0 ? `
   <table style="margin-bottom:14px">
-    <thead><tr><th>Client</th><th>Date acte</th><th>% vente</th><th>Frais imputés</th></tr></thead>
+    <thead><tr><th>Affaire</th><th>Date acte</th><th>% vente</th><th>Frais imputés</th></tr></thead>
     <tbody>
       ${dosActe.map(d => `<tr>
         <td>${d.client}</td>
@@ -5122,7 +5122,7 @@ function openDossiersEncModal(ids) {
     '<button id="btn-close-enc" style="background:none;border:none;color:white;font-size:22px;cursor:pointer">✕</button></div>' +
     '<div style="overflow-x:auto;padding:16px">' +
     '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
-    '<thead><tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">Client</th>' +
+    '<thead><tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">Affaire</th>' +
     '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">Agence</th>' +
     '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">Date SSP</th>' +
     '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">Date acte</th>' +
@@ -8240,7 +8240,7 @@ function renderStatsSociete(container, socId) {
   container.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏛 ' + (s.forme_juridique?s.forme_juridique+' ':'') + s.nom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-soc-sel-annee-moy" onchange="refreshStatsMoyenneSociete()" class="filter-select" style="font-size:12px"></select></div><div id="stats-soc-moyenne" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div></div>' +
@@ -8316,7 +8316,7 @@ function renderStatsAgence(container, agNom) {
   container.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dosAgence.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-ag-sel-annee-moy" onchange="refreshStatsMoyenneAgence()" class="filter-select" style="font-size:12px"></select></div><div id="stats-ag-moyenne" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div></div>' +
@@ -8422,7 +8422,7 @@ function renderStatsNeg(container, negId) {
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:4px">👤 ' + n.nom + '</div>' +
     '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + n.agence + ' · ' + (n.poste||'négociateur') + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dossiersVentes.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Client</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-n1"></table></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
@@ -9517,7 +9517,7 @@ function buildRecordsSection(containerId, filtreNiveauKey, filtreNiveauVal) {
 // SAISIE FACILE
 // ═══════════════════════════════════════════════════════════
 const SF_TOTAL = 11;
-const SF_NAMES = ['Client','Montant','Statut','Dates','Remarque','Diag & Apporteur','Rétrocession','Agences','Négociateurs','Rentreurs','Récap'];
+const SF_NAMES = ['Affaire','Montant','Statut','Dates','Remarque','Diag & Apporteur','Rétrocession','Agences','Négociateurs','Rentreurs','Récap'];
 
 let sfCur = 1;
 let sfNbAg = 1;
@@ -9578,9 +9578,10 @@ function sfGoStep(n) {
   }, 60);
   // Reconstruire les sections dynamiques
   if (n === 8) { setTimeout(() => { sfRenderAgRows(); sfRestoreAgRows(); }, 0); }
-  if (n === 9) sfRenderNegSections();
-  if (n === 10) sfRenderRentRows();
-  if (n === 11) sfFillRecap();
+  else if (n === 9) sfRenderNegSections();
+  else if (n === 10) sfRenderRentRows();
+  else if (n === 11) sfFillRecap();
+  else setTimeout(() => sfRestoreStep(n), 0);
 }
 
 function sfSaveCurrentStep() {
@@ -9658,7 +9659,7 @@ function sfBuildStep(n) {
 
   switch(n) {
     // ── 1. CLIENT ──
-    case 1: return q('Nom du client ?') +
+    case 1: return q("Nom de l'affaire ?") +
       '<input id="sf-client" type="text" placeholder="DUPONT" style="width:100%;text-transform:uppercase;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px" oninput="this.value=this.value.toUpperCase()" onkeydown="sfOnKeyEnter(event)">' +
       hint('Appuyez sur Entrée pour continuer') +
       sfNav(false);
@@ -9866,6 +9867,71 @@ function sfChangeNbAg(d) {
   const el = document.getElementById('sf-nb-ag-disp'); if (el) el.textContent = sfNbAg;
   sfRenderAgRows();
 }
+function sfRestoreStep(n) {
+  switch(n) {
+    case 1:
+      const c = document.getElementById('sf-client');
+      if (c && sfData.client) c.value = sfData.client;
+      break;
+    case 2:
+      const ttc = document.getElementById('sf-ttc');
+      const htd = document.getElementById('sf-ht-disp');
+      if (ttc && sfData.ttc) { ttc.value = sfData.ttc; }
+      if (htd && sfData.ht) htd.value = sfData.ht.toLocaleString('fr-FR') + ' €';
+      break;
+    case 4:
+      const ssp = document.getElementById('sf-ssp');
+      const but = document.getElementById('sf-butoire');
+      if (ssp && sfData.ssp) ssp.value = sfData.ssp;
+      if (but && sfData.butoire) {
+        but.value = sfData.butoire;
+        const [y,m,d] = sfData.butoire.split('-');
+        const info = document.getElementById('sf-but-info');
+        if (info) info.textContent = '→ ' + d + '/' + m + '/' + y;
+      }
+      break;
+    case 5:
+      const rem = document.getElementById('sf-remarque');
+      if (rem && sfData.remarque) rem.value = sfData.remarque;
+      break;
+    case 6:
+      // Restaurer diag
+      const diag = document.getElementById('sf-diag');
+      if (diag) diag.checked = sfData.diag || false;
+      // Restaurer apporteur
+      if (sfData.apporteur) {
+        sfToggleAp(true);
+        const apNom = document.getElementById('sf-ap-nom');
+        const apPct = document.getElementById('sf-ap-pct');
+        if (apNom && sfData.apNom) {
+          // Vérifier si c'est un apporteur existant dans la liste
+          const opts = Array.from(apNom.options).map(o => o.value);
+          if (opts.includes(sfData.apNom)) {
+            apNom.value = sfData.apNom;
+          } else {
+            apNom.value = '__nouveau__';
+            const custom = document.getElementById('sf-ap-custom');
+            if (custom) custom.style.display = 'block';
+            const txt = document.getElementById('sf-ap-nom-txt');
+            if (txt) txt.value = sfData.apNom;
+          }
+        }
+        if (apPct && sfData.apPct) {
+          apPct.value = sfData.apPct;
+          sfCalcApport();
+        }
+      }
+      break;
+    case 7:
+      if (sfData.retro) {
+        sfSetRetro(true);
+        const mt = document.getElementById('sf-retro-mt');
+        if (mt) mt.value = sfData.retroMt || 1500;
+      }
+      break;
+  }
+}
+
 function sfRestoreAgRows() {
   const parts = sfData.agenceParts || [];
   if (!parts.length) return;
@@ -10040,7 +10106,7 @@ function sfFillRecap() {
   const el = document.getElementById('sf-recap-body');
   if (el) el.innerHTML =
     sep('Dossier') +
-    row('Client', sfData.client || '—') +
+    row('Affaire', sfData.client || '—') +
     row('Montant TTC', sfData.ttc ? sfData.ttc.toLocaleString('fr-FR') + ' €' : '—') +
     row('Montant HT net', sfData.ht ? sfData.ht.toLocaleString('fr-FR') + ' € HT' : '—') +
     row('Statut', sfData.statut || '—') +
@@ -10064,7 +10130,7 @@ async function sfValider() {
   // Agences — déjà sauvegardées dans sfData.agenceParts à l'étape 8
   const agenceParts = sfData.agenceParts || [];
   if (!agenceParts.length) { showToast('Sélectionnez au moins une agence', 'error'); return; }
-  if (!sfData.client) { showToast('Le nom du client est requis', 'error'); return; }
+  if (!sfData.client) { showToast("Le nom de l'affaire est requis", 'error'); return; }
   if (!sfData.ttc) { showToast('Le montant est requis', 'error'); return; }
 
   // Pré-remplir le formulaire de saisie standard et l'enregistrer
@@ -10172,7 +10238,7 @@ function sfShowOk(agenceParts) {
         <table style="width:100%;border-collapse:collapse;font-size:13px">
           <thead>
             <tr style="background:#f8fafc">
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Affaire</th>
               <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Agence</th>
               <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
               <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-muted);border-bottom:2px solid var(--border)">Type</th>
@@ -10215,7 +10281,7 @@ function sfShowOk(agenceParts) {
         <table style="width:100%;border-collapse:collapse;font-size:13px">
           <thead>
             <tr style="background:#f8fafc">
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Affaire</th>
               <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
               <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">CA HT</th>
               <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Statut</th>
@@ -10240,7 +10306,7 @@ function sfShowOk(agenceParts) {
         <table style="width:100%;border-collapse:collapse;font-size:13px">
           <thead>
             <tr style="background:#f8fafc">
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Client</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Affaire</th>
               <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Agence</th>
               <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
               <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">CA TTC</th>
@@ -10291,7 +10357,7 @@ function sfShowOk(agenceParts) {
             </div>
           </div>
           <div style="background:var(--bg);border-radius:10px;padding:14px 16px;margin-bottom:20px;border:1px solid var(--border)">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px"><span style="color:var(--text-muted)">Client</span><span style="font-weight:600" id="cmail-client"></span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px"><span style="color:var(--text-muted)">Affaire</span><span style="font-weight:600" id="cmail-client"></span></div>
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px"><span style="color:var(--text-muted)">Agence</span><span style="font-weight:600" id="cmail-agence"></span></div>
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px"><span style="color:var(--text-muted)">CA HT net</span><span style="font-weight:600;color:#16a34a" id="cmail-ca"></span></div>
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px"><span style="color:var(--text-muted)">Négociateur(s)</span><span style="font-weight:600" id="cmail-nego"></span></div>
@@ -10341,7 +10407,7 @@ function sfShowOk(agenceParts) {
               <span style="font-size:18px">✨</span>
               <div>
                 <div style="font-size:14px;font-weight:700;color:var(--primary)" id="sf-step-label">Étape 1 / 11</div>
-                <div style="font-size:11px;color:var(--text-muted)" id="sf-step-name">Client</div>
+                <div style="font-size:11px;color:var(--text-muted)" id="sf-step-name">Affaire</div>
               </div>
             </div>
             <button onclick="closeSaisieFacile()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-muted);padding:4px">✕</button>
