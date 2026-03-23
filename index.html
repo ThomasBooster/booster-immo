@@ -9576,7 +9576,18 @@ function sfGoStep(n) {
   if (n === 11) sfFillRecap();
 }
 
-function sfNext() { sfGoStep(sfCur + 1); }
+function sfNext() {
+  // Sauvegarder les agences avant de quitter l'étape 8
+  if (sfCur === 8) {
+    sfData.agenceParts = [];
+    for (let i = 0; i < sfNbAg; i++) {
+      const sel = document.getElementById('sf-ag-sel-' + i);
+      const pct = sfNbAg === 1 ? 100 : (parseFloat(document.getElementById('sf-ag-pct-' + i)?.value) || 0);
+      if (sel && sel.value) sfData.agenceParts.push({ agence: sel.value, pct });
+    }
+  }
+  sfGoStep(sfCur + 1);
+}
 function sfPrev() { sfGoStep(sfCur - 1); }
 
 // ── NAV HTML ──
@@ -9841,9 +9852,9 @@ function sfCheckAgPct() {
 function sfRenderNegSections() {
   const c = document.getElementById('sf-neg-sections'); if (!c) return;
   c.innerHTML = '';
-  for (let i = 0; i < sfNbAg; i++) {
-    const sel = document.getElementById('sf-ag-sel-' + i);
-    const ag = sel ? sel.value : '';
+  const parts = sfData.agenceParts || [];
+  for (let i = 0; i < parts.length; i++) {
+    const ag = parts[i].agence;
     if (!ag) continue;
     const wrap = document.createElement('div');
     wrap.style.cssText = 'margin-bottom:14px;padding:12px;background:var(--bg);border-radius:10px';
@@ -9874,7 +9885,7 @@ function sfRenderNegLines(agIdx, ag) {
   ).join('');
 }
 function sfAddNegLine(agIdx) {
-  const sel = document.getElementById('sf-ag-sel-' + agIdx); const ag = sel ? sel.value : '';
+  const ag = (sfData.agenceParts || [])[agIdx]?.agence || '';
   if (!sfNegLines[agIdx]) sfNegLines[agIdx] = [];
   const used = sfNegLines[agIdx].reduce((s, l) => s + (parseFloat(l.pct) || 0), 0);
   sfNegLines[agIdx].push({ val: '', pct: Math.max(0, 100 - used) || '' });
@@ -9883,16 +9894,16 @@ function sfAddNegLine(agIdx) {
 function sfRemoveNegLine(agIdx, li) {
   sfNegLines[agIdx].splice(li, 1);
   if (!sfNegLines[agIdx].length) sfNegLines[agIdx] = [{ val: '', pct: '' }];
-  const sel = document.getElementById('sf-ag-sel-' + agIdx);
-  sfRenderNegLines(agIdx, sel ? sel.value : '');
+  const ag = (sfData.agenceParts || [])[agIdx]?.agence || '';
+  sfRenderNegLines(agIdx, ag);
 }
 function sfAutoNegPct(agIdx, li) {
   const lines = sfNegLines[agIdx];
   if (lines.length === 2) {
     const pct = parseFloat(lines[li].pct) || 0;
     lines[li === 0 ? 1 : 0].pct = Math.max(0, 100 - pct);
-    const sel = document.getElementById('sf-ag-sel-' + agIdx);
-    sfRenderNegLines(agIdx, sel ? sel.value : '');
+    const ag = (sfData.agenceParts || [])[agIdx]?.agence || '';
+    sfRenderNegLines(agIdx, ag);
   }
 }
 
@@ -9905,10 +9916,10 @@ function sfChangeNbRent(d) {
 function sfRenderRentRows() {
   const c = document.getElementById('sf-rent-rows'); if (!c) return; c.innerHTML = '';
   const allNegos = [];
-  for (let i = 0; i < sfNbAg; i++) {
-    const s = document.getElementById('sf-ag-sel-' + i);
-    if (s && s.value) negosByAgence(s.value).forEach(n => { if (!allNegos.includes(n.nom)) allNegos.push(n.nom); });
-  }
+  const parts = sfData.agenceParts || [];
+  parts.forEach(p => {
+    negosByAgence(p.agence).forEach(n => { if (!allNegos.includes(n.nom)) allNegos.push(n.nom); });
+  });
   for (let i = 0; i < sfNbRent; i++) {
     const showPct = sfNbRent > 1;
     const row = document.createElement('div');
@@ -9955,7 +9966,7 @@ function sfFillRecap() {
 
   const row = (l, v, show=true) => show ? '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text-muted)">' + l + '</span><span style="font-weight:600;text-align:right;max-width:60%">' + v + '</span></div>' : '';
   const sep = (l) => '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">' + l + '</div>';
-  const ags = []; for (let i = 0; i < sfNbAg; i++) { const s = document.getElementById('sf-ag-sel-' + i); const p = document.getElementById('sf-ag-pct-' + i); if (s?.value) ags.push(s.value + (sfNbAg > 1 && p?.value ? ' (' + p.value + '%)' : '')); }
+  const ags = (sfData.agenceParts||[]).map(p => p.agence + (sfNbAg > 1 ? ' (' + p.pct + '%)' : ''));
   const negs = []; for (let i = 0; i < sfNbAg; i++) { const ag = document.getElementById('sf-ag-sel-' + i); (sfNegLines[i]||[]).forEach(l => { if (l.val) negs.push(l.val + (sfNbAg > 1 ? ' (' + (ag?.value||'') + ')' : '') + (l.pct ? ' — ' + l.pct + '%' : '')); }); }
   const rents = []; for (let i = 0; i < sfNbRent; i++) { const s = document.getElementById('sf-rent-sel-' + i); const p = document.getElementById('sf-rent-pct-' + i); if (s?.value) rents.push(s.value + (p?.value ? ' — ' + p.value + '%' : '')); }
 
@@ -9995,13 +10006,8 @@ async function sfValider() {
     sfData.apPct = parseFloat(document.getElementById('sf-ap-pct')?.value) || 0;
   }
 
-  // Agences
-  const agenceParts = [];
-  for (let i = 0; i < sfNbAg; i++) {
-    const sel = document.getElementById('sf-ag-sel-' + i);
-    const pct = sfNbAg === 1 ? 100 : (parseFloat(document.getElementById('sf-ag-pct-' + i)?.value) || 0);
-    if (sel?.value) agenceParts.push({ agence: sel.value, pct });
-  }
+  // Agences — déjà sauvegardées dans sfData.agenceParts à l'étape 8
+  const agenceParts = sfData.agenceParts || [];
   if (!agenceParts.length) { showToast('Sélectionnez au moins une agence', 'error'); return; }
   if (!sfData.client) { showToast('Le nom du client est requis', 'error'); return; }
   if (!sfData.ttc) { showToast('Le montant est requis', 'error'); return; }
