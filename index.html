@@ -3743,11 +3743,17 @@ function openDelete(id) {
   document.getElementById('confirm-delete-btn').onclick = async () => {
     showLoading(true);
     try {
+      // Supprimer le dossier + ses liens en base
       await sbDelete('dossiers', 'id=eq.' + id);
+      await sbDelete('dossier_negociateurs', 'dossier_id=eq.' + id);
+      await sbDelete('dossier_rentreurs', 'dossier_id=eq.' + id);
+      // Purger en mémoire
       DB.dossiers = DB.dossiers.filter(d => d.id !== id);
+      DB.dossierNeg = (DB.dossierNeg || []).filter(r => r.dossier_id !== id);
+      DB.dossierRent = (DB.dossierRent || []).filter(r => r.dossier_id !== id);
       showLoading(false);
       closeModal('modal-delete');
-      showToast('Dossier supprimé', 'success');
+      showToast('Dossier supprimé ✓', 'success');
       refreshMyDossiers();
       refreshDossiers();
       refreshDashboard();
