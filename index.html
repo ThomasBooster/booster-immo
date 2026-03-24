@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Booster Immobilier — Suivi des Ventes</title>
+<title>Scorim v1.2.0 — Booster Immobilier</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1160,7 +1160,7 @@
             <option value="">Tous les statuts</option>
             <option value="À SIGNER">À signer</option>
             <option value="SIGNÉ">Signés</option>
-            <option value="AA SIGNÉ">🗂 AA signé</option>
+            <option value="AA SIGNÉ" disabled style="color:#94a3b8">🗂 AA signé (automatique)</option>
             <option value="REPORT">Report</option>
             <option value="ANNULÉ">Annulés</option>
             <option value="SRU">SRU</option>
@@ -2218,6 +2218,7 @@
         <select id="edit-statut">
           <option value="À SIGNER">📋 À signer</option>
           <option value="SIGNÉ">✅ Signé</option>
+          <option value="AA SIGNÉ" disabled style="color:#94a3b8">🗂 AA signé (automatique)</option>
           <option value="REPORT">⏳ Report</option>
           <option value="ANNULÉ">❌ Annulé</option>
           <option value="SRU">🔄 SRU</option>
@@ -2402,6 +2403,10 @@ async function sbInsert(table, data) {
     body: JSON.stringify(data)
   });
   const text = await res.text();
+  if (!res.ok) {
+    console.error('sbInsert error [' + table + ']:', text);
+    throw new Error('Supabase error [' + table + ']: ' + text);
+  }
   return text ? JSON.parse(text) : [];
 }
 
@@ -2454,7 +2459,7 @@ function rowToDossier(r) {
     retroBoosterHT: parseFloat(r.retro_booster_ht) || 0,
     apporteurPct: parseFloat(r.apporteur_pct) || 0,
     apportHT: parseFloat(r.apport_ht) || 0,
-    statut: (r.statut === 'SIGNÉ' && r.date_acte) ? 'AA SIGNÉ' : (r.statut || 'À SIGNER'),
+    statut: r.date_acte ? 'AA SIGNÉ' : (r.statut || 'SIGNÉ'),
     date: r.date_ssp || '',
     dateButoire: r.date_butoire || '',
     dateActe: r.date_acte || '',
@@ -3044,15 +3049,23 @@ function changeNbAgences(delta) {
 function onDateActeChange() {
   const dateActe = document.getElementById('edit-date-acte').value;
   const butEl = document.getElementById('edit-date-butoire');
-  // Si une date d'acte est saisie, on masque/vide la date butoire
+  const statutEl = document.getElementById('edit-statut');
   if (dateActe) {
     butEl.style.opacity = '0.35';
     butEl.style.pointerEvents = 'none';
     butEl.title = 'L\'acte étant signé, la date butoire n\'est plus applicable';
+    // Passer en AA SIGNÉ si SIGNÉ ou statut vide/inconnu
+    if (statutEl && (statutEl.value === 'SIGNÉ' || statutEl.value === '' || !['À SIGNER','REPORT','ANNULÉ','SRU','REFUS DE CRÉDIT'].includes(statutEl.value))) {
+      statutEl.value = 'AA SIGNÉ';
+    }
   } else {
     butEl.style.opacity = '1';
     butEl.style.pointerEvents = '';
     butEl.title = '';
+    // Repasser en SIGNÉ si on efface la date
+    if (statutEl && statutEl.value === 'AA SIGNÉ') {
+      statutEl.value = 'SIGNÉ';
+    }
   }
 }
 
@@ -3754,17 +3767,27 @@ function openDelete(id) {
   document.getElementById('confirm-delete-btn').onclick = async () => {
     showLoading(true);
     try {
-      // Supprimer le dossier + ses liens en base
-      await sbDelete('dossiers', 'id=eq.' + id);
-      await sbDelete('dossier_negociateurs', 'dossier_id=eq.' + id);
-      await sbDelete('dossier_rentreurs', 'dossier_id=eq.' + id);
+      // Récupérer tous les IDs du groupe (intercabinet) ou juste ce dossier
+      const dossier = DB.dossiers.find(d => d.id === id);
+      const groupId = dossier?.groupId;
+      const ids = groupId
+        ? DB.dossiers.filter(d => d.groupId === groupId).map(d => d.id)
+        : [id];
+
+      // Supprimer tous les dossiers du groupe + leurs liens
+      for (const did of ids) {
+        await sbDelete('dossier_negociateurs', 'dossier_id=eq.' + did);
+        await sbDelete('dossier_rentreurs', 'dossier_id=eq.' + did);
+        await sbDelete('dossiers', 'id=eq.' + did);
+      }
       // Purger en mémoire
-      DB.dossiers = DB.dossiers.filter(d => d.id !== id);
-      DB.dossierNeg = (DB.dossierNeg || []).filter(r => r.dossier_id !== id);
-      DB.dossierRent = (DB.dossierRent || []).filter(r => r.dossier_id !== id);
+      DB.dossiers = DB.dossiers.filter(d => !ids.includes(d.id));
+      DB.dossierNeg = (DB.dossierNeg || []).filter(r => !ids.includes(r.dossier_id));
+      DB.dossierRent = (DB.dossierRent || []).filter(r => !ids.includes(r.dossier_id));
       showLoading(false);
       closeModal('modal-delete');
-      showToast('Dossier supprimé ✓', 'success');
+      const nb = ids.length;
+      showToast(nb > 1 ? nb + ' dossiers liés supprimés ✓' : 'Dossier supprimé ✓', 'success');
       refreshMyDossiers();
       refreshDossiers();
       refreshDashboard();
@@ -3788,7 +3811,11 @@ function openEdit(id) {
   document.getElementById('edit-agence').value = d.agence;
   document.getElementById('edit-ttc').value = ttcToShow;
   document.getElementById('edit-ht-display').textContent = d.ht ? fmtEuro(d.ht) : '—';
-  document.getElementById('edit-statut').value = (d.statut === 'SIGNÉ' && d.dateActe) ? 'AA SIGNÉ' : d.statut;
+  // Corriger le statut si vide ou si dateActe renseignée
+  let editStatutVal = d.statut || '';
+  if (d.dateActe) editStatutVal = 'AA SIGNÉ';
+  else if (!editStatutVal) editStatutVal = 'SIGNÉ';
+  document.getElementById('edit-statut').value = editStatutVal;
   document.getElementById('edit-date').value = d.date || '';
   document.getElementById('edit-date-butoire').value = d.dateButoire || '';
   document.getElementById('edit-date-acte').value = d.dateActe || '';
@@ -4227,7 +4254,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.2.0</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -4620,7 +4647,7 @@ function refreshEncHistorique() {
 
 function refreshEncPrevisionnel() {
   const filtre = getEncFiltre('enc-prev');
-  const list = filterByEncFiltre(DB.dossiers.filter(d => d.statut === 'SIGNÉ' && !d.dateActe), filtre, 'dateButoire')
+  const list = filterByEncFiltre(DB.dossiers.filter(d => isNet(d) && !d.dateActe), filtre, 'dateButoire')
     .sort((a, b) => new Date(a.dateButoire) - new Date(b.dateButoire));
 
   const totalHT = list.reduce((s, d) => s + (d.ht || 0), 0);
@@ -5013,11 +5040,11 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
 
   // À encaisser = dossier SIGNÉ sans dateActe avec dateButoire dans l'année
   const aEncaisserParMois = MONTH_NAMES.map((_, mi) =>
-    (allDossiers||dossiersAnnee).filter(d => d.statut === 'SIGNÉ' && !d.dateActe &&
+    (allDossiers||dossiersAnnee).filter(d => isNet(d) && !d.dateActe &&
       d.dateButoire && new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi)
       .reduce((s, d) => s + (caKey(d)||0), 0));
   const nbAEncaisserParMois = MONTH_NAMES.map((_, mi) =>
-    dedup((allDossiers||dossiersAnnee).filter(d => d.statut === 'SIGNÉ' && !d.dateActe &&
+    dedup((allDossiers||dossiersAnnee).filter(d => isNet(d) && !d.dateActe &&
       d.dateButoire && new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi)).length);
   const totalAEncaisser = aEncaisserParMois.reduce((s,v) => s+v, 0);
   const totalNbAEncaisser = nbAEncaisserParMois.reduce((s,v) => s+v, 0);
@@ -5100,7 +5127,7 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
     '<tr><td style="font-weight:600;font-size:12px">Encaissements ' + tipEnc + '</td>' +
       MONTH_NAMES.map((_, mi) => {
         const dosEnc = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
-        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
+        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => isNet(d)&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
         return mkCellEnc(dosEnc, dosAEnc, encaisseParMois[mi], !isN1 ? aEncaisserParMois[mi] : 0, true);
       }).join('') + (() => {
         // Total colonne
@@ -5113,7 +5140,7 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
     '<tr><td style="font-weight:600;font-size:12px">Nb encaissements ' + tipNbEnc + '</td>' +
       MONTH_NAMES.map((_, mi) => {
         const dosEnc = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
-        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
+        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => isNet(d)&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
         return mkCellEnc(dosEnc, dosAEnc, nbEncaisseParMois[mi], !isN1 ? nbAEncaisserParMois[mi] : 0, false);
       }).join('') + (() => {
         const dosEncAll = dossiersAnnee.filter(d=>d.dateActe&&new Date(d.dateActe).getFullYear()===annee);
@@ -5222,6 +5249,14 @@ function checkAlerteCCIGlobale() {
     // Statuts nécessitant une habilitation CCI
     const needsCCI = ['salarié','responsable','agent-co','alternant'].includes(n.statut_emploi);
     if (!needsCCI) return false;
+    // Ne pas alerter si la fin de PE n'est pas renseignée ou est à plus de 15 jours
+    if (n.date_fin_periode_essai) {
+      const finPE = new Date(n.date_fin_periode_essai);
+      const diffJours = Math.ceil((finPE - now) / (1000 * 60 * 60 * 24));
+      if (diffJours > 15) return false; // PE pas encore à J-15
+    } else {
+      return false; // Pas de date de fin PE → checklist pas encore applicable
+    }
     // Vérifier la bonne case selon le statut
     const cciKey = n.statut_emploi === 'agent-co' ? 'cci-co' : n.statut_emploi === 'alternant' ? 'cci-alt' : 'cci';
     return !checklist[cciKey];
@@ -6138,7 +6173,7 @@ function getSocieteAgences() {
 
 function getSocieteDossiers() {
   const agenceNoms = getSocieteAgences();
-  return DB.dossiers.filter(d => agenceNoms.includes(d.agence) && d.statut === 'SIGNÉ')
+  return DB.dossiers.filter(d => agenceNoms.includes(d.agence) && isNet(d))
     .sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
 }
 
@@ -6583,7 +6618,7 @@ function openFicheAgence(agence, fromPage) {
   ficheAgenceNom = agence;
   ficheAgenceFromPage = fromPage || 'ranking';
   document.getElementById('fiche-agence-titre').textContent = agence;
-  const dosAgence = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ');
+  const dosAgence = DB.dossiers.filter(d => d.agence === agence && isNet(d));
   document.getElementById('fiche-agence-sous-titre').textContent = dosAgence.length + ' ventes signées au total';
   refreshFicheAgence();
   showPage('fiche-agence', null);
@@ -6599,7 +6634,7 @@ function refreshFicheAgence() {
   const curYear = now.getFullYear();
   const n1Year = curYear - 1;
 
-  const dosAgence = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ').sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+  const dosAgence = DB.dossiers.filter(d => d.agence === agence && isNet(d)).sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
   const totalCA = dosAgence.reduce((s, d) => s + (d.ht || 0), 0);
 
   // Stats rapides
@@ -6652,7 +6687,7 @@ function refreshFicheAgence() {
 function refreshFicheAgenceMoyenne() {
   const agence = ficheAgenceNom;
   const annee = document.getElementById('fiche-agence-annee-moy')?.value || '';
-  let dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ');
+  let dos = DB.dossiers.filter(d => d.agence === agence && isNet(d));
   if (annee) dos = dos.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(annee));
 
   const now = new Date();
@@ -6696,7 +6731,7 @@ function refreshFicheAgenceTableau(dossiersAgence, annee, tableId, titleId, tota
 
 function refreshFicheAgenceGraphGlissant() {
   const agence = ficheAgenceNom;
-  const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
+  const dos = DB.dossiers.filter(d => d.agence === agence && isNet(d) && d.date);
   if (dos.length === 0) return;
 
   const now = new Date();
@@ -6779,7 +6814,7 @@ function refreshFicheAgenceGraphs() {
   const agence = ficheAgenceNom;
   const anneeSelect = document.getElementById('fiche-agence-graph-annee')?.value || '';
   const allYears = document.getElementById('fiche-agence-graph-all')?.checked || false;
-  const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
+  const dos = DB.dossiers.filter(d => d.agence === agence && isNet(d) && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
   const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9e7bb5','#6b8fa3','#5ba0a0'];
   const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
@@ -6803,7 +6838,7 @@ function refreshFicheAgenceGraphNb() {
   const agence = ficheAgenceNom;
   const anneeSelect = document.getElementById('fiche-agence-graph-annee-nb')?.value || '';
   const allYears = document.getElementById('fiche-agence-graph-all-nb')?.checked || false;
-  const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
+  const dos = DB.dossiers.filter(d => d.agence === agence && isNet(d) && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
   const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9e7bb5','#6b8fa3','#5ba0a0'];
   const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
@@ -7418,7 +7453,7 @@ const STATUTS_NET  = ['SIGNÉ', 'AA SIGNÉ'];
 const STATUTS_ANNUL_SSP = ['SRU', 'REFUS DE CRÉDIT'];
 
 function isBrut(d)  { return STATUTS_BRUT.includes(d.statut); }
-function isNet(d)   { return d.statut === 'SIGNÉ'; }
+function isNet(d)   { return d.statut === 'SIGNÉ' || d.statut === 'AA SIGNÉ'; }
 function isAnnulSSP(d) { return STATUTS_ANNUL_SSP.includes(d.statut); }
 
 // État global toggle CA
@@ -7712,7 +7747,7 @@ function buildApporteursSection(containerId, dos) {
 
 function refreshStatsMoyenneSociete() {
   const agenceNoms = getSocieteAgences();
-  const dos = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&d.statut==='SIGNÉ');
+  const dos = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&isNet(d));
   buildMoyenneSection('stats-soc-moyenne','stats-soc-sel-annee-moy', dos, d=>d.ht||0, 'Société');
 }
 function refreshStatsMoyenneAgence() {
@@ -7984,7 +8019,7 @@ function buildDelaiPyramideSection(containerId, dos) {
   const delaiColor = delaiMoyen === null ? 'var(--text-muted)' : delaiMoyen <= 60 ? '#16a34a' : delaiMoyen <= 90 ? '#d97706' : '#dc2626';
 
   // ── Pyramide des âges dossiers en cours ──
-  const enCours = dos.filter(d => d.statut === 'SIGNÉ' && !d.dateActe && d.date);
+  const enCours = dos.filter(d => isNet(d) && !d.dateActe && d.date);
   const tranches = [
     { label: '0 – 30j',  min: 0,   max: 30,  color: '#10b981', dos: [] },
     { label: '31 – 60j', min: 31,  max: 60,  color: '#f59e0b', dos: [] },
@@ -8247,7 +8282,7 @@ function renderStatsReseau(container) {
 }
 
 function renderStatsReseauGraphs() {
-  const dos = DB.dossiers.filter(d => d.statut === 'SIGNÉ' && d.date);
+  const dos = DB.dossiers.filter(d => isNet(d) && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
   const selAnnee = document.getElementById('stats-graph-annee');
   if (selAnnee && !selAnnee.options.length) {
@@ -8595,7 +8630,7 @@ async function notifyNouvelleVente(dossier, negociateurs, rentreurs, saisiPar) {
 async function sendAlertesButoires() {
   const now = new Date();
   const dossiers = DB.dossiers.filter(d => {
-    if (!d.dateButoire || d.dateActe || d.statut !== 'SIGNÉ') return false;
+    if (!d.dateButoire || d.dateActe || !isNet(d)) return false;
     const jours = Math.ceil((new Date(d.dateButoire) - now) / 86400000);
     return jours <= 7; // dans les 7 prochains jours ou dépassé
   });
@@ -9996,23 +10031,35 @@ function sfRestoreAgRows() {
   });
 }
 
+function sfCalcPctEquitable(nb, i) {
+  // Répartition équitable : 33.34 pour le premier si nombre impair
+  const base = Math.floor(10000 / nb) / 100;
+  const reste = +(100 - base * nb).toFixed(2);
+  return i === 0 ? +(base + reste).toFixed(2) : base;
+}
+
 function sfRenderAgRows() {
   const c = document.getElementById('sf-ag-rows'); if (!c) return;
   c.innerHTML = '';
   for (let i = 0; i < sfNbAg; i++) {
+    // Valeur % : depuis sfData.agenceParts si dispo, sinon calculer
+    const savedPart = (sfData.agenceParts || [])[i];
+    const pctVal = sfNbAg === 1 ? 100 : (savedPart?.pct !== undefined ? savedPart.pct : sfCalcPctEquitable(sfNbAg, i));
+    const agVal = savedPart?.agence || '';
+
     const div = document.createElement('div');
     div.style.cssText = 'display:grid;grid-template-columns:1fr' + (sfNbAg > 1 ? ' 80px 90px' : '') + ';gap:8px;align-items:end;margin-bottom:8px;padding:10px;background:var(--bg);border-radius:10px';
     div.innerHTML =
       '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Agence ' + (sfNbAg > 1 ? i + 1 : '') + '</div>' +
       '<select id="sf-ag-sel-' + i + '" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px" onchange="sfCheckAgPct()">' +
       '<option value="">— Sélectionner —</option>' +
-      AGENCES.map(a => '<option>' + a + '</option>').join('') +
+      AGENCES.map(a => '<option' + (a === agVal ? ' selected' : '') + '>' + a + '</option>').join('') +
       '</select></div>' +
-      (sfNbAg > 1 ? '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">%</div><input type="number" id="sf-ag-pct-' + i + '" placeholder="50" min="0" max="100" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px" oninput="sfCheckAgPct()"></div>' : '<div></div>') +
+      (sfNbAg > 1 ? '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">%</div><input type="number" id="sf-ag-pct-' + i + '" value="' + pctVal + '" min="0" max="100" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px" oninput="sfCheckAgPct()"></div>' : '<div></div>') +
       '<div style="font-size:12px;color:var(--text-muted)" id="sf-ag-ht-' + i + '"></div>';
     c.appendChild(div);
   }
-  if (sfNbAg === 1 && sfData.ht) { const el = document.getElementById('sf-ag-ht-0'); if (el) el.textContent = sfData.ht.toLocaleString('fr-FR') + ' € HT'; }
+  sfCheckAgPct();
 }
 function sfCheckAgPct() {
   if (sfNbAg <= 1) { document.getElementById('sf-ag-warn').style.display = 'none'; return; }
@@ -10047,7 +10094,14 @@ function sfRenderNegSections() {
   if (!c.children.length) c.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">Selectionnez une agence a l&apos;etape 8.</p>';
 }
 function sfRenderNegLines(agIdx, ag) {
-  if (!sfNegLines[agIdx]) sfNegLines[agIdx] = [{ val: '', pct: '' }];
+  const nbLines = sfNegLines[agIdx]?.length || 1;
+  if (!sfNegLines[agIdx]) sfNegLines[agIdx] = [{ val: '', pct: 100 }];
+  // Pré-remplir les % si non encore saisis
+  sfNegLines[agIdx].forEach((l, li) => {
+    if (l.pct === '' || l.pct === undefined) {
+      l.pct = sfCalcPctEquitable(nbLines, li);
+    }
+  });
   const negos = negosByAgence(ag).map(n => n.nom);
   const c = document.getElementById('sf-neg-lignes-' + agIdx); if (!c) return;
   c.innerHTML = sfNegLines[agIdx].map((l, li) =>
@@ -10067,8 +10121,10 @@ function sfRenderNegLines(agIdx, ag) {
 function sfAddNegLine(agIdx) {
   const ag = (sfData.agenceParts || [])[agIdx]?.agence || '';
   if (!sfNegLines[agIdx]) sfNegLines[agIdx] = [];
-  const used = sfNegLines[agIdx].reduce((s, l) => s + (parseFloat(l.pct) || 0), 0);
-  sfNegLines[agIdx].push({ val: '', pct: Math.max(0, 100 - used) || '' });
+  // Recalculer les % équitables pour toutes les lignes
+  const nb = sfNegLines[agIdx].length + 1;
+  sfNegLines[agIdx].push({ val: '', pct: '' });
+  sfNegLines[agIdx].forEach((l, li) => { l.pct = sfCalcPctEquitable(nb, li); });
   sfRenderNegLines(agIdx, ag);
 }
 function sfRemoveNegLine(agIdx, li) {
@@ -10229,6 +10285,8 @@ async function sfValider() {
         ttc: ttcPart,
         brutHT: brutHTPart,
         ht: netHTPart,
+        ttcTotal: sfData.ttc,
+        htTotal: +netHTTotal.toFixed(2),
         apportHT: apportHTPart,
         hasApporteur: sfData.apporteur || false,
         apporteurNom: sfData.apporteur ? apporteurNomFinal : '',
