@@ -2781,12 +2781,24 @@ function refreshDashboard() {
 
   // Tous les À SIGNER (sans filtre de mois pour ne pas les exclure)
   const allDosFiltre = getDossiers({ agence }); // filtre agence seulement
-  const aSignerMoisCourant = allDosFiltre.filter(d =>
-    d.statut === 'À SIGNER' && d.date && d.date.startsWith(moisCourant)
-  );
-  const aSignerMoisSuivant = allDosFiltre.filter(d =>
-    d.statut === 'À SIGNER' && d.date && d.date.startsWith(moisSuivant)
-  );
+  // Label mois pour comparaison avec d.mois (ex: "Mars 2026")
+  const moisCourantLabel = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const nextMonth2 = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const moisSuivantLabel2 = nextMonth2.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+  const aSignerMoisCourant = allDosFiltre.filter(d => {
+    if (d.statut !== 'À SIGNER') return false;
+    // Comparer via date ISO (date_ssp) OU via le champ mois
+    if (d.date && d.date.startsWith(moisCourant)) return true;
+    if (!d.date && d.mois && d.mois.toLowerCase() === moisCourantLabel.toLowerCase()) return true;
+    return false;
+  });
+  const aSignerMoisSuivant = allDosFiltre.filter(d => {
+    if (d.statut !== 'À SIGNER') return false;
+    if (d.date && d.date.startsWith(moisSuivant)) return true;
+    if (!d.date && d.mois && d.mois.toLowerCase() === moisSuivantLabel2.toLowerCase()) return true;
+    return false;
+  });
   const caASignerCourant = aSignerMoisCourant.reduce((s, d) => s + (d.ht || 0), 0);
   const caASignerSuivant = aSignerMoisSuivant.reduce((s, d) => s + (d.ht || 0), 0);
 
@@ -2794,7 +2806,6 @@ function refreshDashboard() {
   checkAlerteCCIGlobale();
   checkAlerteRCSGlobale();
 
-  const moisCourantLabel = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   const moisSuivantLabel = nextMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
   document.getElementById('stats-grid').innerHTML = `
