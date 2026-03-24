@@ -1239,7 +1239,7 @@
             </div>
           </div>
           <div style="margin-top:4px;padding:12px 16px;background:white;border-radius:10px;border:1px solid var(--border)">
-            <div style="font-size:11px;color:var(--text-muted)">🧪 Les boutons "Tester" envoient un exemple à thomas.godard@booster-immobilier.com</div>
+            <div style="font-size:11px;color:var(--text-muted)">🧪 Les boutons "Tester" envoient un exemple à <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="15617d7a7874663b727a7174677155777a7a66617067387c78787a777c797c70673b767a78">[email&#160;protected]</a></div>
           </div>
         </div>
 
@@ -2292,7 +2292,7 @@
 
 <div id="toast"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // =====================
 // SUPABASE CONFIG
 // =====================
@@ -9594,27 +9594,24 @@ function sfSaveCurrentStep() {
       sfData.ht = Math.round(sfData.ttc / 1.2);
       break;
     case 3:
-      // statut déjà sauvegardé via sfPickChip
-      break;
-    case 3:
       sfData.ssp = document.getElementById('sf-ssp')?.value || '';
       sfData.butoire = document.getElementById('sf-butoire')?.value || '';
       break;
-    case 3:
+    case 4:
       sfData.remarque = document.getElementById('sf-remarque')?.value || '';
       break;
-    case 3:
+    case 5:
       sfData.diag = document.getElementById('sf-diag')?.checked || false;
       if (sfData.apporteur) {
-        const sel = document.getElementById('sf-ap-nom');
-        sfData.apNom = sel?.value === '__nouveau__' ? (document.getElementById('sf-ap-nom-txt')?.value || '') : (sel?.value || '');
+        const apSel = document.getElementById('sf-ap-nom');
+        sfData.apNom = apSel?.value === '__nouveau__' ? (document.getElementById('sf-ap-nom-txt')?.value || '') : (apSel?.value || '');
         sfData.apPct = parseFloat(document.getElementById('sf-ap-pct')?.value) || 0;
       }
       break;
-    case 3:
+    case 6:
       if (sfData.retro) sfData.retroMt = parseFloat(document.getElementById('sf-retro-mt')?.value) || 1500;
       break;
-    case 3:
+    case 7:
       sfData.agenceParts = [];
       for (let i = 0; i < sfNbAg; i++) {
         const sel = document.getElementById('sf-ag-sel-' + i);
@@ -9622,10 +9619,10 @@ function sfSaveCurrentStep() {
         if (sel && sel.value) sfData.agenceParts.push({ agence: sel.value, pct });
       }
       break;
-    case 3:
-      // negLines déjà sauvegardés en temps réel via onchange/oninput
+    case 8:
+      // negLines déjà sauvegardés en temps réel
       break;
-    case 3:
+    case 9:
       sfData.rentreurs = [];
       for (let i = 0; i < sfNbRent; i++) {
         const s = document.getElementById('sf-rent-sel-' + i);
@@ -9862,17 +9859,19 @@ function sfChangeNbAg(d) {
 }
 function sfRestoreStep(n) {
   switch(n) {
-    case 1:
-      const c = document.getElementById('sf-client');
-      if (c && sfData.client) c.value = sfData.client;
+    case 1: {
+      const el = document.getElementById('sf-client');
+      if (el && sfData.client) el.value = sfData.client;
       break;
-    case 2:
+    }
+    case 2: {
       const ttc = document.getElementById('sf-ttc');
       const htd = document.getElementById('sf-ht-disp');
-      if (ttc && sfData.ttc) { ttc.value = sfData.ttc; }
+      if (ttc && sfData.ttc) ttc.value = sfData.ttc;
       if (htd && sfData.ht) htd.value = sfData.ht.toLocaleString('fr-FR') + ' €';
       break;
-    case 3:
+    }
+    case 3: {
       const ssp = document.getElementById('sf-ssp');
       const but = document.getElementById('sf-butoire');
       if (ssp && sfData.ssp) ssp.value = sfData.ssp;
@@ -9883,21 +9882,20 @@ function sfRestoreStep(n) {
         if (info) info.textContent = '→ ' + d + '/' + m + '/' + y;
       }
       break;
-    case 3:
+    }
+    case 4: {
       const rem = document.getElementById('sf-remarque');
       if (rem && sfData.remarque) rem.value = sfData.remarque;
       break;
-    case 3:
-      // Restaurer diag
+    }
+    case 5: {
       const diag = document.getElementById('sf-diag');
       if (diag) diag.checked = sfData.diag || false;
-      // Restaurer apporteur
       if (sfData.apporteur) {
         sfToggleAp(true);
         const apNom = document.getElementById('sf-ap-nom');
         const apPct = document.getElementById('sf-ap-pct');
         if (apNom && sfData.apNom) {
-          // Vérifier si c'est un apporteur existant dans la liste
           const opts = Array.from(apNom.options).map(o => o.value);
           if (opts.includes(sfData.apNom)) {
             apNom.value = sfData.apNom;
@@ -9909,22 +9907,20 @@ function sfRestoreStep(n) {
             if (txt) txt.value = sfData.apNom;
           }
         }
-        if (apPct && sfData.apPct) {
-          apPct.value = sfData.apPct;
-          sfCalcApport();
-        }
+        if (apPct && sfData.apPct) { apPct.value = sfData.apPct; sfCalcApport(); }
       }
       break;
-    case 3:
+    }
+    case 6: {
       if (sfData.retro) {
         sfSetRetro(true);
         const mt = document.getElementById('sf-retro-mt');
         if (mt) mt.value = sfData.retroMt || 1500;
       }
       break;
+    }
   }
 }
-
 function sfRestoreAgRows() {
   const parts = sfData.agenceParts || [];
   if (!parts.length) return;
@@ -10427,14 +10423,4 @@ function sfShowOk(agenceParts) {
           </div>
 
           <!-- Dots -->
-          <div style="display:flex;gap:4px;flex-wrap:wrap;padding:12px 20px 0" id="sf-dots"></div>
-
-          <!-- Corps -->
-          <div style="padding:20px" id="sf-body">
-            <!-- Généré par JS -->
-          </div>
-
-        </div>
-      </div>
-</body>
-</html>
+          <div style="displa
