@@ -317,9 +317,15 @@
   /* Cards */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
     margin-bottom: 24px;
+  }
+  @media (max-width: 1100px) {
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
   }
   .stat-card {
     background: white;
@@ -2448,7 +2454,7 @@ function rowToDossier(r) {
     retroBoosterHT: parseFloat(r.retro_booster_ht) || 0,
     apporteurPct: parseFloat(r.apporteur_pct) || 0,
     apportHT: parseFloat(r.apport_ht) || 0,
-    statut: r.statut || 'À SIGNER',
+    statut: (r.statut === 'SIGNÉ' && r.date_acte) ? 'AA SIGNÉ' : (r.statut || 'À SIGNER'),
     date: r.date_ssp || '',
     dateButoire: r.date_butoire || '',
     dateActe: r.date_acte || '',
@@ -2795,7 +2801,7 @@ function refreshDashboard() {
     <div class="stat-card"><div class="stat-label">CA TTC brut (signés)<span class="info-tip" data-tip="Montant total TTC de toutes les ventes signées sur la période. Ne comprend pas les dossiers en report ou annulés.">i</span></div><div class="stat-value">${fmtEuro(totalTTC)}</div><div class="stat-sub">Hors reports et annulés</div></div>
     <div class="stat-card"><div class="stat-label">CA net HT (signés)<span class="info-tip" data-tip="CA HT après déduction de la TVA et des commissions versées aux apporteurs d'affaires. C'est le CA réellement encaissé par le réseau.">i</span></div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
     <div class="stat-card"><div class="stat-label">Dossiers signés<span class="info-tip" data-tip="Nombre de sous-seings privés signés sur la période.">i</span></div><div class="stat-value">${fmtCount(nbSigned)}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
-    <div class="stat-card"><div class="stat-label">Agences actives<span class="info-tip" data-tip="Nombre d'agences du réseau ayant signé au moins un dossier sur la période sélectionnée.">i</span></div><div class="stat-value">${new Set(signed.map(d => d.agence)).size}</div><div class="stat-sub">sur ${AGENCES.length} agences</div></div>
+
     <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-label">CA à signer — ${moisCourantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue ce mois-ci.">i</span></div><div class="stat-value" style="color:#d97706">${fmtEuro(caASignerCourant)}</div><div class="stat-sub">${aSignerMoisCourant.length} dossier(s)</div></div>
     <div class="stat-card" style="border-left:3px solid #3b82f6"><div class="stat-label">CA à signer — ${moisSuivantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue le mois prochain.">i</span></div><div class="stat-value" style="color:#2563eb">${fmtEuro(caASignerSuivant)}</div><div class="stat-sub">${aSignerMoisSuivant.length} dossier(s)</div></div>
   `;
@@ -3765,7 +3771,7 @@ function openEdit(id) {
   document.getElementById('edit-agence').value = d.agence;
   document.getElementById('edit-ttc').value = ttcToShow;
   document.getElementById('edit-ht-display').textContent = d.ht ? fmtEuro(d.ht) : '—';
-  document.getElementById('edit-statut').value = d.statut;
+  document.getElementById('edit-statut').value = (d.statut === 'SIGNÉ' && d.dateActe) ? 'AA SIGNÉ' : d.statut;
   document.getElementById('edit-date').value = d.date || '';
   document.getElementById('edit-date-butoire').value = d.dateButoire || '';
   document.getElementById('edit-date-acte').value = d.dateActe || '';
@@ -4347,6 +4353,7 @@ function refreshButoires() {
   const groupsSeen = new Set();
   const list = DB.dossiers.filter(d => {
     if (!d.dateButoire || d.dateActe) return false;
+    if (!isNet(d) && d.statut !== 'À SIGNER') return false; // Seulement dossiers actifs
     const b = new Date(d.dateButoire);
     const isCurrentOrPast = b <= new Date(now.getFullYear(), now.getMonth() + 1, 0); // <= fin du mois courant
     if (!isCurrentOrPast) return false;
