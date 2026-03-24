@@ -10194,14 +10194,41 @@ async function sfValider() {
   document.getElementById('s-has-retro-booster').checked = sfData.retro;
   if (sfData.retro) document.getElementById('s-retro-booster-ht').value = sfData.retroMt;
 
-  // Agences & négociateurs
-  nbAgences = sfNbAg;
+  // Mois depuis la date SSP
+  if (sfData.ssp) {
+    const [y, m] = sfData.ssp.split('-');
+    const moisStr = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'][parseInt(m)-1] + ' ' + y;
+    const selMois = document.getElementById('s-mois');
+    if (selMois) selMois.value = moisStr;
+  }
+
+  // Agences : définir nbAgences et générer les selects via renderRepartition
+  nbAgences = agenceParts.length;
+  document.getElementById('nb-agences-display').textContent = nbAgences;
+  renderRepartition();
+  // Attendre que renderRepartition ait créé les selects dans le DOM
+  await new Promise(r => setTimeout(r, 50));
+  // Remplir les selects d'agences et % générés
+  agenceParts.forEach((part, i) => {
+    const selAg = document.getElementById('s-agence-' + i);
+    const selPct = document.getElementById('s-pct-' + i);
+    if (selAg) selAg.value = part.agence;
+    if (selPct) selPct.value = part.pct;
+  });
+
+  // Négociateurs
   negLignesSaisie = {};
   agenceParts.forEach((part, i) => {
     negLignesSaisie[i] = (sfNegLines[i] || [{ val: '', pct: '' }]).map(l => ({
       negId: negosByAgence(part.agence).find(n => n.nom === l.val)?.id || '',
       pct: l.pct
     }));
+  });
+
+  // Rentreurs depuis sfData
+  rentreurLignesSaisie = (sfData.rentreurs || []).map(r => {
+    const neg = DB.negociateurs.find(n => n.nom === r.nom);
+    return { agence: neg?.agence || '', negId: String(neg?.id || ''), pct: parseFloat(r.pct) || 100 };
   });
 
   // Déclencher la sauvegarde
