@@ -1154,6 +1154,7 @@
             <option value="">Tous les statuts</option>
             <option value="À SIGNER">À signer</option>
             <option value="SIGNÉ">Signés</option>
+            <option value="AA SIGNÉ">🗂 AA signé</option>
             <option value="REPORT">Report</option>
             <option value="ANNULÉ">Annulés</option>
             <option value="SRU">SRU</option>
@@ -2758,7 +2759,7 @@ function refreshDashboard() {
   const mois = document.getElementById('filter-mois').value;
   const agence = document.getElementById('filter-agence-dash').value;
   const list = getDossiers({ mois, agence });
-  const signed = list.filter(d => d.statut === 'SIGNÉ');
+  const signed = list.filter(d => isNet(d));
 
   const totalTTC = signed.reduce((s, d) => s + (d.ttc || 0), 0);
   const totalHT = signed.reduce((s, d) => s + (d.ht || 0), 0);
@@ -2766,14 +2767,37 @@ function refreshDashboard() {
   const nbReport = list.filter(d => d.statut === 'REPORT').length;
   const nbAnnule = list.filter(d => d.statut === 'ANNULÉ').length;
 
+  // Dossiers À SIGNER : mois en cours et mois suivant
+  const now = new Date();
+  const moisCourant = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const moisSuivant = nextMonth.getFullYear() + '-' + String(nextMonth.getMonth() + 1).padStart(2, '0');
+
+  // Tous les À SIGNER (sans filtre de mois pour ne pas les exclure)
+  const allDosFiltre = getDossiers({ agence }); // filtre agence seulement
+  const aSignerMoisCourant = allDosFiltre.filter(d =>
+    d.statut === 'À SIGNER' && d.date && d.date.startsWith(moisCourant)
+  );
+  const aSignerMoisSuivant = allDosFiltre.filter(d =>
+    d.statut === 'À SIGNER' && d.date && d.date.startsWith(moisSuivant)
+  );
+  const caASignerCourant = aSignerMoisCourant.reduce((s, d) => s + (d.ht || 0), 0);
+  const caASignerSuivant = aSignerMoisSuivant.reduce((s, d) => s + (d.ht || 0), 0);
+
   // Alertes CCI et RCS sur le dashboard
   checkAlerteCCIGlobale();
   checkAlerteRCSGlobale();
+
+  const moisCourantLabel = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const moisSuivantLabel = nextMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-label">CA TTC brut (signés)<span class="info-tip" data-tip="Montant total TTC de toutes les ventes signées sur la période. Ne comprend pas les dossiers en report ou annulés.">i</span></div><div class="stat-value">${fmtEuro(totalTTC)}</div><div class="stat-sub">Hors reports et annulés</div></div>
-    <div class="stat-card"><div class="stat-label">CA net HT (signés)<span class="info-tip" data-tip="CA HT après déduction de la TVA et des commissions versées aux apporteurs d&#39;affaires. C&#39;est le CA réellement encaissé par le réseau.">i</span></div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
-    <div class="stat-card"><div class="stat-label">Dossiers signés<span class="info-tip" data-tip="Nombre de sous-seings privés signés sur la période. Les dossiers en report sont temporairement suspendus, les annulés sont définitivement fermés.">i</span></div><div class="stat-value">${fmtCount(nbSigned)}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
-    <div class="stat-card"><div class="stat-label">Agences actives<span class="info-tip" data-tip="Nombre d&#39;agences du réseau ayant signé au moins un dossier sur la période sélectionnée.">i</span></div><div class="stat-value">${new Set(signed.map(d => d.agence)).size}</div><div class="stat-sub">sur ${AGENCES.length} agences</div></div>
+    <div class="stat-card"><div class="stat-label">CA net HT (signés)<span class="info-tip" data-tip="CA HT après déduction de la TVA et des commissions versées aux apporteurs d'affaires. C'est le CA réellement encaissé par le réseau.">i</span></div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
+    <div class="stat-card"><div class="stat-label">Dossiers signés<span class="info-tip" data-tip="Nombre de sous-seings privés signés sur la période.">i</span></div><div class="stat-value">${fmtCount(nbSigned)}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
+    <div class="stat-card"><div class="stat-label">Agences actives<span class="info-tip" data-tip="Nombre d'agences du réseau ayant signé au moins un dossier sur la période sélectionnée.">i</span></div><div class="stat-value">${new Set(signed.map(d => d.agence)).size}</div><div class="stat-sub">sur ${AGENCES.length} agences</div></div>
+    <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-label">CA à signer — ${moisCourantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue ce mois-ci.">i</span></div><div class="stat-value" style="color:#d97706">${fmtEuro(caASignerCourant)}</div><div class="stat-sub">${aSignerMoisCourant.length} dossier(s)</div></div>
+    <div class="stat-card" style="border-left:3px solid #3b82f6"><div class="stat-label">CA à signer — ${moisSuivantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue le mois prochain.">i</span></div><div class="stat-value" style="color:#2563eb">${fmtEuro(caASignerSuivant)}</div><div class="stat-sub">${aSignerMoisSuivant.length} dossier(s)</div></div>
   `;
 
   const tbody = document.getElementById('dash-tbody');
@@ -7363,9 +7387,9 @@ function getAgencesActives() {
   });
 }
 
-const STATUTS_BRUT = ['SIGNÉ', 'SRU', 'REFUS DE CRÉDIT'];
+const STATUTS_BRUT = ['SIGNÉ', 'AA SIGNÉ', 'SRU', 'REFUS DE CRÉDIT'];
 // CA net = SIGNÉ uniquement
-const STATUTS_NET  = ['SIGNÉ'];
+const STATUTS_NET  = ['SIGNÉ', 'AA SIGNÉ'];
 // Annulations post-SSP
 const STATUTS_ANNUL_SSP = ['SRU', 'REFUS DE CRÉDIT'];
 
@@ -7377,8 +7401,8 @@ function isAnnulSSP(d) { return STATUTS_ANNUL_SSP.includes(d.statut); }
 window.caMode = 'net'; // Toujours net — pas de toggle
 
 function statusBadge(s) {
-  const map = { 'SIGNÉ': 'status-signed', 'REPORT': 'status-report', 'ANNULÉ': 'status-withdrawn', 'À SIGNER': 'status-asigner', 'SRU': 'status-sru', 'REFUS DE CRÉDIT': 'status-refus' };
-  const icons = { 'SIGNÉ': '✅', 'REPORT': '⏳', 'ANNULÉ': '❌', 'À SIGNER': '📋', 'SRU': '🔄', 'REFUS DE CRÉDIT': '🏦' };
+  const map = { 'SIGNÉ': 'status-signed', 'AA SIGNÉ': 'status-signed', 'REPORT': 'status-report', 'ANNULÉ': 'status-withdrawn', 'À SIGNER': 'status-asigner', 'SRU': 'status-sru', 'REFUS DE CRÉDIT': 'status-refus' };
+  const icons = { 'SIGNÉ': '✅', 'AA SIGNÉ': '🗂', 'REPORT': '⏳', 'ANNULÉ': '❌', 'À SIGNER': '📋', 'SRU': '🔄', 'REFUS DE CRÉDIT': '🏦' };
   return `<span class="status-badge ${map[s] || 'status-pending'}">${icons[s] || ''} ${s}</span>`;
 }
 
