@@ -10169,73 +10169,134 @@ function sfFillRecap() {
 
 // ── VALIDATION ──
 async function sfValider() {
-  // Collecte toutes les données et les envoie à saveDossier
-  // Toutes les données sont déjà dans sfData — rien à recollecterdu DOM
-
-  // Agences — déjà sauvegardées dans sfData.agenceParts à l'étape 8
   const agenceParts = sfData.agenceParts || [];
   if (!agenceParts.length) { showToast('Sélectionnez au moins une agence', 'error'); return; }
   if (!sfData.client) { showToast("Le nom de l'affaire est requis", 'error'); return; }
   if (!sfData.ttc) { showToast('Le montant est requis', 'error'); return; }
 
-  // Pré-remplir le formulaire de saisie standard et l'enregistrer
-  document.getElementById('s-client').value = sfData.client;
-  document.getElementById('s-ttc').value = sfData.ttc;
-  document.getElementById('s-statut').value = sfData.statut || 'À SIGNER';
-  document.getElementById('s-date').value = sfData.ssp;
-  document.getElementById('s-date-butoire').value = sfData.butoire;
-  document.getElementById('s-remarque').value = sfData.remarque;
-  document.getElementById('s-diag').checked = sfData.diag;
-  document.getElementById('s-has-apporteur').checked = sfData.apporteur;
-  if (sfData.apporteur) {
-    document.getElementById('s-apporteur-select').value = sfData.apNom;
-    document.getElementById('s-apporteur-pct').value = sfData.apPct;
+  showLoading(true);
+  try {
+    const tva = (DB.settings?.tva || 20) / 100;
+    const brutHTTotal = sfData.ttc / (1 + tva);
+    const apportHT = sfData.apporteur && sfData.apPct > 0 ? brutHTTotal * sfData.apPct / 100 : 0;
+    const netHTTotal = brutHTTotal - apportHT;
+
+    // Calculer le mois depuis la date SSP
+    let moisStr = '';
+    if (sfData.ssp) {
+      const [y, m] = sfData.ssp.split('-');
+      moisStr = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'][parseInt(m)-1] + ' ' + y;
+    }
+
+    // Gérer le nouvel apporteur si besoin
+    let apporteurNomFinal = sfData.apNom || '';
+    if (sfData.apporteur && apporteurNomFinal && !DB.apporteurs.includes(apporteurNomFinal)) {
+      await sbInsert('apporteurs', { nom: apporteurNomFinal });
+      DB.apporteurs.push(apporteurNomFinal);
+      populateApporteurSelects();
+    }
+
+    // Construire les dossiers à insérer
+    const groupId = agenceParts.length > 1 ? Date.now() : null;
+    const rows = agenceParts.map(p => {
+      const ttcPart = +(sfData.ttc * p.pct / 100).toFixed(2);
+      const brutHTPart = +(brutHTTotal * p.pct / 100).toFixed(2);
+      const apportHTPart = +(apportHT * p.pct / 100).toFixed(2);
+      const netHTPart = +(netHTTotal * p.pct / 100).toFixed(2);
+      const agenceObj = DB.agences.find(a => a.nom === p.agence);
+      return dossierToRow({
+        client: sfData.client,
+        statut: 'À SIGNER',
+        agence: p.agence,
+        agenceId: agenceObj?.id || null,
+        ttc: ttcPart,
+        brutHT: brutHTPart,
+        ht: netHTPart,
+        apportHT: apportHTPart,
+        hasApporteur: sfData.apporteur || false,
+        apporteurNom: sfData.apporteur ? apporteurNomFinal : '',
+        apporteurPct: sfData.apporteur ? sfData.apPct : 0,
+        hasRetroBooster: sfData.retro || false,
+        retroBoosterHT: sfData.retro ? (sfData.retroMt || 0) : 0,
+        date: sfData.ssp || null,
+        dateButoire: sfData.butoire || null,
+        dateActe: null,
+        mois: moisStr,
+        remarque: sfData.remarque || '',
+        diag: sfData.diag || false,
+        pct: p.pct,
+        nbAgencesGroupe: agenceParts.length,
+        groupId,
+        saisi: currentUser.nom,
+      });
+    });
+
+    const inserted = await sbInsert('dossiers', rows);
+    if (!inserted || !inserted.length) throw new Error('Erreur insertion dossiers');
+
+    // Ajouter en mémoire
+    const insertedDos = inserted.map(rowToDossier);
+    DB.dossiers = [...DB.dossiers, ...insertedDos];
+
+    // Négociateurs
+    const negRows = [];
+    agenceParts.forEach((part, i) => {
+      (sfNegLines[i] || []).forEach(l => {
+        if (!l.val) return;
+        const neg = negosByAgence(part.agence).find(n => n.nom === l.val);
+        if (neg) negRows.push({ agence: part.agence, negociateur_id: neg.id, pct_ca: parseFloat(l.pct) || 0 });
+      });
+    });
+    for (const ins of inserted) {
+      const negPourAgence = negRows.filter(n => n.agence === insertedDos.find(d => d.id === ins.id)?.agence);
+      if (negPourAgence.length > 0) {
+        const savedNegs = await sbInsert('dossier_negociateurs', negPourAgence.map(n => ({ dossier_id: ins.id, negociateur_id: n.negociateur_id, agence: n.agence, pct_ca: n.pct_ca })));
+        if (savedNegs) DB.dossierNeg = [...(DB.dossierNeg || []), ...savedNegs];
+      }
+    }
+
+    // Rentreurs
+    const rentRows = (sfData.rentreurs || []).map(r => {
+      const neg = DB.negociateurs.find(n => n.nom === r.nom);
+      if (!neg) return null;
+      const part = agenceParts.find(p => p.agence === neg.agence) || agenceParts[0];
+      const pctRent = parseFloat(r.pct) || 100;
+      const caRentree = netHTTotal * ((part?.pct || 100) / 100) * (pctRent / 100);
+      return { agence: neg.agence, negociateur_id: neg.id, ca_rentree: caRentree };
+    }).filter(Boolean);
+    for (const ins of inserted) {
+      const rentPourAgence = rentRows.filter(r => r.agence === insertedDos.find(d => d.id === ins.id)?.agence);
+      if (rentPourAgence.length > 0) {
+        const savedRents = await sbInsert('dossier_rentreurs', rentPourAgence.map(r => ({ dossier_id: ins.id, negociateur_id: r.negociateur_id, agence: r.agence, ca_rentree: r.ca_rentree })));
+        if (savedRents) DB.dossierRent = [...(DB.dossierRent || []), ...savedRents];
+      }
+    }
+
+    showLoading(false);
+
+    // Vérifier records
+    checkRecordsAfterVente(insertedDos[0], []).catch(() => {});
+
+    // Rafraîchir l'interface
+    refreshMyDossiers();
+    refreshDossiers();
+    refreshDashboard();
+    refreshRanking();
+
+    // Mail si activé
+    const negNoms = [...new Set(negRows.map(n => { const x = DB.negociateurs.find(y => y.id === n.negociateur_id); return x?.nom || ''; }).filter(Boolean))].join(', ');
+    const rentNoms = (sfData.rentreurs || []).map(r => r.nom).filter(Boolean).join(', ');
+    if (DB.mailSettings?.nouvelle_vente !== false) {
+      openConfirmMailModal(insertedDos[0], negNoms, rentNoms || null);
+    }
+
+    sfShowOk(agenceParts);
+
+  } catch(e) {
+    showLoading(false);
+    showToast('Erreur lors de l\'enregistrement : ' + e.message, 'error');
+    console.error(e);
   }
-  document.getElementById('s-has-retro-booster').checked = sfData.retro;
-  if (sfData.retro) document.getElementById('s-retro-booster-ht').value = sfData.retroMt;
-
-  // Mois depuis la date SSP
-  if (sfData.ssp) {
-    const [y, m] = sfData.ssp.split('-');
-    const moisStr = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'][parseInt(m)-1] + ' ' + y;
-    const selMois = document.getElementById('s-mois');
-    if (selMois) selMois.value = moisStr;
-  }
-
-  // Agences : définir nbAgences et générer les selects via renderRepartition
-  nbAgences = agenceParts.length;
-  document.getElementById('nb-agences-display').textContent = nbAgences;
-  renderRepartition();
-  // Attendre que renderRepartition ait créé les selects dans le DOM
-  await new Promise(r => setTimeout(r, 50));
-  // Remplir les selects d'agences et % générés
-  agenceParts.forEach((part, i) => {
-    const selAg = document.getElementById('s-agence-' + i);
-    const selPct = document.getElementById('s-pct-' + i);
-    if (selAg) selAg.value = part.agence;
-    if (selPct) selPct.value = part.pct;
-  });
-
-  // Négociateurs
-  negLignesSaisie = {};
-  agenceParts.forEach((part, i) => {
-    negLignesSaisie[i] = (sfNegLines[i] || [{ val: '', pct: '' }]).map(l => ({
-      negId: negosByAgence(part.agence).find(n => n.nom === l.val)?.id || '',
-      pct: l.pct
-    }));
-  });
-
-  // Rentreurs depuis sfData
-  rentreurLignesSaisie = (sfData.rentreurs || []).map(r => {
-    const neg = DB.negociateurs.find(n => n.nom === r.nom);
-    return { agence: neg?.agence || '', negId: String(neg?.id || ''), pct: parseFloat(r.pct) || 100 };
-  });
-
-  // Déclencher la sauvegarde
-  await saveDossier();
-
-  // Afficher l'écran de confirmation avec confettis
-  sfShowOk(agenceParts);
 }
 
 function sfShowOk(agenceParts) {
