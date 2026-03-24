@@ -1239,7 +1239,7 @@
             </div>
           </div>
           <div style="margin-top:4px;padding:12px 16px;background:white;border-radius:10px;border:1px solid var(--border)">
-            <div style="font-size:11px;color:var(--text-muted)">🧪 Les boutons "Tester" envoient un exemple à <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="15617d7a7874663b727a7174677155777a7a66617067387c78787a777c797c70673b767a78">[email&#160;protected]</a></div>
+            <div style="font-size:11px;color:var(--text-muted)">🧪 Les boutons "Tester" envoient un exemple à thomas.godard@booster-immobilier.com</div>
           </div>
         </div>
 
@@ -2292,7 +2292,7 @@
 
 <div id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // =====================
 // SUPABASE CONFIG
 // =====================
@@ -9540,6 +9540,7 @@ function sfReset() {
 function openSaisieFacile() {
   sfReset();
   const dotsEl = document.getElementById('sf-dots');
+  if (!dotsEl) { console.error('sf-dots introuvable — modale non chargée'); return; }
   dotsEl.innerHTML = '';
   for (let i = 1; i <= SF_TOTAL; i++) {
     const d = document.createElement('div');
@@ -9547,8 +9548,8 @@ function openSaisieFacile() {
     d.style.cssText = 'width:8px;height:8px;border-radius:50%;background:' + (i===1?'var(--primary)':'var(--border)') + ';transition:background .3s' + (i===1?';box-shadow:0 0 0 3px #e8edf2':'');
     dotsEl.appendChild(d);
   }
-  sfGoStep(1);
   document.getElementById('modal-saisie-facile').classList.add('open');
+  sfGoStep(1);
 }
 
 function closeSaisieFacile() {
@@ -9569,6 +9570,7 @@ function sfGoStep(n) {
     else             { d.style.background = 'var(--border)';  d.style.boxShadow = ''; }
   }
   const body = document.getElementById('sf-body');
+  if (!body) { console.error('sf-body introuvable'); return; }
   body.innerHTML = sfBuildStep(n);
   body.scrollTop = 0;
   // Focus premier input
@@ -9577,11 +9579,19 @@ function sfGoStep(n) {
     if (inp) inp.focus();
   }, 60);
   // Reconstruire les sections dynamiques
-  if (n === 7) { setTimeout(() => { sfRenderAgRows(); sfRestoreAgRows(); }, 0); }
-  else if (n === 8) sfRenderNegSections();
-  else if (n === 9) sfRenderRentRows();
-  else if (n === 10) sfFillRecap();
-  else setTimeout(() => sfRestoreStep(n), 0);
+  // Render ou restore selon l'étape
+  if (n === 7) {
+    setTimeout(() => { sfRenderAgRows(); sfRestoreAgRows(); }, 0);
+  } else if (n === 8) {
+    sfRenderNegSections();
+  } else if (n === 9) {
+    sfRenderRentRows();
+  } else if (n === 10) {
+    sfFillRecap();
+  } else {
+    // Étapes 1-6 : restaurer les valeurs sauvegardées
+    setTimeout(() => sfRestoreStep(n), 30);
+  }
 }
 
 function sfSaveCurrentStep() {
@@ -9637,7 +9647,7 @@ function sfNext() {
   sfSaveCurrentStep();
   sfGoStep(sfCur + 1);
 }
-function sfPrev() { sfGoStep(sfCur - 1); }
+function sfPrev() { sfSaveCurrentStep(); sfGoStep(sfCur - 1); }
 
 // ── NAV HTML ──
 function sfNav(showPrev=true) {
@@ -10423,4 +10433,14 @@ function sfShowOk(agenceParts) {
           </div>
 
           <!-- Dots -->
-          <div style="displa
+          <div style="display:flex;gap:4px;flex-wrap:wrap;padding:12px 20px 0" id="sf-dots"></div>
+
+          <!-- Corps -->
+          <div style="padding:20px" id="sf-body">
+            <!-- Généré par JS -->
+          </div>
+
+        </div>
+      </div>
+</body>
+</html>
