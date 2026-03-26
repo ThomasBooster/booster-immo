@@ -1542,7 +1542,7 @@
 
       <!-- Modal ajout/édition négociateur -->
       <div class="modal-overlay" id="modal-negociateur" style="z-index:300">
-        <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto">
+        <div class="modal" style="width:760px;max-height:90vh;overflow-y:auto">
           <h3 id="modal-neg-title">Ajouter un négociateur</h3>
           <input type="hidden" id="neg-edit-id">
 
@@ -1587,6 +1587,10 @@
                 <option value="true">Actif</option>
                 <option value="false">Inactif</option>
               </select>
+            </div>
+            <div class="form-group">
+              <label>Date de fin de collaboration</label>
+              <input type="date" id="neg-date-fin-collaboration" title="Laisser vide si collaboration en cours">
             </div>
           </div>
 
@@ -1634,6 +1638,10 @@
               <div class="form-group">
                 <label>Date du premier mandat</label>
                 <input type="date" id="neg-date-premier-mandat">
+              </div>
+              <div class="form-group">
+                <label>Renouvellements du mandat</label>
+                <input type="number" id="neg-nb-renouvellements" placeholder="0" min="0" step="1" style="width:100%">
               </div>
               <div class="form-group">
                 <label>Taux rétrocession sortie (%)</label>
@@ -1750,11 +1758,24 @@
                 <input type="checkbox" id="cl-cci-co" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
                 <span>Habilitation collaborateur CCI — <a href="https://www.cciwebstore.fr/" target="_blank" style="color:#16a34a">cciwebstore.fr</a></span>
               </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-rcp" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>Attestation RCP <span style="font-size:11px;color:#6b7280;font-style:italic">(Responsabilité Civile Professionnelle)</span></span>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-pi" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>Copie pièce d'identité</span>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="cl-rib" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+                <span>RIB</span>
+              </label>
             </div>
           </div>
 
           <div class="modal-footer">
             <button class="btn btn-outline" onclick="closeModal('modal-negociateur')">Annuler</button>
+            <button id="neg-btn-remuneration" class="btn btn-outline" disabled title="Rémunération (bientôt disponible)" style="opacity:0.4;cursor:not-allowed">💶 Rémunération</button>
             <button class="btn btn-accent" onclick="saveNegociateur()">💾 Enregistrer</button>
           </div>
         </div>
@@ -2720,7 +2741,7 @@ async function initApp() {
   refreshRankingAnnuel();
   refreshMyDossiers();
   refreshDossiers();
-  if (currentUser.role === 'admin') updateFeedbackBadge();
+  if (currentUser.role === 'admin') { updateFeedbackBadge(); startFeedbackPolling(); }
   renderRepartition();
   populateApporteurSelects();
 }
@@ -5417,7 +5438,7 @@ function checkAlertePEGlobale() {
 // RH — FICHE NÉGOCIATEUR
 // =====================
 
-const CHECKLIST_KEYS = ['mutuelle', 'document-unique', 'assurance-voiture', 'medecine', 'cci', 'cci-co', 'cci-alt'];
+const CHECKLIST_KEYS = ['mutuelle', 'document-unique', 'assurance-voiture', 'medecine', 'cci', 'cci-co', 'cci-alt', 'rcp', 'pi', 'rib'];
 
 function onNegStatutChange() {
   const statut = document.getElementById('neg-statut-emploi')?.value;
@@ -5618,6 +5639,8 @@ async function loadNegociateurs() {
       ville_rcs: n.ville_rcs || null,
       niveau_etude: n.niveau_etude || null,
       date_fin_contrat: n.date_fin_contrat || null,
+      date_fin_collaboration: n.date_fin_collaboration || null,
+      nb_renouvellements: n.nb_renouvellements || 0,
     }));
     DB.dossierNeg = dossierNegs;
     DB.dossierRent = dossierRents;
@@ -5852,7 +5875,7 @@ function openAddNegociateur() {
   document.getElementById('neg-poste').value = 'négociateur';
   document.getElementById('neg-email').value = '';
   document.getElementById('neg-avance').value = '';
-  document.getElementById('neg-avance-group').style.display = 'none';
+  const avanceGroup = document.getElementById('neg-avance-group'); if (avanceGroup) avanceGroup.style.display = 'none';
   document.getElementById('neg-statut-emploi').onchange = toggleAvanceField;
   document.getElementById('neg-date-entree').value = '';
   document.getElementById('neg-objectif-ca').value = '';
@@ -5868,6 +5891,12 @@ function openAddNegociateur() {
     selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
   }
   selAgPrec.innerHTML = '<option value="">— Aucune / Première agence —</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+  const btnRemuNew = document.getElementById('neg-btn-remuneration');
+  if (btnRemuNew) btnRemuNew.style.display = 'none'; // pas de rémunération sur création
+  const finCollabNew = document.getElementById('neg-date-fin-collaboration');
+  if (finCollabNew) finCollabNew.value = '';
+  const renouvelNew = document.getElementById('neg-nb-renouvellements');
+  if (renouvelNew) renouvelNew.value = '';
   document.getElementById('modal-negociateur').classList.add('open');
 }
 
@@ -5944,6 +5973,26 @@ function openEditNegociateur(id) {
     document.getElementById('neg-date-entree-stag').value = n.date_entree || '';
     document.getElementById('neg-date-fin-contrat-stag').value = n.date_fin_contrat || '';
   }
+  // Champs communs à tous
+  // Bouton rémunération : visible sauf gérant
+  const btnRemu = document.getElementById('neg-btn-remuneration');
+  if (btnRemu) btnRemu.style.display = n.statut_emploi === 'gérant' ? 'none' : '';
+  const finCollabEl = document.getElementById('neg-date-fin-collaboration');
+  if (finCollabEl) {
+    finCollabEl.value = n.date_fin_collaboration || '';
+    if (n.date_fin_collaboration) {
+      finCollabEl.setAttribute('readonly', true);
+      finCollabEl.style.background = '#f8fafc';
+      finCollabEl.title = 'Date de fin de collaboration enregistrée — action irréversible';
+    } else {
+      finCollabEl.removeAttribute('readonly');
+      finCollabEl.style.background = '';
+      finCollabEl.title = '';
+    }
+  }
+  const renouvelEl = document.getElementById('neg-nb-renouvellements');
+  if (renouvelEl) renouvelEl.value = n.nb_renouvellements || '';
+
   onNegStatutChange();
   if (isSalarieCDI) checkAlertePE();
 
@@ -6015,7 +6064,15 @@ async function saveNegociateur() {
   const checklist_embauche = collectChecklist();
   const type_contrat = statut_emploi; // Le statut emploi est devenu le type de contrat
 
-  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca: isSalarieCDI2 ? (parseFloat(document.getElementById('neg-objectif-ca')?.value)||0) : 0, agence_precedente, email, avance_commission: isSalarieCDI2 ? avance_commission : 0, type_contrat, date_fin_periode_essai, periode_essai_validee, checklist_embauche, taux_retrocession_sortie, taux_retrocession_rentree, numero_rcs, ville_rcs, niveau_etude, date_fin_contrat };
+  const finCollabInput = document.getElementById('neg-date-fin-collaboration');
+  const date_fin_collaboration = finCollabInput?.value || null;
+  // Warning si date nouvellement saisie (champ non readonly = pas encore enregistrée)
+  if (date_fin_collaboration && !finCollabInput?.hasAttribute('readonly')) {
+    const ok = confirm('⚠️ Attention — Action irréversible\n\nVous êtes sur le point d\'enregistrer une date de fin de collaboration pour ce collaborateur.\n\nCette action ne pourra pas être annulée. Êtes-vous sûr ?');
+    if (!ok) return;
+  }
+  const nb_renouvellements = parseInt(document.getElementById('neg-nb-renouvellements')?.value) || 0;
+  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca: isSalarieCDI2 ? (parseFloat(document.getElementById('neg-objectif-ca')?.value)||0) : 0, agence_precedente, email, avance_commission: isSalarieCDI2 ? avance_commission : 0, type_contrat, date_fin_periode_essai, periode_essai_validee, checklist_embauche, taux_retrocession_sortie, taux_retrocession_rentree, numero_rcs, ville_rcs, niveau_etude, date_fin_contrat, date_fin_collaboration, nb_renouvellements };
   showLoading(true);
   try {
     if (editId) {
@@ -6069,7 +6126,7 @@ function renderNegociateursList() {
     const dosRent = (DB.dossierRent || []).filter(d => d.negociateur_id === n.id);
     const caRentree = dosRent.reduce((s, l) => s + (l.ca_rentree || 0), 0);
 
-    return '<tr>' +
+    return '<tr style="cursor:pointer" onclick="openEditNegociateur(' + n.id + ')">' +
       '<td><span style="cursor:pointer;color:var(--primary);font-weight:700;text-decoration:underline" onclick="openFicheCollab(' + n.id + ',\'negociateurs\')">' + n.nom + '</span>' + (n.agence_precedente ? '<div style="font-size:11px;color:var(--text-muted)">ex ' + n.agence_precedente + '</div>' : '') + '</td>' +
       '<td>' + n.agence + '</td>' +
       '<td>' + posteBadge(n.poste) + '</td>' +
@@ -7300,16 +7357,19 @@ function renderNegRankingTable(ranked, tbodyId, podiumId, titleId, titre) {
     return;
   }
   tbody.innerHTML = ranked.map((r, i) => {
+    const termine = isCollabTermine(r.neg);
+    const rowStyle = termine ? 'opacity:0.45;' : '';
     const canClick = currentUser.role !== 'agence' || r.neg.agence === currentUser.agence;
+    const ancienBadge = termine ? ' <span style="font-size:10px;background:#e5e7eb;color:#6b7280;padding:1px 6px;border-radius:3px;font-weight:600">Ancien</span>' : '';
     const nameHtml = canClick
-      ? '<span style="cursor:pointer;color:var(--primary);font-weight:700;text-decoration:underline" onclick="openStatsFor(\'negociateur\',' + r.neg.id + ')">' + r.neg.nom + '</span>'
-      : '<strong style="color:var(--text-muted)">' + r.neg.nom + '</strong>';
-    return '<tr><td><span class="rank-badge ' + (i < 3 ? 'rank-' + (i+1) : 'rank-other') + '">' + (i+1) + '</span></td>' +
+      ? '<span style="cursor:pointer;color:' + (termine ? 'var(--text-muted)' : 'var(--primary)') + ';font-weight:700;' + (termine ? '' : 'text-decoration:underline') + '" onclick="openStatsFor(\'negociateur\',' + r.neg.id + ')">' + r.neg.nom + '</span>' + ancienBadge
+      : '<strong style="color:var(--text-muted)">' + r.neg.nom + '</strong>' + ancienBadge;
+    return '<tr style="' + rowStyle + '"><td><span class="rank-badge ' + (i < 3 && !termine ? 'rank-' + (i+1) : 'rank-other') + '">' + (i+1) + '</span></td>' +
       '<td>' + nameHtml + '</td>' +
       '<td style="font-size:12px;color:var(--text-muted)">' + r.neg.agence + '</td>' +
-      '<td style="font-weight:700;color:var(--primary)">' + fmtEuro(r.ca) + '</td>' +
+      '<td style="font-weight:700;color:' + (termine ? 'var(--text-muted)' : 'var(--primary)') + '">' + fmtEuro(r.ca) + '</td>' +
       '<td>' + fmtCount(r.count) + '</td>' +
-      '<td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar"><div class="progress-fill" style="width:' + (r.ca/maxCA*100).toFixed(0) + '%"></div></div><span style="font-size:11px;color:var(--text-muted)">' + (r.ca/maxCA*100).toFixed(0) + '%</span></div></td>' +
+      '<td><div style="display:flex;align-items:center;gap:8px"><div class="progress-bar"><div class="progress-fill" style="width:' + (r.ca/maxCA*100).toFixed(0) + '%' + (termine ? ';background:#9ca3af' : '') + '"></div></div><span style="font-size:11px;color:var(--text-muted)">' + (r.ca/maxCA*100).toFixed(0) + '%</span></div></td>' +
       '</tr>';
   }).join('');
 }
@@ -7330,6 +7390,11 @@ function refreshNegClassementAnnuel() {
   const ranked = buildNegRanking(dossiers, agence);
   renderNegRankingTable(ranked, 'neg-tbody-annuel', 'neg-podium-annuel', 'neg-annuel-title',
     'Classement négociateurs' + (annee ? ' — ' + annee : ''));
+}
+
+function isCollabTermine(neg) {
+  if (!neg.date_fin_collaboration) return false;
+  return new Date(neg.date_fin_collaboration) < new Date();
 }
 
 function fmtCount(n) {
@@ -10926,6 +10991,26 @@ function openRoadmapItemForm(id) {
 }
 
 const feedbacksVus = new Set(); // IDs des feedbacks "nouveau" déjà vus
+
+// Polling pastille feedback toutes les 60s pour admin
+function startFeedbackPolling() {
+  if (currentUser?.role !== 'admin') return;
+  setInterval(async () => {
+    try {
+      const fresh = await sbFetch('feedbacks', { order: 'created_at.desc' });
+      // Détecter les nouveaux IDs "nouveau" pas encore dans feedbacksVus
+      const newOnes = fresh.filter(f => f.statut === 'nouveau' && !feedbacksVus.has(f.id));
+      if (newOnes.length > 0) {
+        // Merger dans DB_feedbacks sans écraser les données chargées dans l'overlay
+        fresh.forEach(f => {
+          const idx = DB_feedbacks.findIndex(x => x.id === f.id);
+          if (idx >= 0) DB_feedbacks[idx] = f; else DB_feedbacks.push(f);
+        });
+        updateFeedbackBadge();
+      }
+    } catch(e) {}
+  }, 60000);
+}
 
 function updateFeedbackBadge() {
   const badge = document.getElementById('feedback-badge');
