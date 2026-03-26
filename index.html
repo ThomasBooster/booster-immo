@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.2.1 — Booster Immobilier</title>
+<title>Scorim v1.3.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -312,6 +312,10 @@
   }
 
   .page { padding: 28px; display: none; }
+  @keyframes pulse-badge {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.6); }
+  }
   .page.active { display: block; }
 
   /* Cards */
@@ -698,6 +702,7 @@
 </head>
 <body>
 
+
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-card">
@@ -733,7 +738,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.2.1</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.3.0</div>
     </div>
   </div>
 </div>
@@ -799,10 +804,17 @@
             <span class="nav-icon">👤</span> Négociateurs
           </div>
         </div>
+        <div class="nav-section" id="nav-feedback-section">
+          <div class="nav-section-title">Aide</div>
+          <div class="nav-item" id="nav-feedback" onclick="showPage('feedback', this)">
+            <span class="nav-icon">💬</span> Feedback
+          </div>
+        </div>
         <div class="nav-section">
           <div class="nav-section-title">Compte</div>
-          <div class="nav-item" id="nav-params" onclick="showPage('params', this)">
+          <div class="nav-item" id="nav-params" onclick="showPage('params', this)" style="position:relative">
             <span class="nav-icon">⚙️</span> Paramètres
+            <span id="feedback-badge" style="display:none;position:absolute;top:6px;right:8px;width:9px;height:9px;background:#ef4444;border-radius:50%;animation:pulse-badge 1.2s infinite"></span>
           </div>
           <div class="nav-item" id="nav-rapport" onclick="showPage('rapport', this)">
             <span class="nav-icon">📄</span> Rapport PDF
@@ -817,7 +829,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.2.1</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.3.0</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -1229,6 +1241,13 @@
         </div>
 
         <div class="params-section" id="params-admin-section" style="display:none">
+          <div style="margin-bottom:20px;padding:16px;background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:12px;border:1px solid #334155">
+            <div style="font-size:14px;font-weight:700;color:white;margin-bottom:4px">⌨ Espace Roadmap Dev</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:12px">Gérer les feedbacks utilisateurs et la roadmap Scorim</div>
+            <button onclick="openRoadmapOverlay()" style="padding:10px 20px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+              🗺 Ouvrir l'espace Roadmap
+            </button>
+          </div>
           <h3>👥 Gestion des utilisateurs (Admin)</h3>
           <div id="users-list"></div>
           <button class="btn btn-accent" onclick="openAddUser()" style="margin-top:16px">+ Ajouter un utilisateur</button>
@@ -1248,7 +1267,7 @@
             </div>
           </div>
           <div style="margin-top:4px;padding:12px 16px;background:white;border-radius:10px;border:1px solid var(--border)">
-            <div style="font-size:11px;color:var(--text-muted)">🧪 Les boutons "Tester" envoient un exemple à thomas.godard@booster-immobilier.com</div>
+            <div style="font-size:11px;color:var(--text-muted)">🧪 Les boutons "Tester" envoient un exemple à <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="691d010604081a470e060d081b0d290b06061a1d0c1b44000404060b0005000c1b470a0604">[email&#160;protected]</a></div>
           </div>
         </div>
 
@@ -2110,6 +2129,54 @@
         </div>
       </div>
 
+      <!-- FEEDBACK -->
+      <div class="page" id="page-feedback">
+        <div class="card" style="max-width:600px;margin:0 auto">
+          <div class="card-header">
+            <span class="card-title">💬 Votre feedback</span>
+          </div>
+          <div class="card-body" style="padding:24px">
+            <!-- Confirmation — en haut -->
+            <div id="fb-success" style="display:none;margin-bottom:20px;padding:16px;background:#f0fdf4;border-radius:10px;border:1px solid #86efac;text-align:center">
+              <div style="font-size:20px;margin-bottom:4px">✅</div>
+              <div style="font-weight:700;color:#16a34a;font-size:14px">Merci pour votre feedback !</div>
+              <div style="font-size:12px;color:#15803d;margin-top:4px">Il a été transmis à l'équipe de développement.</div>
+            </div>
+
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px">
+              Signalez un bug ou proposez une idée d'amélioration. Votre retour est précieux pour faire évoluer Scorim !
+            </p>
+
+            <!-- Type -->
+            <div style="display:flex;gap:12px;margin-bottom:24px">
+              <label id="fb-type-bug" onclick="setFeedbackType('bug')" style="flex:1;cursor:pointer;border:2px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;transition:all .15s">
+                <div style="font-size:24px;margin-bottom:6px">🐛</div>
+                <div style="font-weight:700;font-size:14px;color:#dc2626">Signaler un bug</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Quelque chose ne fonctionne pas</div>
+              </label>
+              <label id="fb-type-idea" onclick="setFeedbackType('idea')" style="flex:1;cursor:pointer;border:2px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;transition:all .15s">
+                <div style="font-size:24px;margin-bottom:6px">💡</div>
+                <div style="font-weight:700;font-size:14px;color:#2563eb">Suggérer une idée</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Une amélioration ou nouvelle fonction</div>
+              </label>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group" style="margin-bottom:20px">
+              <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Description *</label>
+              <textarea id="fb-description" rows="5" placeholder="Décrivez le problème ou l'idée en détail..." style="width:100%;margin-top:6px;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.5"></textarea>
+            </div>
+
+            <!-- Bouton envoi -->
+            <button id="fb-submit-btn" onclick="submitFeedback()" style="width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s">
+              Envoyer le feedback
+            </button>
+
+
+          </div>
+        </div>
+      </div>
+
     </div><!-- /main-content -->
   </div>
 </div><!-- /app -->
@@ -2302,7 +2369,7 @@
 
 <div id="toast"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // =====================
 // SUPABASE CONFIG
 // =====================
@@ -2626,6 +2693,7 @@ async function initApp() {
   if (currentUser.role === 'admin') {
     document.getElementById('nav-rapport').style.display = 'flex';
     document.getElementById('nav-params').style.display = 'flex';
+    document.getElementById('nav-feedback').style.display = 'flex';
     document.getElementById('params-admin-section').style.display = 'block';
     document.getElementById('params-reseau-section').style.display = 'block';
     document.getElementById('params-mail-section').style.display = 'block';
@@ -2635,6 +2703,7 @@ async function initApp() {
   } else if (currentUser.role === 'agence') {
     document.getElementById('nav-rapport').style.display = 'none';
     document.getElementById('nav-params').style.display = 'none';
+    document.getElementById('nav-feedback').style.display = 'flex';
     // Agence voit Négociateurs dans Gestion mais pas le reste de la section Gestion
     document.getElementById('nav-saisie-section').style.display = 'none';
     // On crée une section Gestion minimale juste pour les négociateurs
@@ -2643,6 +2712,7 @@ async function initApp() {
   } else {
     document.getElementById('nav-rapport').style.display = 'none';
     document.getElementById('nav-params').style.display = 'flex';
+    document.getElementById('nav-feedback').style.display = 'flex';
   }
 
   refreshDashboard();
@@ -2650,6 +2720,7 @@ async function initApp() {
   refreshRankingAnnuel();
   refreshMyDossiers();
   refreshDossiers();
+  if (currentUser.role === 'admin') updateFeedbackBadge();
   renderRepartition();
   populateApporteurSelects();
 }
@@ -2739,7 +2810,7 @@ function showPage(name, navEl) {
   document.getElementById('page-' + name).classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', 'fiche-agence':'Fiche agence', 'fiche-societe':'Fiche société', 'stats':'Statistiques', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF' };
+  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', 'fiche-agence':'Fiche agence', 'fiche-societe':'Fiche société', 'stats':'Statistiques', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF', feedback:'Feedback' };
   document.getElementById('topbar-title').textContent = titles[name] || name;
 
   if (name === 'dashboard') refreshDashboard();
@@ -2752,6 +2823,7 @@ function showPage(name, navEl) {
   if (name === 'performances') { initPerformances(); }
   if (name === 'rapport') { populateRapportFilters(); }
   if (name === 'params') { initReseauSection(); }
+  if (name === 'feedback') { setFeedbackType('bug'); }
   if (name === 'stats') { populateStatsSels(); onStatsNiveauChange(); refreshStatsPage(); }
 }
 
@@ -4267,7 +4339,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.2.1</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.3.0</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -9018,7 +9090,7 @@ async function saveRecord(key, value, meta) {
   try {
     await sbSelect('settings', 'key', 'key=eq.record_' + key).then(async rows => {
       if (rows && rows.length > 0) {
-        await sbPatch('settings', payload, 'key=eq.record_' + key);
+        await sbUpdate('settings', payload, 'key=eq.record_' + key);
       } else {
         await sbInsert('settings', payload);
       }
@@ -9329,7 +9401,7 @@ async function toggleMailSetting(key, val) {
   DB.mailSettings[key] = val;
   try {
     const rows = await sbSelect('settings', 'key', 'key=eq.mail_' + key);
-    if (rows && rows.length > 0) await sbPatch('settings', { value: String(val) }, 'key=eq.mail_' + key);
+    if (rows && rows.length > 0) await sbUpdate('settings', { value: String(val) }, 'key=eq.mail_' + key);
     else await sbInsert('settings', { key: 'mail_' + key, value: String(val) });
   } catch(e) { console.error('toggleMailSetting error', e); }
 }
@@ -9341,7 +9413,7 @@ async function saveMailAgences(mailKey, agences) {
   const val = JSON.stringify(agences);
   try {
     const rows = await sbSelect('settings', 'key', 'key=eq.' + settingKey);
-    if (rows && rows.length > 0) await sbPatch('settings', { value: val }, 'key=eq.' + settingKey);
+    if (rows && rows.length > 0) await sbUpdate('settings', { value: val }, 'key=eq.' + settingKey);
     else await sbInsert('settings', { key: settingKey, value: val });
   } catch(e) { console.error('saveMailAgences error', e); }
 }
@@ -10518,6 +10590,634 @@ function sfShowOk(agenceParts) {
   }
 }
 
+
+// ═══════════════════════════════════════════════════
+// FEEDBACK
+// ═══════════════════════════════════════════════════
+let currentFeedbackType = 'bug';
+
+function setFeedbackType(type) {
+  currentFeedbackType = type;
+  const bugEl = document.getElementById('fb-type-bug');
+  const ideaEl = document.getElementById('fb-type-idea');
+  if (!bugEl || !ideaEl) return;
+  if (type === 'bug') {
+    bugEl.style.border = '2px solid #dc2626';
+    bugEl.style.background = '#fef2f2';
+    ideaEl.style.border = '2px solid #e2e8f0';
+    ideaEl.style.background = '';
+  } else {
+    ideaEl.style.border = '2px solid #2563eb';
+    ideaEl.style.background = '#eff6ff';
+    bugEl.style.border = '2px solid #e2e8f0';
+    bugEl.style.background = '';
+  }
+}
+
+async function submitFeedback() {
+  const desc = document.getElementById('fb-description').value.trim();
+  if (!desc) { showToast('Décrivez votre feedback avant d\'envoyer', 'error'); return; }
+
+  const btn = document.getElementById('fb-submit-btn');
+  btn.textContent = 'Envoi en cours...'; btn.disabled = true;
+
+  try {
+    await sbInsert('feedbacks', {
+      type: currentFeedbackType,
+      description: desc,
+      auteur: currentUser.nom,
+      agence: currentUser.agence || null,
+      role: currentUser.role,
+      statut: 'nouveau'
+    });
+    document.getElementById('fb-description').value = '';
+    setFeedbackType('bug');
+    showToast('Feedback envoyé, merci ! ✓', 'success');
+    // Mettre à jour la pastille admin immédiatement
+    DB_feedbacks.push({ statut: 'nouveau' });
+    if (currentUser.role === 'admin') updateFeedbackBadge();
+    // Scroll vers le haut de la page feedback et afficher la confirmation
+    document.getElementById('page-feedback').scrollTop = 0;
+    document.getElementById('fb-success').style.display = 'block';
+    document.getElementById('fb-success').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => { document.getElementById('fb-success').style.display = 'none'; }, 5000);
+  } catch(e) {
+    showToast('Erreur lors de l\'envoi', 'error');
+  } finally {
+    btn.textContent = 'Envoyer le feedback'; btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ESPACE ROADMAP ADMIN
+// ═══════════════════════════════════════════════════
+let DB_feedbacks = [];
+let DB_roadmap = [];
+
+function openRoadmapOverlay() {
+  document.getElementById('roadmap-overlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  switchRoadmapTab('feedbacks');
+  loadFeedbacks().then(() => {
+    // Marquer tous les "nouveau" actuels comme vus → pastille s'éteint
+    DB_feedbacks.filter(f => f.statut === 'nouveau').forEach(f => feedbacksVus.add(f.id));
+    updateFeedbackBadge();
+  });
+}
+
+function closeRoadmapOverlay() {
+  document.getElementById('roadmap-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function switchRoadmapTab(tab) {
+  ['feedbacks','roadmap','assistant'].forEach(t => {
+    document.getElementById('rdpanel-' + t).style.display = t === tab ? 'block' : 'none';
+    const btn = document.getElementById('rdtab-' + t);
+    if (btn) {
+      btn.style.color = t === tab ? 'white' : '#64748b';
+      btn.style.borderBottom = t === tab ? '3px solid #6366f1' : '3px solid transparent';
+    }
+  });
+  if (tab === 'roadmap') loadRoadmap();
+  if (tab === 'assistant') rdAiInit();
+}
+
+function closeRdModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+function openRdModal(id) {
+  document.getElementById(id).style.display = 'flex';
+}
+
+// ── Feedbacks ──────────────────────────────────────
+async function loadFeedbacks() {
+  document.getElementById('rd-feedbacks-list').innerHTML = '<div style="color:#64748b;text-align:center;padding:48px">Chargement...</div>';
+  try {
+    DB_feedbacks = await sbFetch('feedbacks', { order: 'created_at.desc' });
+    renderFeedbacksStats();
+    renderFeedbacksList();
+    if (currentUser?.role === 'admin') updateFeedbackBadge();
+  } catch(e) {
+    document.getElementById('rd-feedbacks-list').innerHTML = '<div style="color:#ef4444;text-align:center;padding:48px">Erreur de chargement</div>';
+  }
+}
+
+function renderFeedbacksStats() {
+  const total = DB_feedbacks.length;
+  const bugs = DB_feedbacks.filter(f => f.type === 'bug').length;
+  const ideas = DB_feedbacks.filter(f => f.type === 'idea').length;
+  const nouveaux = DB_feedbacks.filter(f => f.statut === 'nouveau').length;
+  const traites = DB_feedbacks.filter(f => f.statut === 'traite').length;
+
+  document.getElementById('rd-stats-bar').innerHTML = [
+    { label: 'Total', val: total, color: '#6366f1', icon: '💬' },
+    { label: 'Bugs', val: bugs, color: '#ef4444', icon: '🐛' },
+    { label: 'Idées', val: ideas, color: '#3b82f6', icon: '💡' },
+    { label: 'Nouveaux', val: nouveaux, color: '#f59e0b', icon: '🔵' },
+    { label: 'Traités', val: traites, color: '#10b981', icon: '✅' },
+  ].map(s => `<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;text-align:center">
+    <div style="font-size:20px;margin-bottom:6px">${s.icon}</div>
+    <div style="font-size:26px;font-weight:800;color:${s.color}">${s.val}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px">${s.label}</div>
+  </div>`).join('');
+}
+
+function renderFeedbacksList() {
+  const typeFilter = document.getElementById('rd-filter-type').value;
+  const statutFilter = document.getElementById('rd-filter-statut').value;
+  let list = DB_feedbacks;
+  if (typeFilter) list = list.filter(f => f.type === typeFilter);
+  if (statutFilter) list = list.filter(f => f.statut === statutFilter);
+
+  if (!list.length) {
+    document.getElementById('rd-feedbacks-list').innerHTML = '<div style="color:#64748b;text-align:center;padding:48px;border:1px dashed #334155;border-radius:12px">Aucun feedback</div>';
+    return;
+  }
+
+  const statutCfg = {
+    nouveau:  { label: 'Nouveau', color: '#3b82f6', bg: '#1e3a5f' },
+    en_cours: { label: 'En cours', color: '#f59e0b', bg: '#422006' },
+    traite:   { label: 'Traité', color: '#10b981', bg: '#052e16' },
+    rejete:   { label: 'Rejeté', color: '#94a3b8', bg: '#1e293b' },
+  };
+  const typeCfg = {
+    bug:  { label: '🐛 Bug', color: '#ef4444' },
+    idea: { label: '💡 Idée', color: '#3b82f6' },
+  };
+
+  document.getElementById('rd-feedbacks-list').innerHTML = list.map(f => {
+    const sc = statutCfg[f.statut] || statutCfg.nouveau;
+    const tc = typeCfg[f.type] || typeCfg.bug;
+    const date = new Date(f.created_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    return `<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:18px 20px;margin-bottom:10px;cursor:pointer;transition:border-color .15s" onclick="openFeedbackDetail(${f.id})" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#334155'">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:11px;font-weight:700;color:${tc.color};background:${tc.color}22;padding:3px 8px;border-radius:20px">${tc.label}</span>
+            <span style="font-size:11px;font-weight:700;color:${sc.color};background:${sc.bg};padding:3px 8px;border-radius:20px">${sc.label}</span>
+            ${f.roadmap_item_id ? '<span style="font-size:11px;font-weight:700;color:#6366f1;background:#1e1b4b;padding:3px 8px;border-radius:20px">🗺 Roadmap</span>' : ''}
+          </div>
+          <div style="color:#e2e8f0;font-size:13px;line-height:1.5;margin-bottom:8px">${f.description.substring(0, 120)}${f.description.length > 120 ? '...' : ''}</div>
+          <div style="font-size:11px;color:#475569">${f.auteur}${f.agence ? ' · ' + f.agence : ''} · ${date}</div>
+        </div>
+        <div style="font-size:18px;color:#475569;flex-shrink:0">›</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openFeedbackDetail(id) {
+  const f = DB_feedbacks.find(x => x.id === id);
+  if (!f) return;
+  // Si le feedback est "nouveau", le passer en "en_cours" automatiquement (= vu)
+  if (f.statut === 'nouveau') {
+    f.statut = 'en_cours'; // optimistic update
+    feedbacksVus.add(f.id);
+    updateFeedbackBadge();
+    sbUpdate('feedbacks', 'id=eq.' + id, { statut: 'en_cours' }).catch(() => {});
+  }
+  const sc = { nouveau: { label: 'Nouveau', color: '#3b82f6' }, en_cours: { label: 'En cours', color: '#f59e0b' }, traite: { label: 'Traité', color: '#10b981' }, rejete: { label: 'Rejeté', color: '#94a3b8' } };
+  const tc = { bug: '🐛 Bug', idea: '💡 Idée' };
+  const date = new Date(f.created_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  document.getElementById('rd-modal-feedback-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <h3 style="color:white;margin:0;font-size:16px">${tc[f.type] || f.type}</h3>
+      <button onclick="closeRdModal('rd-modal-feedback')" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1">✕</button>
+    </div>
+    <div style="background:#0f172a;border-radius:10px;padding:16px;margin-bottom:20px;font-size:13px;color:#e2e8f0;line-height:1.6">${f.description}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;font-size:12px;color:#64748b">
+      <div>Auteur : <span style="color:white">${f.auteur}</span></div>
+      <div>Agence : <span style="color:white">${f.agence || '—'}</span></div>
+      <div>Rôle : <span style="color:white">${f.role}</span></div>
+      <div>Date : <span style="color:white">${date}</span></div>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:8px">Changer le statut</label>
+      <div style="display:flex;gap:8px">
+        ${['nouveau','en_cours','traite'].map(s => `<button onclick="updateFeedbackStatut(${f.id},'${s}')" style="flex:1;padding:8px;border:1px solid ${f.statut===s?'#6366f1':'#334155'};background:${f.statut===s?'#1e1b4b':'#0f172a'};color:${f.statut===s?'white':'#64748b'};border-radius:8px;font-size:12px;cursor:pointer">${{nouveau:'🔵 Nouveau',en_cours:'🟡 En cours',traite:'✅ Traité'}[s]}</button>`).join('')}<button onclick="rejectFeedback(${f.id})" style="padding:8px 14px;border:1px solid #4c0519;background:#0f172a;color:#f87171;border-radius:8px;font-size:12px;cursor:pointer" title="Rejeter cette idée">🚫 Rejeter</button>
+      </div>
+    </div>
+
+    ${!f.roadmap_item_id ? `<button onclick="convertToRoadmap(${f.id})" style="width:100%;padding:12px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🗺 Ajouter à la roadmap</button>` : `<div style="padding:12px;background:#1e1b4b;border:1px solid #6366f1;border-radius:8px;text-align:center;font-size:13px;color:#6366f1">✓ Déjà dans la roadmap</div>`}
+  `;
+  openRdModal('rd-modal-feedback');
+}
+
+async function updateFeedbackStatut(id, statut) {
+  try {
+    await sbUpdate('feedbacks', 'id=eq.' + id, { statut });
+    const f = DB_feedbacks.find(x => x.id === id);
+    if (f) f.statut = statut;
+    renderFeedbacksStats();
+    renderFeedbacksList();
+    updateFeedbackBadge();
+    openFeedbackDetail(id); // refresh modal
+    showToast('Statut mis à jour ✓', 'success');
+  } catch(e) { showToast('Erreur', 'error'); }
+}
+
+function convertToRoadmap(feedbackId) {
+  const f = DB_feedbacks.find(x => x.id === feedbackId);
+  if (!f) return;
+  closeRdModal('rd-modal-feedback');
+  // Pré-remplir le formulaire roadmap
+  document.getElementById('rd-item-id').value = '';
+  document.getElementById('rd-item-feedback-id').value = feedbackId;
+  document.getElementById('rd-item-titre').value = f.description.substring(0, 80);
+  document.getElementById('rd-item-desc').value = f.description;
+  document.getElementById('rd-item-priorite').value = 'moyenne';
+  document.getElementById('rd-item-categorie').value = f.type === 'bug' ? 'bugfix' : 'feature';
+  document.getElementById('rd-item-statut').value = 'backlog';
+  document.getElementById('rd-item-version').value = '';
+  document.getElementById('rd-item-modal-title').textContent = 'Convertir en item roadmap';
+  openRdModal('rd-modal-item');
+  switchRoadmapTab('roadmap');
+}
+
+// ── Roadmap ──────────────────────────────────────
+async function loadRoadmap() {
+  document.getElementById('rd-roadmap-list').innerHTML = '<div style="color:#64748b;text-align:center;padding:48px">Chargement...</div>';
+  try {
+    DB_roadmap = await sbFetch('roadmap_items', { order: 'created_at.desc' });
+    renderRoadmapList();
+  } catch(e) {
+    document.getElementById('rd-roadmap-list').innerHTML = '<div style="color:#ef4444;text-align:center;padding:48px">Erreur de chargement</div>';
+  }
+}
+
+function renderRoadmapList() {
+  const statutFilter = document.getElementById('rd-rm-filter-statut').value;
+  const prioFilter   = document.getElementById('rd-rm-filter-prio').value;
+  const catFilter    = document.getElementById('rd-rm-filter-cat').value;
+
+  let list = DB_roadmap;
+  if (statutFilter) list = list.filter(i => i.statut === statutFilter);
+  if (prioFilter)   list = list.filter(i => i.priorite === prioFilter);
+  if (catFilter)    list = list.filter(i => i.categorie === catFilter);
+
+  if (!list.length) {
+    document.getElementById('rd-roadmap-list').innerHTML = '<div style="color:#64748b;text-align:center;padding:48px;border:1px dashed #334155;border-radius:12px">Aucun item</div>';
+    return;
+  }
+
+  const prioCfg = { haute: { color: '#ef4444', label: '🔴 Haute' }, moyenne: { color: '#f59e0b', label: '🟡 Moyenne' }, basse: { color: '#10b981', label: '🟢 Basse' } };
+  const statutCfg = { backlog: { color: '#64748b', label: '📋 Backlog' }, en_cours: { color: '#3b82f6', label: '🔵 En cours' }, termine: { color: '#10b981', label: '✅ Terminé' }, annule: { color: '#ef4444', label: '❌ Annulé' } };
+  const catCfg = { feature: '✨', bugfix: '🐛', 'amélioration': '⚡', infra: '🔧' };
+
+  // Grouper par statut
+  const groups = { en_cours: [], backlog: [], termine: [], annule: [] };
+  list.forEach(i => { if (groups[i.statut]) groups[i.statut].push(i); });
+
+  document.getElementById('rd-roadmap-list').innerHTML = Object.entries(groups).map(([statut, items]) => {
+    if (!items.length) return '';
+    const sc = statutCfg[statut];
+    return `<div style="margin-bottom:28px">
+      <div style="font-size:12px;font-weight:700;color:${sc.color};text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        ${sc.label} <span style="background:#1e293b;color:#64748b;font-size:11px;padding:2px 8px;border-radius:20px">${items.length}</span>
+      </div>
+      ${items.map(item => {
+        const pc = prioCfg[item.priorite] || prioCfg.moyenne;
+        return `<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px 18px;margin-bottom:8px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:14px">${catCfg[item.categorie] || '•'}</span>
+                <span style="font-weight:700;color:white;font-size:14px">${item.titre}</span>
+              </div>
+              ${item.description ? `<div style="font-size:12px;color:#64748b;margin-bottom:8px;line-height:1.5">${item.description}</div>` : ''}
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span style="font-size:11px;color:${pc.color};background:${pc.color}22;padding:2px 8px;border-radius:20px">${pc.label}</span>
+                ${item.version_cible ? `<span style="font-size:11px;color:#6366f1;background:#1e1b4b;padding:2px 8px;border-radius:20px">v${item.version_cible}</span>` : ''}
+                ${item.theme ? `<span style="font-size:11px;color:#94a3b8;background:#1e293b;padding:2px 8px;border-radius:20px;border:1px solid #334155">${item.theme}</span>` : ''}
+                ${item.feedback_id ? `<span style="font-size:11px;color:#f59e0b;background:#422006;padding:2px 8px;border-radius:20px">💬 Feedback #${item.feedback_id}</span>` : ''}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button onclick="moveRoadmapItem(${item.id},'up')" style="padding:6px 10px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;font-size:11px;cursor:pointer" title="Monter">▲</button>
+              <button onclick="moveRoadmapItem(${item.id},'down')" style="padding:6px 10px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;font-size:11px;cursor:pointer" title="Descendre">▼</button>
+              <button onclick="openRoadmapItemAI(${item.id})" style="padding:6px 12px;background:#1e1b4b;color:#818cf8;border:none;border-radius:6px;font-size:11px;cursor:pointer" title="Assistant IA">🤖</button>
+              <button onclick="openRoadmapItemForm(${item.id})" style="padding:6px 12px;background:#334155;color:#94a3b8;border:none;border-radius:6px;font-size:11px;cursor:pointer">✏️</button>
+              <button onclick="deleteRoadmapItem(${item.id})" style="padding:6px 12px;background:#4c0519;color:#f87171;border:none;border-radius:6px;font-size:11px;cursor:pointer">🗑</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+function openRoadmapItemForm(id) {
+  const item = id ? DB_roadmap.find(x => x.id === id) : null;
+  document.getElementById('rd-item-id').value = id || '';
+  document.getElementById('rd-item-feedback-id').value = item?.feedback_id || '';
+  document.getElementById('rd-item-titre').value = item?.titre || '';
+  document.getElementById('rd-item-desc').value = item?.description || '';
+  document.getElementById('rd-item-priorite').value = item?.priorite || 'moyenne';
+  document.getElementById('rd-item-categorie').value = item?.categorie || 'feature';
+  document.getElementById('rd-item-statut').value = item?.statut || 'backlog';
+  document.getElementById('rd-item-version').value = item?.version_cible || '';
+  const themeEl = document.getElementById('rd-item-theme');
+  if (themeEl) themeEl.value = item?.theme || '';
+  document.getElementById('rd-item-modal-title').textContent = id ? 'Modifier l\'item' : 'Nouvel item roadmap';
+  openRdModal('rd-modal-item');
+}
+
+const feedbacksVus = new Set(); // IDs des feedbacks "nouveau" déjà vus
+
+function updateFeedbackBadge() {
+  const badge = document.getElementById('feedback-badge');
+  if (!badge) return;
+  // Ne compter que les "nouveau" qu'on n'a pas encore vus
+  const count = DB_feedbacks.filter(f => f.statut === 'nouveau' && !feedbacksVus.has(f.id)).length;
+  badge.style.display = count > 0 ? 'block' : 'none';
+}
+
+async function rejectFeedback(id) {
+  if (!confirm('Rejeter ce feedback ?')) return;
+  try {
+    await sbUpdate('feedbacks', 'id=eq.' + id, { statut: 'rejete' });
+    const fb = DB_feedbacks.find(f => f.id === id);
+    if (fb) fb.statut = 'rejete';
+    renderFeedbacksStats();
+    renderFeedbacksList();
+    updateFeedbackBadge();
+    closeRdModal('rd-modal-feedback');
+    showToast('Feedback rejeté', 'success');
+  } catch(e) { showToast('Erreur', 'error'); }
+}
+
+function moveRoadmapItem(id, direction) {
+  const idx = DB_roadmap.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= DB_roadmap.length) return;
+  // Swap dans le tableau en mémoire
+  [DB_roadmap[idx], DB_roadmap[swapIdx]] = [DB_roadmap[swapIdx], DB_roadmap[idx]];
+  renderRoadmapList();
+}
+
+async function saveRoadmapItem() {
+  const id = document.getElementById('rd-item-id').value;
+  const feedbackId = document.getElementById('rd-item-feedback-id').value;
+  const titre = document.getElementById('rd-item-titre').value.trim();
+  if (!titre) { showToast('Le titre est requis', 'error'); return; }
+
+  const payload = {
+    titre,
+    description: document.getElementById('rd-item-desc').value.trim() || null,
+    priorite: document.getElementById('rd-item-priorite').value,
+    categorie: document.getElementById('rd-item-categorie').value,
+    theme: document.getElementById('rd-item-theme')?.value || null,
+    statut: document.getElementById('rd-item-statut').value,
+    version_cible: document.getElementById('rd-item-version').value.trim() || null,
+    feedback_id: feedbackId ? parseInt(feedbackId) : null,
+  };
+
+  try {
+    if (id) {
+      await sbUpdate('roadmap_items', 'id=eq.' + id, payload);
+      const idx = DB_roadmap.findIndex(x => x.id === parseInt(id));
+      if (idx >= 0) DB_roadmap[idx] = { ...DB_roadmap[idx], ...payload };
+    } else {
+      const inserted = await sbInsert('roadmap_items', payload);
+      if (inserted?.length) {
+        DB_roadmap.unshift(inserted[0]);
+        // Si créé depuis un feedback, mettre à jour le feedback
+        if (feedbackId) {
+          await sbUpdate('feedbacks', 'id=eq.' + feedbackId, { roadmap_item_id: inserted[0].id });
+          const fb = DB_feedbacks.find(f => f.id === parseInt(feedbackId));
+          if (fb) fb.roadmap_item_id = inserted[0].id;
+        }
+      }
+    }
+    closeRdModal('rd-modal-item');
+    renderRoadmapList();
+    showToast('Item sauvegardé ✓', 'success');
+  } catch(e) { showToast('Erreur lors de la sauvegarde', 'error'); }
+}
+
+async function deleteRoadmapItem(id) {
+  if (!confirm('Supprimer cet item ?')) return;
+  try {
+    await sbDelete('roadmap_items', 'id=eq.' + id);
+    DB_roadmap = DB_roadmap.filter(x => x.id !== id);
+    renderRoadmapList();
+    showToast('Item supprimé ✓', 'success');
+  } catch(e) { showToast('Erreur', 'error'); }
+}
+
+
+// ═══════════════════════════════════════════════════
+// ASSISTANT IA ROADMAP
+// ═══════════════════════════════════════════════════
+const RD_AI_SYSTEM = 'Tu es un assistant développeur expert de Scorim, une application web single-file (index.html) de suivi des ventes immobilières pour Booster Immobilier, un réseau de 6 agences à Toulouse.\n\n## ARCHITECTURE TECHNIQUE\n- Single-file app : tout dans index.html (HTML + CSS + JS)\n- Hébergement : GitHub Pages (repo ThomasBooster/booster-immo, branche main)\n- Backend : Supabase (bqzluhzkzpalludrfxyr, eu-north-1)\n- IA : Edge Function "claude-proxy" (claude-sonnet-4-20250514)\n- Mails : Edge Function "send-email" (Resend)\n- DNS : ventes.booster-immobilier.com\n\n## TABLES SUPABASE\n- dossiers : id, client, agence, agence_id, ttc, brut_ht, ht, ttc_total, ht_total, pct, nb_agences_groupe, has_apporteur, apporteur_nom, apporteur_pct, apport_ht, has_retro_booster, retro_booster_ht, statut, date_ssp, date_butoire, date_acte, diag, mois, remarque, saisi, group_id\n- negociateurs : id, nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca, date_fin_periode_essai, periode_essai_validee, checklist_embauche, email, avance_commission, taux_retrocession_sortie, taux_retrocession_rentree, numero_rcs, date_inactivite, motif_inactivite\n- dossier_negociateurs : id, dossier_id, negociateur_id, agence, pct_ca\n- dossier_rentreurs : id, dossier_id, negociateur_id, agence, ca_rentree\n- users : id, nom, role, agence, email, password\n- settings : key, value, meta\n- apporteurs : id, nom\n- agences : id, nom, actif, date_ouverture\n- societes : id, nom, forme_juridique\n- gerants : id, societe_id, negociateur_id\n- feedbacks : id, type (bug/idea), description, auteur, agence, role, statut (nouveau/en_cours/traite), roadmap_item_id, created_at\n- roadmap_items : id, titre, description, priorite, categorie, statut, version_cible, feedback_id, theme, created_at\n\n## RÔLES UTILISATEURS\n- admin (Thomas) : accès total, espace roadmap, paramètres\n- saisie (Laurie, Benoît) : saisie dossiers, accès stats, feedback\n- agence (directeurs) : accès limité à leur agence, feedback\n\n## RÈGLES MÉTIER IMPORTANTES\n- Rankings basés sur date_ssp, pas le champ mois\n- Intercabinet = dossiers liés par group_id (splitting 1/nb_agences)\n- Statuts : À SIGNER, SIGNÉ, AA SIGNÉ (auto si date_acte renseignée), REPORT, ANNULÉ, SRU, REFUS DE CRÉDIT\n- isNet() = SIGNÉ ou AA SIGNÉ (comptabilisé dans les stats)\n- TVA 20%, frais juridiques 450€ HT/dossier\n- Sans date_ssp → mois vide → exclu des stats mensuelles\n- Collaborateurs 🍒 = virtuels, exclus des classements\n\n## FONCTIONS JS CLÉS\n- sbFetch(table, options) : GET Supabase\n- sbInsert(table, data) : POST Supabase\n- sbUpdate(table, filter, data) : PATCH Supabase\n- sbDelete(table, filter) : DELETE Supabase\n- showPage(name, navEl) : navigation entre pages\n- showToast(msg, type) : notifications\n- fmtEuro(val) : formatage monétaire\n- fmtDate(str) : formatage date fr\n- isNet(d) : vérifie si dossier signé\n- DB : objet global contenant toutes les données en mémoire\n- currentUser : utilisateur connecté {id, nom, role, agence}\n\n## VERSIONING\n- Version actuelle : 1.3.0 (prod)\n- En cours de développement : 1.4.0\n- x.x.1 = bug fix, x.x+1.0 = nouvelle feature, x+1.0.0 = refonte majeure\n\n## WORKFLOW DE DEV\n1. Thomas décrit une fonctionnalité\n2. Tu poses des questions pour clarifier\n3. Tu génères un prompt structuré et précis\n4. Thomas colle le prompt dans Claude.ai pour coder\n5. Claude code et livre index-test.html\n6. Thomas teste, valide, déploie en prod\n\n## FORMAT DU PROMPT FINAL\nLe prompt que tu génères doit être structuré ainsi :\n---\n**CONTEXTE** : [Description de l\'app et de l\'état actuel]\n**OBJECTIF** : [Ce qu\'il faut développer exactement]\n**CONTRAINTES TECHNIQUES** : [Architecture, tables Supabase, fonctions à utiliser]\n**DÉTAILS UX** : [Comportement attendu, cas limites]\n**LIVRABLE** : [Ce qui doit être livré — index-test.html avec version x.x.x]\n---\n\nTon rôle :\n1. Analyser l\'item de roadmap soumis\n2. Poser les questions nécessaires pour comprendre le besoin précis (UX, règles métier, cas limites)\n3. Une fois les réponses obtenues, générer le prompt structuré\n4. Proposer le bouton "📋 Copier le prompt" quand le prompt est prêt\n\nCommence toujours par analyser l\'item et poser 2-3 questions ciblées. Ne génère le prompt qu\'une fois que tu as suffisamment d\'informations.';
+
+let rdAiHistory = [];
+let rdAiCurrentItem = null;
+let rdAiLastPrompt = '';
+
+function rdAiInit() {
+  // Peupler le select avec les items de roadmap
+  const sel = document.getElementById('rd-ai-item-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Choisir un item —</option>';
+  (DB_roadmap || []).forEach(item => {
+    const o = document.createElement('option');
+    o.value = item.id;
+    o.textContent = item.titre;
+    sel.appendChild(o);
+  });
+  // Si pas encore de données, charger
+  if (!DB_roadmap.length) loadRoadmap().then(() => rdAiInit());
+}
+
+function rdAiSelectItem() {
+  const sel = document.getElementById('rd-ai-item-select');
+  const id = parseInt(sel.value);
+  if (!id) {
+    document.getElementById('rd-ai-item-preview').style.display = 'none';
+    return;
+  }
+  const item = DB_roadmap.find(x => x.id === id);
+  if (!item) return;
+  rdAiCurrentItem = item;
+
+  // Afficher le preview de l'item
+  const preview = document.getElementById('rd-ai-item-preview');
+  const statutLabels = { backlog: '📋 Backlog', en_cours: '🔵 En cours', termine: '✅ Terminé', annule: '❌ Annulé' };
+  preview.innerHTML = `<strong style="color:white">${item.titre}</strong><br>
+    ${item.description ? item.description + '<br>' : ''}
+    <span style="font-size:11px;opacity:.7">${statutLabels[item.statut] || item.statut} · ${item.priorite} · ${item.categorie}${item.theme ? ' · ' + item.theme : ''}${item.version_cible ? ' · v' + item.version_cible : ''}</span>`;
+  preview.style.display = 'block';
+
+  // Démarrer la conversation
+  rdAiReset(item);
+}
+
+function openRoadmapItemAI(id) {
+  switchRoadmapTab('assistant');
+  const sel = document.getElementById('rd-ai-item-select');
+  if (sel) {
+    sel.value = id;
+    rdAiSelectItem();
+  }
+}
+
+function rdAiReset(item) {
+  rdAiHistory = [];
+  rdAiLastPrompt = '';
+  document.getElementById('rd-ai-prompt-zone').style.display = 'none';
+  document.getElementById('rd-ai-prompt-text').textContent = '';
+
+  const messagesEl = document.getElementById('rd-ai-messages');
+  messagesEl.innerHTML = '';
+
+  const target = item || rdAiCurrentItem;
+  if (!target) {
+    messagesEl.innerHTML = '<div style="text-align:center;color:#475569;font-size:13px;padding:40px 20px"><div style="font-size:32px;margin-bottom:12px">🤖</div><div>Sélectionne un item de roadmap pour démarrer</div></div>';
+    return;
+  }
+
+  // Message système d'ouverture
+  rdAiAddMsg('assistant', '⏳ Analyse de l\'item en cours...', true);
+
+  // Appel IA avec le contexte de l'item
+  const openingMsg = `Voici l'item de roadmap que je dois t'aider à formuler en prompt :
+
+**Titre** : ${target.titre}
+**Description** : ${target.description || '(non renseignée)'}
+**Catégorie** : ${target.categorie}
+**Thème** : ${target.theme || 'non précisé'}
+**Priorité** : ${target.priorite}
+**Statut** : ${target.statut}
+**Version cible** : ${target.version_cible || 'non précisée'}
+
+Analyse cet item et pose-moi 2 à 3 questions ciblées pour comprendre exactement ce qu'il faut développer, avant de générer le prompt structuré.`;
+
+  rdAiHistory.push({ role: 'user', content: openingMsg });
+
+  callClaudeForRoadmap(rdAiHistory).then(reply => {
+    const lastEl = messagesEl.lastChild;
+    if (lastEl) lastEl.remove();
+    rdAiAddMsg('assistant', reply);
+    rdAiHistory.push({ role: 'assistant', content: reply });
+    rdAiCheckForPrompt(reply);
+  }).catch(e => {
+    const lastEl = messagesEl.lastChild;
+    if (lastEl) lastEl.remove();
+    rdAiAddMsg('assistant', '❌ Erreur : ' + e.message);
+  });
+}
+
+async function rdAiSend() {
+  const input = document.getElementById('rd-ai-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  if (!rdAiCurrentItem) { showToast('Sélectionne d\'abord un item', 'error'); return; }
+
+  input.value = '';
+  rdAiAddMsg('user', msg);
+  rdAiHistory.push({ role: 'user', content: msg });
+
+  const btn = document.getElementById('rd-ai-send-btn');
+  btn.disabled = true; btn.textContent = '...';
+
+  rdAiAddMsg('assistant', '⏳ Réflexion en cours...', true);
+
+  try {
+    const reply = await callClaudeForRoadmap(rdAiHistory);
+    const messagesEl = document.getElementById('rd-ai-messages');
+    const lastEl = messagesEl.lastChild;
+    if (lastEl) lastEl.remove();
+    rdAiAddMsg('assistant', reply);
+    rdAiHistory.push({ role: 'assistant', content: reply });
+    rdAiCheckForPrompt(reply);
+  } catch(e) {
+    const messagesEl = document.getElementById('rd-ai-messages');
+    const lastEl = messagesEl.lastChild;
+    if (lastEl) lastEl.remove();
+    rdAiAddMsg('assistant', '❌ Erreur : ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Envoyer';
+  }
+}
+
+function rdAiAddMsg(role, text, isLoading) {
+  const messagesEl = document.getElementById('rd-ai-messages');
+  const div = document.createElement('div');
+  const isUser = role === 'user';
+  div.style.cssText = `display:flex;justify-content:${isUser ? 'flex-end' : 'flex-start'};`;
+  
+  // Convertir le markdown basique en HTML
+  const html = text
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/^---$/gm, '<hr style="border-color:#334155;margin:8px 0">')
+    .replace(/^\*\*([^*]+)\*\*\s*:/gm, '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-top:10px;margin-bottom:2px">$1</div>')
+    .replace(/\n/g, '<br>');
+
+  div.innerHTML = `<div style="max-width:85%;padding:12px 16px;border-radius:${isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px'};background:${isUser ? '#6366f1' : '#1e293b'};border:${isUser ? 'none' : '1px solid #334155'};color:${isLoading ? '#64748b' : 'white'};font-size:13px;line-height:1.6">${html}</div>`;
+  
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function rdAiCheckForPrompt(text) {
+  // Détecter si la réponse contient un prompt structuré (contient "CONTEXTE" et "OBJECTIF")
+  if (text.includes('**CONTEXTE**') || text.includes('CONTEXTE :') || text.includes('CONTEXTE:')) {
+    rdAiLastPrompt = text;
+    document.getElementById('rd-ai-prompt-text').textContent = text;
+    document.getElementById('rd-ai-prompt-zone').style.display = 'block';
+    document.getElementById('rd-ai-prompt-zone').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function rdAiCopyPrompt() {
+  if (!rdAiLastPrompt) return;
+  navigator.clipboard.writeText(rdAiLastPrompt).then(() => {
+    const btn = document.getElementById('rd-ai-copy-btn');
+    btn.textContent = '✅ Copié !';
+    btn.style.background = '#16a34a';
+    setTimeout(() => { btn.textContent = '📋 Copier le prompt'; btn.style.background = '#6366f1'; }, 2000);
+  }).catch(() => {
+    // Fallback
+    const el = document.getElementById('rd-ai-prompt-text');
+    const range = document.createRange();
+    range.selectNode(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    showToast('Prompt copié ✓', 'success');
+  });
+}
+
+async function callClaudeForRoadmap(messages) {
+  const PROXY_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co/functions/v1/claude-proxy';
+  const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
+  const response = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + PROD_KEY
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      system: RD_AI_SYSTEM,
+      messages: messages
+    })
+  });
+  const text = await response.text();
+  let data;
+  try { data = JSON.parse(text); } catch(e) { throw new Error('Réponse invalide : ' + text.substring(0, 200)); }
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  if (!data.content || !data.content[0]) throw new Error('Réponse vide');
+  return data.content[0].text;
+}
+
 </script>
 
   <!-- MODAL AFFAIRES COLLABORATEUR -->
@@ -10747,5 +11447,228 @@ function sfShowOk(agenceParts) {
 
         </div>
       </div>
-</body>
-</html>
+
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- ESPACE ROADMAP ADMIN — charte dev, overlay full-screen -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="roadmap-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:#0f172a;overflow-y:auto">
+
+  <!-- Header -->
+  <div style="background:#1e293b;border-bottom:1px solid #334155;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10">
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="font-size:20px;font-weight:800;color:white;font-family:'Courier New',monospace">⌨ Scorim<span style="color:#6366f1">_</span>Dev</div>
+      <span style="background:#6366f1;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">ESPACE ADMIN</span>
+    </div>
+    <button onclick="closeRoadmapOverlay()" style="display:flex;align-items:center;gap:8px;padding:10px 20px;background:#dc2626;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+      ← Retour à Scorim
+    </button>
+  </div>
+
+  <!-- Onglets -->
+  <div style="background:#1e293b;border-bottom:1px solid #334155;padding:0 32px;display:flex;gap:0">
+    <button id="rdtab-feedbacks" onclick="switchRoadmapTab('feedbacks')" style="padding:14px 24px;border:none;border-bottom:3px solid #6366f1;background:transparent;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+      💬 Feedbacks
+    </button>
+    <button id="rdtab-roadmap" onclick="switchRoadmapTab('roadmap')" style="padding:14px 24px;border:none;border-bottom:3px solid transparent;background:transparent;color:#64748b;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+      🗺 Roadmap
+    </button>
+    <button id="rdtab-assistant" onclick="switchRoadmapTab('assistant')" style="padding:14px 24px;border:none;border-bottom:3px solid transparent;background:transparent;color:#64748b;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+      🤖 Assistant IA
+    </button>
+  </div>
+
+  <!-- Corps -->
+  <div style="padding:32px;max-width:1200px;margin:0 auto">
+
+    <!-- ── TAB FEEDBACKS ── -->
+    <div id="rdpanel-feedbacks">
+
+      <!-- Stats rapides -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px" id="rd-stats-bar"></div>
+
+      <!-- Filtres -->
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <select id="rd-filter-type" onchange="renderFeedbacksList()" style="padding:8px 12px;background:#1e293b;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+          <option value="">Tous les types</option>
+          <option value="bug">🐛 Bugs</option>
+          <option value="idea">💡 Idées</option>
+        </select>
+        <select id="rd-filter-statut" onchange="renderFeedbacksList()" style="padding:8px 12px;background:#1e293b;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+          <option value="">Tous les statuts</option>
+          <option value="nouveau">🔵 Nouveau</option>
+          <option value="en_cours">🟡 En cours</option>
+          <option value="traite">✅ Traité</option>
+        </select>
+        <button onclick="loadFeedbacks()" style="padding:8px 14px;background:#334155;color:#94a3b8;border:none;border-radius:8px;font-size:13px;cursor:pointer">↻ Actualiser</button>
+      </div>
+
+      <!-- Liste feedbacks -->
+      <div id="rd-feedbacks-list">
+        <div style="color:#64748b;text-align:center;padding:48px">Chargement...</div>
+      </div>
+    </div>
+
+    <!-- ── TAB ASSISTANT IA ── -->
+    <!-- ── TAB ASSISTANT IA ── -->
+    <div id="rdpanel-assistant" style="display:none">
+      <div style="max-width:760px;margin:0 auto">
+
+        <!-- Sélecteur item -->
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px 20px;margin-bottom:20px">
+          <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:8px">Item de roadmap à développer</label>
+          <select id="rd-ai-item-select" onchange="rdAiSelectItem()" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+            <option value="">— Choisir un item —</option>
+          </select>
+          <div id="rd-ai-item-preview" style="display:none;margin-top:12px;padding:12px;background:#0f172a;border-radius:8px;border-left:3px solid #6366f1;font-size:13px;color:#94a3b8;line-height:1.5"></div>
+        </div>
+
+        <!-- Chat -->
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden;margin-bottom:16px">
+          <div style="padding:14px 20px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:13px;font-weight:700;color:white">🤖 Assistant de formulation</div>
+            <button onclick="rdAiReset()" style="padding:5px 12px;background:#334155;color:#94a3b8;border:none;border-radius:6px;font-size:11px;cursor:pointer">↺ Nouveau</button>
+          </div>
+          <div id="rd-ai-messages" style="height:380px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px">
+            <div style="text-align:center;color:#475569;font-size:13px;padding:40px 20px">
+              <div style="font-size:32px;margin-bottom:12px">🤖</div>
+              <div>Sélectionne un item de roadmap pour démarrer</div>
+            </div>
+          </div>
+          <div style="padding:14px 16px;border-top:1px solid #334155;display:flex;gap:10px;align-items:flex-end">
+            <textarea id="rd-ai-input" rows="2" placeholder="Répondez aux questions de l'assistant... (Shift+Entrée pour sauter une ligne)" 
+              style="flex:1;padding:10px 14px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit;resize:none;line-height:1.5"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();rdAiSend()}"></textarea>
+            <button onclick="rdAiSend()" id="rd-ai-send-btn" style="padding:10px 20px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">Envoyer</button>
+          </div>
+        </div>
+
+        <!-- Zone prompt final -->
+        <div id="rd-ai-prompt-zone" style="display:none;background:#0f172a;border:1px solid #6366f1;border-radius:12px;padding:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:13px;font-weight:700;color:#6366f1">📋 Prompt généré</div>
+            <button onclick="rdAiCopyPrompt()" id="rd-ai-copy-btn" style="padding:8px 16px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📋 Copier le prompt</button>
+          </div>
+          <pre id="rd-ai-prompt-text" style="color:#e2e8f0;font-size:12px;line-height:1.6;white-space:pre-wrap;font-family:'Courier New',monospace;margin:0;max-height:300px;overflow-y:auto"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB ROADMAP ── -->
+    <div id="rdpanel-roadmap" style="display:none">
+
+      <!-- Bouton ajouter -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
+        <button onclick="openRoadmapItemForm()" style="padding:10px 20px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+          + Nouvel item
+        </button>
+      </div>
+
+      <!-- Filtres roadmap -->
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <select id="rd-rm-filter-statut" onchange="renderRoadmapList()" style="padding:8px 12px;background:#1e293b;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+          <option value="">Tous les statuts</option>
+          <option value="backlog">📋 Backlog</option>
+          <option value="en_cours">🔵 En cours</option>
+          <option value="termine">✅ Terminé</option>
+          <option value="annule">❌ Annulé</option>
+        </select>
+        <select id="rd-rm-filter-prio" onchange="renderRoadmapList()" style="padding:8px 12px;background:#1e293b;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+          <option value="">Toutes priorités</option>
+          <option value="haute">🔴 Haute</option>
+          <option value="moyenne">🟡 Moyenne</option>
+          <option value="basse">🟢 Basse</option>
+        </select>
+        <select id="rd-rm-filter-cat" onchange="renderRoadmapList()" style="padding:8px 12px;background:#1e293b;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+          <option value="">Toutes catégories</option>
+          <option value="feature">✨ Feature</option>
+          <option value="bugfix">🐛 Bugfix</option>
+          <option value="amélioration">⚡ Amélioration</option>
+          <option value="infra">🔧 Infra</option>
+        </select>
+      </div>
+
+      <!-- Kanban / Liste roadmap -->
+      <div id="rd-roadmap-list"></div>
+    </div>
+  </div>
+
+  <!-- Modal feedback détail + conversion roadmap -->
+  <div id="rd-modal-feedback" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;align-items:center;justify-content:center" onclick="if(event.target===this)closeRdModal('rd-modal-feedback')">
+    <div style="background:#1e293b;border-radius:16px;padding:28px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;border:1px solid #334155">
+      <div id="rd-modal-feedback-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal item roadmap -->
+  <div id="rd-modal-item" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;align-items:center;justify-content:center" onclick="if(event.target===this)closeRdModal('rd-modal-item')">
+    <div style="background:#1e293b;border-radius:16px;padding:28px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;border:1px solid #334155">
+      <h3 style="color:white;margin:0 0 20px;font-size:18px" id="rd-item-modal-title">Nouvel item roadmap</h3>
+      <input type="hidden" id="rd-item-id">
+      <input type="hidden" id="rd-item-feedback-id">
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Titre *</label>
+        <input id="rd-item-titre" type="text" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Description</label>
+        <textarea id="rd-item-desc" rows="3" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div>
+          <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Priorité</label>
+          <select id="rd-item-priorite" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+            <option value="haute">🔴 Haute</option>
+            <option value="moyenne" selected>🟡 Moyenne</option>
+            <option value="basse">🟢 Basse</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Catégorie</label>
+          <select id="rd-item-categorie" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+            <option value="feature">✨ Feature</option>
+            <option value="bugfix">🐛 Bugfix</option>
+            <option value="amélioration">⚡ Amélioration</option>
+            <option value="infra">🔧 Infra</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Thème</label>
+        <select id="rd-item-theme" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+          <option value="">— Aucun thème —</option>
+          <option value="saisie">📝 Saisie</option>
+          <option value="statistiques">📊 Statistiques</option>
+          <option value="rh">👥 RH / Collaborateurs</option>
+          <option value="mail">📧 Mail</option>
+          <option value="dashboard">🏠 Dashboard</option>
+          <option value="classement">🏆 Classement</option>
+          <option value="juridique">⚖️ Juridique</option>
+          <option value="infra">🔧 Infrastructure</option>
+          <option value="ux">🎨 UX / Interface</option>
+          <option value="autre">🔘 Autre</option>
+        </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div>
+          <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Statut</label>
+          <select id="rd-item-statut" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px">
+            <option value="backlog">📋 Backlog</option>
+            <option value="en_cours">🔵 En cours</option>
+            <option value="termine">✅ Terminé</option>
+            <option value="annule">❌ Annulé</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Version cible</label>
+          <input id="rd-item-version" type="text" placeholder="ex: 1.3.0" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeRdModal('rd-modal-item')" style="padding:10px 20px;background:#334155;color:#94a3b8;border:none;border-radius:8px;font-size:13px;cursor:pointer">Annuler</button>
+        <button onclick="saveRoadmapItem()" style="padding:10px 20px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Enregistrer</button>
+      </div>
+    </div>
+  </div>
