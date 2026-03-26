@@ -1003,7 +1003,7 @@
               </div>
               <div class="form-group">
                 <label>Date de signature SSP</label>
-                <input type="date" id="s-date">
+                <input type="date" id="s-date" oninput="sfSyncMoisFromDate('s-date','s-mois')">
               </div>
               <div class="form-group">
                 <label>Date butoire acte authentique</label>
@@ -2229,7 +2229,7 @@
       </div>
       <div class="form-group">
         <label>Date SSP</label>
-        <input type="date" id="edit-date">
+        <input type="date" id="edit-date" oninput="sfSyncMoisFromDate('edit-date','edit-mois')">
       </div>
       <div class="form-group">
         <label>Date butoire acte authentique</label>
@@ -3644,6 +3644,11 @@ async function saveDossier() {
     // Vérifier records (async, non bloquant)
     checkRecordsAfterVente(inserted[0], []).catch(()=>{});
     // Modale mail si activé
+    // Mail 1 : Nouveau SSP → responsables
+    const insertedDosiers = inserted.map(rowToDossier);
+    const negStrSsp = negStr;
+    notifyNouveauSSP(insertedDosiers, negStrSsp, currentUser.nom).catch(()=>{});
+    // Mail 2 : Vente signée (modale de confirmation)
     if (DB.mailSettings?.nouvelle_vente !== false) {
       openConfirmMailModal(inserted[0], negStr, rentreurStr);
     }
@@ -3819,6 +3824,12 @@ function openEdit(id) {
   else if (!editStatutVal) editStatutVal = 'SIGNÉ';
   document.getElementById('edit-statut').value = editStatutVal;
   document.getElementById('edit-date').value = d.date || '';
+  // Recalculer le mois depuis la date SSP si présente
+  if (d.date) {
+    const [y, m] = d.date.split('-');
+    const moisCalcule = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'][parseInt(m)-1] + ' ' + y;
+    document.getElementById('edit-mois').value = moisCalcule;
+  }
   document.getElementById('edit-date-butoire').value = d.dateButoire || '';
   document.getElementById('edit-date-acte').value = d.dateActe || '';
   document.getElementById('edit-mois').value = d.mois;
@@ -8591,6 +8602,7 @@ async function sendEmail(type, to, data) {
 
 // Récupérer les emails des destinataires selon leur rôle et agence
 function getEmailsForAgence(agenceNom) {
+  // Tous : admin + saisie + responsable agence
   return (DB.users || [])
     .filter(u => u.email && (
       u.role === 'admin' ||
@@ -8601,6 +8613,32 @@ function getEmailsForAgence(agenceNom) {
     .filter(Boolean);
 }
 
+function getResponsablesAgence(agenceNom) {
+  // Responsables d'agence uniquement (role === 'agence')
+  return (DB.users || [])
+    .filter(u => u.email && u.role === 'agence' && u.agence === agenceNom)
+    .map(u => u.email)
+    .filter(Boolean);
+}
+
+function getCollabEmails(dossierIds) {
+  // Emails des collabs (négociateurs + rentreurs) liés aux dossiers
+  const emails = new Set();
+  dossierIds.forEach(did => {
+    // Négociateurs
+    (DB.dossierNeg||[]).filter(l => l.dossier_id === did).forEach(l => {
+      const n = DB.negociateurs.find(x => x.id === l.negociateur_id);
+      if (n?.email) emails.add(n.email);
+    });
+    // Rentreurs
+    (DB.dossierRent||[]).filter(l => l.dossier_id === did).forEach(l => {
+      const n = DB.negociateurs.find(x => x.id === l.negociateur_id);
+      if (n?.email) emails.add(n.email);
+    });
+  });
+  return [...emails];
+}
+
 function getEmailsAdmin() {
   return (DB.users || [])
     .filter(u => u.email && (u.role === 'admin' || u.role === 'saisie'))
@@ -8609,14 +8647,54 @@ function getEmailsAdmin() {
 }
 
 // ── Notification nouvelle vente ──
+// ── Mail 1 : Nouveau SSP saisi → responsables agence ──
+async function notifyNouveauSSP(dossiers, negociateurs, saisiPar) {
+  if (DB.mailSettings?.nouveau_ssp === false) return;
+  const agencesConf = getMailAgences('nouveau_ssp');
+  // Grouper par agence
+  const agencesUniques = [...new Set(dossiers.map(d => d.agence))];
+  for (const agence of agencesUniques) {
+    if (agencesConf.length && !agencesConf.includes(agence)) continue;
+    const resp = getResponsablesAgence(agence);
+    if (!resp.length) continue;
+    const dos = dossiers.find(d => d.agence === agence) || dossiers[0];
+    await sendEmail('nouveau_ssp', resp, {
+      agence,
+      client: dos.client,
+      caHT: fmtEuro(dos.ht || 0),
+      negociateurs: negociateurs || '—',
+      dateSSP: dos.date ? fmtDate(dos.date) : '—',
+      saisiPar: saisiPar || currentUser.nom,
+    });
+  }
+}
+
+// ── Mail 2 : Vente signée → collabs + rentreurs + responsables si absent ──
 async function notifyNouvelleVente(dossier, negociateurs, rentreurs, saisiPar) {
-  const agences = getMailAgences('nouvelle_vente');
-  if (!agences.includes(dossier.agence)) return; // Agence non configurée
-  const emails = getEmailsForAgence(dossier.agence);
-  const links = (DB.dossierNeg||[]).filter(l=>l.dossier_id===dossier.id);
-  const collabEmails = links.map(l=>{ const n=DB.negociateurs.find(x=>x.id===l.negociateur_id); return n?.email||''; }).filter(Boolean);
-  const allEmails = [...new Set([...emails, ...collabEmails])];
+  if (DB.mailSettings?.nouvelle_vente === false) return;
+  const agencesConf = getMailAgences('nouvelle_vente');
+  if (agencesConf.length && !agencesConf.includes(dossier.agence)) return;
+
+  // Récupérer tous les dossiers du groupe
+  const groupDossiers = dossier.groupId
+    ? DB.dossiers.filter(d => d.groupId === dossier.groupId)
+    : [dossier];
+  const dosIds = groupDossiers.map(d => d.id);
+
+  // Emails collabs (négos + rentreurs)
+  const collabEmails = getCollabEmails(dosIds);
+
+  // Responsables des agences concernées — ajoutés seulement s'ils ne sont pas déjà dans collabEmails
+  const respEmails = [];
+  [...new Set(groupDossiers.map(d => d.agence))].forEach(ag => {
+    getResponsablesAgence(ag).forEach(e => {
+      if (!collabEmails.includes(e)) respEmails.push(e);
+    });
+  });
+
+  const allEmails = [...new Set([...collabEmails, ...respEmails])];
   if (!allEmails.length) return;
+
   await sendEmail('nouvelle_vente', allEmails, {
     agence: dossier.agence,
     client: dossier.client,
@@ -9204,7 +9282,8 @@ async function notifyRecordBeaten(key, rec, old, dossierDeclencheur) {
 
 // Paramètres mail — structure
 const MAIL_SETTINGS_DEFS = [
-  { key: 'nouvelle_vente', label: 'Notification nouvelle vente', desc: 'Envoyé à chaque vente signée (après confirmation)' },
+  { key: 'nouveau_ssp', label: 'Nouveau SSP saisi', desc: "Envoyé aux responsables d'agence dès qu'un dossier est créé" },
+  { key: 'nouvelle_vente', label: 'Vente signée', desc: 'Envoyé aux collabs, rentreurs et responsables lors du passage en SIGNÉ' },
   { key: 'resume_hebdo', label: 'Résumé hebdomadaire', desc: 'Envoyé chaque lundi matin' },
   { key: 'alerte_butoire', label: 'Alertes dates butoires', desc: 'Dossiers signés sans acte dans les 7 jours' },
   { key: 'alerte_pe', label: "Alertes périodes d'essai", desc: 'Collaborateurs à J-15 de fin de PE' },
@@ -9293,7 +9372,7 @@ function renderMailToggles() {
   if (!DB.mailSettings) DB.mailSettings = {};
   if (!DB.mailAgences) DB.mailAgences = {};
   const agencesActives = getAgencesActives();
-  const testIndexMap = { resume_hebdo: 1, nouvelle_vente: 2, alerte_butoire: 3, alerte_pe: 4, alerte_cci: 5, record_beaten: 6 };
+  const testIndexMap = { nouveau_ssp: 1, resume_hebdo: 2, nouvelle_vente: 3, alerte_butoire: 4, alerte_pe: 5, alerte_cci: 6, record_beaten: 7 };
 
   el.innerHTML = '';
   MAIL_SETTINGS_DEFS.forEach(d => {
@@ -9392,6 +9471,20 @@ function renderMailToggles() {
 }
 
 const MAIL_TEST_DEFS = [
+  {
+    key: 'nouveau_ssp', label: 'Nouveau SSP', icon: '📋',
+    getData: () => {
+      const dos = DB.dossiers.filter(d => d.statut === 'À SIGNER')[0] || DB.dossiers[0];
+      return {
+        agence: dos?.agence || 'Saint-Agne',
+        client: dos?.client || 'DUPONT Martin',
+        caHT: dos ? fmtEuro(dos.ht || 0) : '18 500 €',
+        negociateurs: 'Sophie Martin',
+        dateSSP: dos?.date ? fmtDate(dos.date) : new Date().toLocaleDateString('fr-FR'),
+        saisiPar: currentUser.nom,
+      };
+    }
+  },
   {
     key: 'test', label: 'Mail de test général', icon: '🧪',
     getData: () => ({
@@ -9615,6 +9708,20 @@ function sfGoHome() {
   const navDashboard = document.querySelector('.nav-item');
   if (navDashboard) showPage('dashboard', navDashboard);
 }
+function sfSyncMoisFromDate(dateId, moisId) {
+  const dateEl = document.getElementById(dateId);
+  const moisEl = document.getElementById(moisId);
+  if (!dateEl || !moisEl) return;
+  const val = dateEl.value;
+  if (val) {
+    const [y, m] = val.split('-');
+    const moisStr = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'][parseInt(m)-1] + ' ' + y;
+    moisEl.value = moisStr;
+  } else {
+    moisEl.value = '';
+  }
+}
+
 function sfOnKeyEnter(e) { if (e.key === 'Enter') sfNext(); }
 function sfReset() {
   sfCur = 1; sfNbAg = 1; sfNbRent = 1; sfNegLines = {};
@@ -10360,9 +10467,11 @@ async function sfValider() {
     refreshDashboard();
     refreshRanking();
 
-    // Mail si activé
+    // Mail 1 : Nouveau SSP → responsables
     const negNoms = [...new Set(negRows.map(n => { const x = DB.negociateurs.find(y => y.id === n.negociateur_id); return x?.nom || ''; }).filter(Boolean))].join(', ');
     const rentNoms = (sfData.rentreurs || []).map(r => r.nom).filter(Boolean).join(', ');
+    notifyNouveauSSP(insertedDos, negNoms, currentUser.nom).catch(()=>{});
+    // Mail 2 : Vente signée (modale de confirmation)
     if (DB.mailSettings?.nouvelle_vente !== false) {
       openConfirmMailModal(insertedDos[0], negNoms, rentNoms || null);
     }
