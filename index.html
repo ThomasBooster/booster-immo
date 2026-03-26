@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.2.0 — Booster Immobilier</title>
+<title>Scorim v1.2.1 — Booster Immobilier</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -733,7 +733,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.2.0</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.2.1</div>
     </div>
   </div>
 </div>
@@ -817,7 +817,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.2.0</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.2.1</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -4267,7 +4267,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.2.0</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.2.1</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -9372,7 +9372,7 @@ function renderMailToggles() {
   if (!DB.mailSettings) DB.mailSettings = {};
   if (!DB.mailAgences) DB.mailAgences = {};
   const agencesActives = getAgencesActives();
-  const testIndexMap = { nouveau_ssp: 1, resume_hebdo: 2, nouvelle_vente: 3, alerte_butoire: 4, alerte_pe: 5, alerte_cci: 6, record_beaten: 7 };
+  const testIndexMap = { nouveau_ssp: 0, test: 1, resume_hebdo: 2, nouvelle_vente: 3, alerte_butoire: 4, alerte_pe: 5, alerte_cci: 6, record_beaten: 7 };
 
   el.innerHTML = '';
   MAIL_SETTINGS_DEFS.forEach(d => {
