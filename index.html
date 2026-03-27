@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.3</title>
+<title>Scorim v1.4.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -741,7 +741,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.3</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.4</div>
     </div>
   </div>
 </div>
@@ -838,7 +838,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.3</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.4</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -2786,6 +2786,9 @@
 // =====================
 const SUPABASE_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
+// Credentials prod pour Scorim_Dev (feedbacks + roadmap partagés)
+const SUPABASE_URL_PROD = 'https://bqzluhzkzpalludrfxyr.supabase.co';
+const SUPABASE_KEY_PROD = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
 const AGENCES_STATIC = ['Saint-Cyprien','Minimes','Bonnefoy','Roseraie','Saint-Agne','Côte Pavée'];
 // AGENCES est dynamique : utilise Supabase si chargé, sinon fallback statique
 Object.defineProperty(window, 'AGENCES', {
@@ -2845,6 +2848,39 @@ function getMoisList() {
 
 // Cache local (rechargé à chaque login)
 let DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [], dossierRent: [], societes: [], agences: [], gerants: [] };
+
+// ── Fonctions Scorim_Dev : pointent sur la base PROD ──────────────────────
+async function sbFetchProd(table, options = {}) {
+  const select = options.select || '*';
+  let url = SUPABASE_URL_PROD + '/rest/v1/' + table + '?select=' + select;
+  if (options.filter) url += '&' + options.filter;
+  if (options.order) url += '&order=' + options.order;
+  const res = await fetch(url, {
+    headers: { 'apikey': SUPABASE_KEY_PROD, 'Authorization': 'Bearer ' + SUPABASE_KEY_PROD }
+  });
+  if (!res.ok) throw new Error('sbFetchProd error ' + res.status);
+  return res.json();
+}
+async function sbInsertProd(table, data) {
+  const url = SUPABASE_URL_PROD + '/rest/v1/' + table;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY_PROD, 'Authorization': 'Bearer ' + SUPABASE_KEY_PROD, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(t); }
+  return res.json();
+}
+async function sbUpdateProd(table, filter, data) {
+  const url = SUPABASE_URL_PROD + '/rest/v1/' + table + '?' + filter;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'apikey': SUPABASE_KEY_PROD, 'Authorization': 'Bearer ' + SUPABASE_KEY_PROD, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(t); }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function sbFetch(table, options = {}) {
   const { method = 'GET', filter = '', body = null, select = '*', order = '' } = options;
@@ -4785,7 +4821,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.3</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.4</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -11285,7 +11321,7 @@ async function submitFeedback() {
   btn.textContent = 'Envoi en cours...'; btn.disabled = true;
 
   try {
-    await sbInsert('feedbacks', {
+    await sbInsertProd('feedbacks', {
       type: currentFeedbackType,
       description: desc,
       auteur: currentUser.nom,
@@ -12694,6 +12730,15 @@ async function validerRemuneration() {
       credit_courtier: credit,
       solde_initial: soldeInitial,
       total_net: totalNet,
+      salaire_a_verser: (() => {
+        const _comm = remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0) + credit;
+        const _avance = parseFloat(remuCurrentNeg.avance_commission) || 0;
+        const _partNR = (remuCurrentNeg.part_non_recup != null) ? parseFloat(remuCurrentNeg.part_non_recup)/100 : 0;
+        const _montantNR = Math.round(_avance * _partNR * 100) / 100;
+        const _soldeAnt = -Math.abs(soldeInitial) + _montantNR;
+        const _dc = _comm + _soldeAnt;
+        return _dc >= _avance ? _dc : _avance;
+      })(),
       mail_envoye: remuMailEnvoye,
       nb_affaires: remuLignes.length
     });
@@ -12780,24 +12825,17 @@ async function loadRemunerationsList() {
       let detailHtml = '';
 
       if (v) {
+        // Utiliser salaire_a_verser stocké à la validation — source de vérité
+        const sal = v.salaire_a_verser || 0;
         if (c.statut_emploi === 'alternant') {
           totalAVerser = commissions + fixeAlt;
           detailHtml = fmtEuro(commissions) + ' comm. + ' + fmtEuro(fixeAlt) + ' fixe';
         } else if (c.statut_emploi === 'responsable') {
-          const partNR = (c.part_non_recup != null) ? parseFloat(c.part_non_recup) / 100 : 0;
-          const montantNR = Math.round(avance * partNR * 100) / 100;
-          const soldeAnt = -(Math.abs(v.solde_initial || 0)) + montantNR;
-          const dc = commissions + soldeAnt;
-          const sal = dc >= avance ? dc : avance;
           totalAVerser = sal + prime;
           detailHtml = fmtEuro(sal) + ' avance' + (prime > 0 ? ' + ' + fmtEuro(prime) + ' prime' : '');
         } else {
-          const partNR = (c.part_non_recup != null) ? parseFloat(c.part_non_recup) / 100 : 0;
-          const montantNR = Math.round(avance * partNR * 100) / 100;
-          const soldeAnt = -(Math.abs(v.solde_initial || 0)) + montantNR;
-          const dc = commissions + soldeAnt;
-          totalAVerser = dc >= avance ? dc : avance;
-          detailHtml = fmtEuro(totalAVerser);
+          totalAVerser = sal;
+          detailHtml = fmtEuro(sal);
         }
       }
 
@@ -12848,23 +12886,15 @@ function genererRecapRemunPDF() {
     let totalAVerser = 0;
     let detail = '';
     if (v) {
+      const sal = v.salaire_a_verser || 0;
       if (c.statut_emploi === 'alternant') {
         totalAVerser = commissions + fixeAlt;
         detail = fmt(commissions) + ' commissions + ' + fmt(fixeAlt) + ' fixe';
       } else if (c.statut_emploi === 'responsable') {
-        const partNR = (c.part_non_recup != null) ? parseFloat(c.part_non_recup) / 100 : 0;
-        const montantNR = Math.round(avance * partNR * 100) / 100;
-        const soldeAnt = -(Math.abs(v.solde_initial || 0)) + montantNR;
-        const dc = commissions + soldeAnt;
-        const sal = dc >= avance ? dc : avance;
         totalAVerser = sal + prime;
         detail = fmt(sal) + ' avance' + (prime > 0 ? ' + ' + fmt(prime) + ' prime agence' : '');
       } else {
-        const partNR = (c.part_non_recup != null) ? parseFloat(c.part_non_recup) / 100 : 0;
-        const montantNR = Math.round(avance * partNR * 100) / 100;
-        const soldeAnt = -(Math.abs(v.solde_initial || 0)) + montantNR;
-        const dc = commissions + soldeAnt;
-        totalAVerser = dc >= avance ? dc : avance;
+        totalAVerser = sal;
         detail = 'Avance versée';
       }
     }
@@ -12974,7 +13004,7 @@ function openRdModal(id) {
 async function loadFeedbacks() {
   document.getElementById('rd-feedbacks-list').innerHTML = '<div style="color:#64748b;text-align:center;padding:48px">Chargement...</div>';
   try {
-    DB_feedbacks = await sbFetch('feedbacks', { order: 'created_at.desc' });
+    DB_feedbacks = await sbFetchProd('feedbacks', { order: 'created_at.desc' });
     renderFeedbacksStats();
     renderFeedbacksList();
     if (currentUser?.role === 'admin') updateFeedbackBadge();
@@ -13102,7 +13132,7 @@ async function openFeedbackDetail(id) {
     f.statut = 'en_cours'; // optimistic update
     feedbacksVus.add(f.id);
     updateFeedbackBadge();
-    sbUpdate('feedbacks', 'id=eq.' + id, { statut: 'en_cours' }).catch(() => {});
+    sbUpdateProd('feedbacks', 'id=eq.' + id, { statut: 'en_cours' }).catch(() => {});
   }
   const sc = { nouveau: { label: 'Nouveau', color: '#3b82f6' }, en_cours: { label: 'En cours', color: '#f59e0b' }, traite: { label: 'Traité', color: '#10b981' }, rejete: { label: 'Rejeté', color: '#94a3b8' } };
   const tc = { bug: '🐛 Bug', idea: '💡 Idée' };
@@ -13135,7 +13165,7 @@ async function openFeedbackDetail(id) {
 
 async function updateFeedbackStatut(id, statut) {
   try {
-    await sbUpdate('feedbacks', 'id=eq.' + id, { statut });
+    await sbUpdateProd('feedbacks', 'id=eq.' + id, { statut });
     const f = DB_feedbacks.find(x => x.id === id);
     if (f) f.statut = statut;
     renderFeedbacksStats();
@@ -13172,7 +13202,7 @@ function convertToRoadmap(feedbackId) {
 async function loadRoadmap() {
   document.getElementById('rd-roadmap-list').innerHTML = '<div style="color:#64748b;text-align:center;padding:48px">Chargement...</div>';
   try {
-    DB_roadmap = await sbFetch('roadmap_items', { order: 'created_at.desc' });
+    DB_roadmap = await sbFetchProd('roadmap_items', { order: 'created_at.desc' });
     renderRoadmapList();
   } catch(e) {
     document.getElementById('rd-roadmap-list').innerHTML = '<div style="color:#ef4444;text-align:center;padding:48px">Erreur de chargement</div>';
@@ -13267,7 +13297,7 @@ function startFeedbackPolling() {
   if (currentUser?.role !== 'admin') return;
   setInterval(async () => {
     try {
-      const fresh = await sbFetch('feedbacks', { order: 'created_at.desc' });
+      const fresh = await sbFetchProd('feedbacks', { order: 'created_at.desc' });
       // Détecter les nouveaux IDs "nouveau" pas encore dans feedbacksVus
       const newOnes = fresh.filter(f => f.statut === 'nouveau' && !feedbacksVus.has(f.id));
       if (newOnes.length > 0) {
@@ -13293,7 +13323,7 @@ function updateFeedbackBadge() {
 async function rejectFeedback(id) {
   if (!confirm('Rejeter ce feedback ?')) return;
   try {
-    await sbUpdate('feedbacks', 'id=eq.' + id, { statut: 'rejete' });
+    await sbUpdateProd('feedbacks', 'id=eq.' + id, { statut: 'rejete' });
     const fb = DB_feedbacks.find(f => f.id === id);
     if (fb) fb.statut = 'rejete';
     renderFeedbacksStats();
@@ -13321,7 +13351,7 @@ async function confirmRejectFeedback() {
   const f = DB_feedbacks.find(x => x.id === id);
   if (!f) return;
   try {
-    await sbUpdate('feedbacks', 'id=eq.' + id, { statut: 'rejete' });
+    await sbUpdateProd('feedbacks', 'id=eq.' + id, { statut: 'rejete' });
     f.statut = 'rejete';
     // Envoyer le mail de rejet si l'utilisateur a un email
     const user = DB.users ? DB.users.find(u => u.nom === f.auteur) : null;
@@ -13392,16 +13422,16 @@ async function saveRoadmapItem() {
 
   try {
     if (id) {
-      await sbUpdate('roadmap_items', 'id=eq.' + id, payload);
+      await sbUpdateProd('roadmap_items', 'id=eq.' + id, payload);
       const idx = DB_roadmap.findIndex(x => x.id === parseInt(id));
       if (idx >= 0) DB_roadmap[idx] = { ...DB_roadmap[idx], ...payload };
     } else {
-      const inserted = await sbInsert('roadmap_items', payload);
+      const inserted = await sbInsertProd('roadmap_items', payload);
       if (inserted?.length) {
         DB_roadmap.unshift(inserted[0]);
         // Si créé depuis un feedback, mettre à jour le feedback
         if (feedbackId) {
-          await sbUpdate('feedbacks', 'id=eq.' + feedbackId, { roadmap_item_id: inserted[0].id });
+          await sbUpdateProd('feedbacks', 'id=eq.' + feedbackId, { roadmap_item_id: inserted[0].id });
           const fb = DB_feedbacks.find(f => f.id === parseInt(feedbackId));
           if (fb) fb.roadmap_item_id = inserted[0].id;
         }
@@ -13416,7 +13446,8 @@ async function saveRoadmapItem() {
 async function deleteRoadmapItem(id) {
   if (!confirm('Supprimer cet item ?')) return;
   try {
-    await sbDelete('roadmap_items', 'id=eq.' + id);
+    const url = SUPABASE_URL_PROD + '/rest/v1/roadmap_items?id=eq.' + id;
+    await fetch(url, { method: 'DELETE', headers: { 'apikey': SUPABASE_KEY_PROD, 'Authorization': 'Bearer ' + SUPABASE_KEY_PROD } });
     DB_roadmap = DB_roadmap.filter(x => x.id !== id);
     renderRoadmapList();
     showToast('Item supprimé ✓', 'success');
