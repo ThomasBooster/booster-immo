@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.3.0</title>
+<title>Scorim v1.4.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -699,8 +699,11 @@
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
+
 
 
 <!-- AUTH -->
@@ -738,7 +741,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.3.0</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.1</div>
     </div>
   </div>
 </div>
@@ -800,8 +803,14 @@
           <div class="nav-item" onclick="showPage('apporteurs', this)">
             <span class="nav-icon">🤝</span> Apporteurs
           </div>
+        </div>
+        <div class="nav-section" id="nav-rh-section" style="display:none">
+          <div class="nav-section-title">RH</div>
           <div class="nav-item" onclick="showPage('negociateurs', this)">
-            <span class="nav-icon">👤</span> Négociateurs
+            <span class="nav-icon">👥</span> Équipe
+          </div>
+          <div class="nav-item" id="nav-remunerations" onclick="showPage('remunerations', this)" style="display:none">
+            <span class="nav-icon">💶</span> Rémunérations
           </div>
         </div>
         <div class="nav-section" id="nav-feedback-section">
@@ -829,7 +838,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.3.0</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.1</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -1129,6 +1138,10 @@
             <!-- Rentreurs -->
             <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
               <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:14px">🏠 Rentreurs</div>
+              <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;padding:10px 12px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac">
+                <input type="checkbox" id="s-mandat-exclusif" style="width:16px;height:16px;accent-color:#16a34a">
+                <span style="font-size:13px;font-weight:600;color:#15803d">Mandat exclusif <span style="font-weight:400;color:var(--text-muted)">(15% — sinon 12% pour mandat simple)</span></span>
+              </label>
               <div id="s-rentreurs-container">
                 <div style="color:var(--text-muted);font-size:13px">Aucun rentreur — optionnel</div>
               </div>
@@ -1469,6 +1482,43 @@
       </div>
 
       <!-- NÉGOCIATEURS - GESTION -->
+      <!-- PAGE RÉMUNÉRATIONS -->
+      <div class="page" id="page-remunerations">
+        <div class="page-header">
+          <h1 class="page-title">💶 Rémunérations</h1>
+        </div>
+
+        <!-- Sélecteur période -->
+        <div class="card" style="margin-bottom:20px">
+          <div style="padding:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <label style="font-weight:600;font-size:13px">Période :</label>
+            <select id="remun-mois-select" class="filter-select" style="width:140px" onchange="loadRemunerationsList()">
+              <option value="1">Janvier</option><option value="2">Février</option>
+              <option value="3">Mars</option><option value="4">Avril</option>
+              <option value="5">Mai</option><option value="6">Juin</option>
+              <option value="7">Juillet</option><option value="8">Août</option>
+              <option value="9">Septembre</option><option value="10">Octobre</option>
+              <option value="11">Novembre</option><option value="12">Décembre</option>
+            </select>
+            <select id="remun-annee-select" class="filter-select" style="width:100px" onchange="loadRemunerationsList()"></select>
+            <button class="btn btn-outline btn-sm" onclick="loadRemunerationsList()">🔄 Actualiser</button>
+            <div style="flex:1"></div>
+            <button class="btn btn-accent" id="remun-btn-pdf" onclick="genererRecapRemunPDF()" style="display:none">🖨️ Générer PDF récapitulatif</button>
+          </div>
+        </div>
+
+        <!-- Liste collabs -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 État des rémunérations</span>
+            <span id="remun-liste-count" style="font-size:12px;color:var(--text-muted)"></span>
+          </div>
+          <div id="remun-liste-container" style="padding:16px">
+            <div style="text-align:center;padding:40px;color:var(--text-muted)">Sélectionnez une période et actualisez</div>
+          </div>
+        </div>
+      </div>
+
       <div class="page" id="page-negociateurs">
         <!-- Alertes périodes d'essai -->
         <div id="neg-pe-alertes-container" style="display:none;margin-bottom:16px"></div>
@@ -1628,6 +1678,56 @@
                   <option value="">— Aucune / Première agence —</option>
                 </select>
               </div>
+              <div class="form-group" id="neg-prime-agence-group" style="display:none">
+                <label>Prime d'encaissement agence (%)</label>
+                <input type="number" id="neg-prime-agence" placeholder="ex: 2" min="0" max="100" step="0.1">
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">% appliqué sur le CA HT net encaissé par l'agence (après frais juridiques)</div>
+              </div>
+              <div class="form-group" id="neg-part-non-recup-group" style="display:none">
+                <label>Part non récupérable de l'avance (%)</label>
+                <input type="number" id="neg-part-non-recup" placeholder="100" min="0" max="100" step="1" value="100">
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Part de l'avance offerte chaque mois (100% = avance jamais récupérée)</div>
+              </div>
+            </div>
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">Barème de commissions (ventes)</div>
+            <div style="background:#f8fafc;border-radius:10px;padding:14px;border:1px solid var(--border)">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Taux appliqué selon le CA total des ventes du mois. Modifiable selon le contrat.</div>
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:#f1f5f9">
+                    <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text-muted);font-weight:700;border-bottom:1px solid var(--border)">Tranche</th>
+                    <th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text-muted);font-weight:700;border-bottom:1px solid var(--border)">De</th>
+                    <th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text-muted);font-weight:700;border-bottom:1px solid var(--border)">Jusqu'à</th>
+                    <th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text-muted);font-weight:700;border-bottom:1px solid var(--border)">Taux</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:8px 12px;color:var(--text-muted);font-size:12px">Tranche 1</td>
+                    <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text-muted)">0 €</td>
+                    <td style="padding:8px 12px;text-align:right"><input type="number" id="neg-bareme-t1-max" value="7500" min="0" step="100" style="width:90px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;text-align:right"> €</td>
+                    <td style="padding:8px 12px;text-align:center"><input type="number" id="neg-bareme-t1-taux" value="12" min="0" max="100" step="0.5" style="width:60px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;text-align:center"> %</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:8px 12px;color:var(--text-muted);font-size:12px">Tranche 2</td>
+                    <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text-muted)" id="neg-bareme-t2-de">7 501 €</td>
+                    <td style="padding:8px 12px;text-align:right"><input type="number" id="neg-bareme-t2-max" value="15000" min="0" step="100" style="width:90px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;text-align:right"> €</td>
+                    <td style="padding:8px 12px;text-align:center"><input type="number" id="neg-bareme-t2-taux" value="14" min="0" max="100" step="0.5" style="width:60px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;text-align:center"> %</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:8px 12px;color:var(--text-muted);font-size:12px">Tranche 3</td>
+                    <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text-muted)" id="neg-bareme-t3-de">15 001 €</td>
+                    <td style="padding:8px 12px;text-align:right"><input type="number" id="neg-bareme-t3-max" value="25000" min="0" step="100" style="width:90px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;text-align:right"> €</td>
+                    <td style="padding:8px 12px;text-align:center"><input type="number" id="neg-bareme-t3-taux" value="16" min="0" max="100" step="0.5" style="width:60px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;text-align:center"> %</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 12px;color:var(--text-muted);font-size:12px">Tranche 4</td>
+                    <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text-muted)" id="neg-bareme-t4-de">25 001 €</td>
+                    <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text-muted)">et au-delà</td>
+                    <td style="padding:8px 12px;text-align:center"><input type="number" id="neg-bareme-t4-taux" value="18" min="0" max="100" step="0.5" style="width:60px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;text-align:center"> %</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -1666,6 +1766,25 @@
                 </select>
               </div>
             </div>
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">Coordonnées personnelles</div>
+            <div class="form-grid">
+              <div class="form-group" style="grid-column:span 2">
+                <label>Adresse (ligne 1)</label>
+                <input type="text" id="neg-adresse1" placeholder="ex: 17 chemin de Lapparou">
+              </div>
+              <div class="form-group" style="grid-column:span 2">
+                <label>Adresse (ligne 2)</label>
+                <input type="text" id="neg-adresse2" placeholder="Complément d'adresse (optionnel)">
+              </div>
+              <div class="form-group">
+                <label>Code postal</label>
+                <input type="text" id="neg-code-postal" placeholder="ex: 31200" maxlength="5">
+              </div>
+              <div class="form-group">
+                <label>Ville</label>
+                <input type="text" id="neg-ville" placeholder="ex: Toulouse">
+              </div>
+            </div>
           </div>
 
           <!-- ALTERNANT -->
@@ -1689,6 +1808,16 @@
               <div class="form-group">
                 <label>Date de fin de contrat</label>
                 <input type="date" id="neg-date-fin-contrat">
+              </div>
+              <div class="form-group">
+                <label>Montant de la rémunération (€/mois)</label>
+                <input type="number" id="neg-remun-alt" placeholder="ex: 800" min="0" step="1">
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Rémunération fixe mensuelle brute</div>
+              </div>
+              <div class="form-group">
+                <label>Pourcentage de rétrocession (%)</label>
+                <input type="number" id="neg-retro-alt" placeholder="ex: 30" min="0" max="100" step="0.5">
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Sortie : taux plein — Rentrée : taux ÷ 2</div>
               </div>
             </div>
             <!-- Checklist alternant -->
@@ -1775,11 +1904,200 @@
 
           <div class="modal-footer">
             <button class="btn btn-outline" onclick="closeModal('modal-negociateur')">Annuler</button>
-            <button id="neg-btn-remuneration" class="btn btn-outline" disabled title="Rémunération (bientôt disponible)" style="opacity:0.4;cursor:not-allowed">💶 Rémunération</button>
+            <button id="neg-btn-remuneration" class="btn btn-outline" onclick="openRemunerationModal()" style="display:none">💶 Rémunération</button>
             <button class="btn btn-accent" onclick="saveNegociateur()">💾 Enregistrer</button>
           </div>
         </div>
       </div>
+
+      <!-- MODALE RÉMUNÉRATION AGENT CO -->
+      <div class="modal-overlay" id="modal-remuneration" style="z-index:400">
+        <div class="modal" style="width:860px;max-height:92vh;overflow-y:auto">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <h3 style="margin:0" id="remu-modal-title">💶 Rémunération</h3>
+            <button class="btn btn-outline btn-sm" onclick="closeModal('modal-remuneration')">✕ Fermer</button>
+          </div>
+
+          <!-- Sélecteur période -->
+          <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:20px;padding:16px;background:var(--bg);border-radius:12px">
+            <div>
+              <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:6px">Mois</label>
+              <select id="remu-mois" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:white">
+                <option value="1">Janvier</option><option value="2">Février</option><option value="3">Mars</option>
+                <option value="4">Avril</option><option value="5">Mai</option><option value="6">Juin</option>
+                <option value="7">Juillet</option><option value="8">Août</option><option value="9">Septembre</option>
+                <option value="10">Octobre</option><option value="11">Novembre</option><option value="12">Décembre</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:6px">Année</label>
+              <select id="remu-annee" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:white"></select>
+            </div>
+            <button class="btn btn-accent" onclick="calculerRemuneration()" style="padding:10px 20px">🔍 Calculer</button>
+            <div id="remu-statut-badge" style="display:none;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700"></div>
+          </div>
+          <!-- Solde initial : affiché seulement pour les salariés au premier calcul -->
+          <div id="remu-solde-initial-zone" style="display:none;margin-top:12px;padding:14px 16px;background:#fef3c7;border-radius:10px;border:1px solid #fcd34d">
+            <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px">⚠️ Premier calcul — Solde actuel</div>
+            <div style="font-size:13px;color:#92400e;margin-bottom:10px">C'est le premier calcul enregistré pour <strong id="remu-solde-nom"></strong>. Quel est le solde actuel (avances non couvertes) ?</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <input type="number" id="remu-solde-initial" placeholder="0" step="0.01"
+                style="width:150px;padding:8px 10px;border:1.5px solid #fcd34d;border-radius:8px;font-size:13px;background:white"
+                oninput="onSoldeInitialChange()">
+              <span style="font-size:13px;color:#92400e">€ <span style="font-size:11px;font-weight:400">(négatif si en dette, ex: -1500)</span></span>
+              <button id="remu-btn-offrir-avant" onclick="openOffrirSolde('avant')" style="display:none;padding:6px 12px;background:none;border:1px solid #d97706;border-radius:8px;color:#d97706;font-size:12px;font-weight:600;cursor:pointer">🎁 Offrir solde</button>
+            </div>
+            <div id="remu-remise-avant-info" style="display:none;margin-top:8px;font-size:12px;color:#15803d;font-weight:600"></div>
+          </div>
+
+          <!-- Résultats -->
+          <div id="remu-resultats" style="display:none">
+
+            <!-- Tableau des affaires -->
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-header">
+                <span class="card-title">📋 Affaires prises en compte</span>
+                <span id="remu-nb-affaires" style="font-size:12px;color:var(--text-muted)"></span>
+              </div>
+              <div style="overflow-x:auto">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date acte</th>
+                      <th>Affaire</th>
+                      <th>Honoraires HT</th>
+                      <th style="text-align:right">Frais juridiques</th>
+                      <th style="text-align:right">Base calcul</th>
+                      <th>Type</th>
+                      <th style="text-align:right">Commission</th>
+                    </tr>
+                  </thead>
+                  <tbody id="remu-tbody"></tbody>
+                </table>
+                <!-- Résumé taux sous le tableau (salariés uniquement) -->
+                <div id="remu-taux-resume" style="display:none;padding:10px 14px;background:#f8fafc;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);display:flex;gap:20px;flex-wrap:wrap">
+                  <span>Total base calcul ventes : <strong id="remu-taux-base" style="color:var(--primary)">—</strong></span>
+                  <span>Taux barème appliqué : <strong id="remu-taux-pct" style="color:var(--primary)">—</strong></span>
+                  <span id="remu-bonus-span" style="display:none">Bonus rentrées : <strong id="remu-taux-bonus" style="color:#16a34a">—</strong></span>
+                  <span>Taux final : <strong id="remu-taux-final" style="color:var(--primary)">—</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Récapitulatif -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+              <div class="card">
+                <div class="card-header"><span class="card-title">💰 Récapitulatif commissions</span></div>
+                <div style="padding:16px">
+                  <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+                    <span style="font-size:13px;color:var(--text-muted)">Commissions sortie</span>
+                    <span style="font-weight:600" id="remu-total-sortie">0 €</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+                    <span style="font-size:13px;color:var(--text-muted)">Commissions rentrée</span>
+                    <span style="font-weight:600" id="remu-total-rentree">0 €</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+                    <span style="font-size:13px;color:var(--text-muted)">Frais juridiques déduits</span>
+                    <span style="font-weight:600;color:#dc2626" id="remu-total-frais">0 €</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+                    <span style="font-size:13px;font-weight:700;color:var(--primary)">Total commissions générées</span>
+                    <span style="font-weight:700;color:var(--primary)" id="remu-sous-total">0 €</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+                    <span style="font-size:13px;color:var(--text-muted)">Crédit courtier</span>
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <span style="font-size:13px;color:var(--text-muted)">+</span>
+                      <input type="number" id="remu-credit" placeholder="0" min="0" step="0.01"
+                        style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;text-align:right"
+                        oninput="recalcRemuTotal()">
+                      <span style="font-size:13px;color:var(--text-muted)">€</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header"><span class="card-title">📌 Récapitulatif par type</span></div>
+                <div style="padding:16px" id="remu-recap-type"></div>
+              </div>
+            </div>
+
+            <!-- Bilan salarié (affiché uniquement pour salarié/responsable) -->
+            <div id="remu-bilan-salarie" style="display:none;margin-bottom:16px">
+              <div class="card" style="border:2px solid var(--primary)">
+                <div class="card-header" style="background:var(--primary)">
+                  <span class="card-title" style="color:white">💼 Bilan du mois</span>
+                </div>
+                <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:0">
+                  <div style="padding:10px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)">
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Commissions générées</div>
+                    <div style="font-size:18px;font-weight:700;color:var(--primary)" id="remu-bilan-commissions">0 €</div>
+                  </div>
+                  <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Solde antérieur (dette)</div>
+                    <div style="font-size:18px;font-weight:700;color:#dc2626" id="remu-bilan-solde-ant">0 €</div>
+                  </div>
+                  <div style="padding:10px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)">
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Débit / Crédit du mois</div>
+                    <div style="font-size:18px;font-weight:700" id="remu-bilan-debit-credit">0 €</div>
+                  </div>
+                  <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Avance sur commission</div>
+                    <div style="font-size:18px;font-weight:700;color:var(--text-muted)" id="remu-bilan-avance">0 €</div>
+                  </div>
+                  <div style="padding:10px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)" id="remu-bilan-prime-zone" style="display:none">
+                    <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;margin-bottom:4px">Prime CA agence</div>
+                    <div style="font-size:18px;font-weight:700;color:#7c3aed" id="remu-bilan-prime">0 €</div>
+                  </div>
+                  <div style="padding:10px 14px;border-bottom:1px solid var(--border)" id="remu-bilan-total-zone" style="display:none">
+                    <div style="font-size:11px;color:#15803d;text-transform:uppercase;margin-bottom:4px">Total à verser</div>
+                    <div style="font-size:18px;font-weight:700;color:#16a34a" id="remu-bilan-total">0 €</div>
+                  </div>
+                  <div style="padding:14px;border-right:1px solid var(--border);background:#f0fdf4">
+                    <div style="font-size:11px;color:#15803d;text-transform:uppercase;font-weight:700;margin-bottom:4px">💰 Avance à verser</div>
+                    <div style="font-size:22px;font-weight:800;color:#16a34a" id="remu-bilan-salaire">0 €</div>
+                  </div>
+                  <div style="padding:14px;background:#fef3c7">
+                    <div style="font-size:11px;color:#92400e;text-transform:uppercase;font-weight:700;margin-bottom:4px">📋 Nouveau solde</div>
+                    <div style="font-size:22px;font-weight:800;color:#d97706" id="remu-bilan-nouveau-solde">0 €</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:10px;flex-wrap:wrap;padding:16px;background:var(--bg);border-radius:12px;align-items:center">
+              <button class="btn btn-outline" onclick="imprimerRelevePDF()">🖨️ Imprimer / PDF</button>
+              <button class="btn btn-outline" onclick="envoyerReleveMail()" id="remu-btn-mail">📧 Envoyer par mail</button>
+              <button id="remu-btn-offrir-apres" onclick="openOffrirSolde('apres')" style="display:none;padding:8px 14px;background:none;border:1px solid #d97706;border-radius:8px;color:#d97706;font-size:13px;font-weight:600;cursor:pointer">🎁 Offrir solde</button>
+              <div style="flex:1"></div>
+              <div id="remu-mail-sent-badge" style="display:none;font-size:12px;color:#16a34a;font-weight:600">✅ Mail envoyé</div>
+              <button id="remu-btn-annuler-validation" class="btn btn-outline" onclick="annulerValidationRemuneration()" style="display:none;border-color:#dc2626;color:#dc2626;font-size:12px">🔓 Annuler validation</button>
+              <button class="btn btn-accent" onclick="validerRemuneration()" id="remu-btn-valider">✅ Valider la rémunération</button>
+            </div>
+          </div>
+
+          <div id="remu-empty" style="text-align:center;padding:48px;color:var(--text-muted)">
+            <div style="font-size:32px;margin-bottom:12px">📅</div>
+            <div>Sélectionnez une période et cliquez sur Calculer</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODALE DÉTAIL DOSSIER (depuis rémunération) -->
+      <div class="modal-overlay" id="modal-remu-dossier" style="z-index:500">
+        <div class="modal" style="width:600px;max-height:80vh;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="margin:0" id="remu-dossier-titre">Détail dossier</h3>
+            <button class="btn btn-outline btn-sm" onclick="closeModal('modal-remu-dossier')">✕</button>
+          </div>
+          <div id="remu-dossier-content"></div>
+        </div>
+      </div>
+
+      <!-- RELEVÉ PDF (caché, utilisé pour impression) -->
+      <div id="remu-releve-print" style="display:none"></div>
 
       <!-- FICHE STATS COLLABORATEUR -->
       <div class="page" id="page-fiche-collab">
@@ -1836,6 +2154,35 @@
           </div>
           <div style="overflow-x:auto">
             <table id="fiche-tableau-n1"></table>
+          </div>
+        </div>
+
+        <!-- Historique rémunérations (salariés uniquement) -->
+        <div class="card" id="fiche-remu-section" style="margin-bottom:20px;display:none">
+          <div class="card-header">
+            <span class="card-title">💶 Historique des rémunérations</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Période</th>
+                  <th style="text-align:right">Commissions</th>
+                  <th style="text-align:right">Solde antérieur</th>
+                  <th style="text-align:right">Débit/Crédit</th>
+                  <th style="text-align:right">Avance</th>
+                  <th style="text-align:right">Salaire versé</th>
+                  <th style="text-align:right">Nouveau solde</th>
+                  <th style="text-align:right" id="th-prime" style="display:none">Prime agence</th>
+                  <th style="text-align:right" id="th-remise" style="display:none">Remise</th>
+                  <th style="text-align:center">Mail</th>
+                  <th style="text-align:center">Statut</th>
+                </tr>
+              </thead>
+              <tbody id="fiche-remu-tbody">
+                <tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Aucune rémunération enregistrée</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -2378,6 +2725,10 @@
     <!-- Rentreurs -->
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:12px">🏠 Rentreurs</div>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;padding:10px 12px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac">
+        <input type="checkbox" id="edit-mandat-exclusif" style="width:16px;height:16px;accent-color:#16a34a">
+        <span style="font-size:13px;font-weight:600;color:#15803d">Mandat exclusif <span style="font-weight:400;color:var(--text-muted)">(15% — sinon 12% pour mandat simple)</span></span>
+      </label>
       <div id="edit-rentreurs-container"></div>
       <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="addRentreurLigneEdit()">+ Ajouter un rentreur</button>
     </div>
@@ -2389,6 +2740,45 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- Modale : Offrir solde -->
+<div class="modal-overlay" id="modal-offrir-solde" style="z-index:10010">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">🎁 Offrir solde</div>
+    </div>
+    <div style="padding:20px">
+      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:14px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px;text-transform:uppercase">Solde négatif actuel</div>
+        <div style="font-size:22px;font-weight:800;color:#d97706" id="offrir-solde-affiche">—</div>
+        <div style="font-size:11px;color:#92400e;margin-top:4px" id="offrir-solde-contexte"></div>
+      </div>
+      <div class="form-group">
+        <label>Montant offert (€)</label>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="number" id="offrir-montant" placeholder="0" min="0" step="0.01" style="flex:1" oninput="updateOffrirPreview()">
+          <button class="btn btn-outline btn-sm" onclick="offrirTout()">Tout offrir</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Solde restant après remise</label>
+        <div style="font-size:18px;font-weight:700" id="offrir-preview-solde">—</div>
+      </div>
+      <div class="form-group">
+        <label>Motif <span style="color:#dc2626">*</span></label>
+        <textarea id="offrir-motif" rows="2" placeholder="Ex : Geste commercial, accord managérial..." style="width:100%;resize:vertical"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Votre mot de passe <span style="color:#dc2626">*</span></label>
+        <input type="password" id="offrir-password" placeholder="Mot de passe pour confirmer">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-offrir-solde')">Annuler</button>
+      <button class="btn" style="background:#d97706;color:white;border-color:#d97706" onclick="validerOffrirSolde()">✅ Confirmer la remise</button>
+    </div>
+  </div>
+</div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // =====================
@@ -2553,6 +2943,7 @@ function rowToDossier(r) {
     date: r.date_ssp || '',
     dateButoire: r.date_butoire || '',
     dateActe: r.date_acte || '',
+    mandatExclusif: r.mandat_exclusif || false,
     diag: r.diag || false,
     mois: r.mois || '',
     remarque: r.remarque || '',
@@ -2584,6 +2975,7 @@ function dossierToRow(d) {
     date_ssp: d.date || null,
     date_butoire: d.dateButoire || null,
     date_acte: d.dateActe || null,
+    mandat_exclusif: d.mandatExclusif !== undefined ? d.mandatExclusif : (document.getElementById('s-mandat-exclusif')?.checked || false),
     diag: d.diag || false,
     mois: d.mois || '',
     remarque: d.remarque || '',
@@ -2720,20 +3112,41 @@ async function initApp() {
     document.getElementById('params-mail-section').style.display = 'block';
     renderMailToggles();
     document.getElementById('nav-saisie-section').style.display = 'block';
+    document.getElementById('nav-rh-section').style.display = 'block';
+    document.getElementById('nav-remunerations').style.display = 'flex';
     renderUsersList();
   } else if (currentUser.role === 'agence') {
     document.getElementById('nav-rapport').style.display = 'none';
     document.getElementById('nav-params').style.display = 'none';
     document.getElementById('nav-feedback').style.display = 'flex';
-    // Agence voit Négociateurs dans Gestion mais pas le reste de la section Gestion
     document.getElementById('nav-saisie-section').style.display = 'none';
-    // On crée une section Gestion minimale juste pour les négociateurs
-    const negItem = document.querySelector('[onclick="showPage(\'negociateurs\', this)"]');
-    if (negItem) negItem.closest('.nav-section').style.display = 'block';
+    document.getElementById('nav-rh-section').style.display = 'block';
+    // Rémunérations visible uniquement pour les gérants
+    // Un gérant est un négociateur avec statut_emploi='gérant' sur la même agence
+    // On cherche par nom ET par agence, avec fallback si DB pas encore chargé
+    const checkGerant = () => {
+      const negs = DB.negociateurs || [];
+      return negs.some(n =>
+        n.agence === currentUser.agence &&
+        n.statut_emploi === 'gérant' &&
+        (n.nom === currentUser.nom || n.email === currentUser.email)
+      );
+    };
+    const isGerant = checkGerant();
+    document.getElementById('nav-remunerations').style.display = isGerant ? 'flex' : 'none';
+    // Retry après chargement complet si pas trouvé
+    if (!isGerant) {
+      setTimeout(() => {
+        const isGerantRetry = checkGerant();
+        const el = document.getElementById('nav-remunerations');
+        if (el) el.style.display = isGerantRetry ? 'flex' : 'none';
+      }, 1500);
+    }
   } else {
     document.getElementById('nav-rapport').style.display = 'none';
     document.getElementById('nav-params').style.display = 'flex';
     document.getElementById('nav-feedback').style.display = 'flex';
+    document.getElementById('nav-rh-section').style.display = 'none';
   }
 
   refreshDashboard();
@@ -2839,6 +3252,7 @@ function showPage(name, navEl) {
   if (name === 'saisie') { refreshMyDossiers(); renderRepartition(); populateApporteurSelects(); }
   if (name === 'apporteurs') { refreshApporteurs(); }
   if (name === 'negociateurs') { renderNegociateursList(); }
+  if (name === 'remunerations') { initRemunerationPage(); }
   if (name === 'negociateurs-classement') { initNegClassement(); }
   if (name === 'encaissements') { initEncaissements(); }
   if (name === 'performances') { initPerformances(); }
@@ -3678,7 +4092,7 @@ async function saveDossier() {
         hasApporteur, apporteurNom, apporteurPct,
         hasRetroBooster, retroBoosterHT: +(retroBoosterHT * p.pct / 100).toFixed(2),
         apportHT: apportPartHT,
-        statut, date, dateButoire, dateActe,
+        statut, date, dateButoire, dateActe, mandat_exclusif: sfData.mandatExclusif || false,
         diag, mois, remarque,
         saisi: currentUser.id
       });
@@ -3925,6 +4339,10 @@ function openEdit(id) {
   }
   document.getElementById('edit-date-butoire').value = d.dateButoire || '';
   document.getElementById('edit-date-acte').value = d.dateActe || '';
+  const mandatEl = document.getElementById('s-mandat-exclusif');
+  if (mandatEl) mandatEl.checked = d.mandatExclusif || false;
+  const editMandatEl = document.getElementById('edit-mandat-exclusif');
+  if (editMandatEl) editMandatEl.checked = d.mandatExclusif || false;
   document.getElementById('edit-mois').value = d.mois;
   document.getElementById('edit-remarque').value = d.remarque || '';
   document.getElementById('edit-diag').checked = d.diag || false;
@@ -4028,6 +4446,7 @@ async function confirmEdit() {
     mois: document.getElementById('edit-mois').value,
     remarque: document.getElementById('edit-remarque').value,
     diag: document.getElementById('edit-diag').checked,
+    mandatExclusif: document.getElementById('edit-mandat-exclusif')?.checked || false,
     hasApporteur, apporteurNom, apporteurPct,
     ttcTotal, htTotal: netHTTotal
   };
@@ -4090,7 +4509,7 @@ async function confirmEdit() {
             dossier_id: d.id,
             negociateur_id: parseInt(r.negId),
             agence: r.agence,
-            ca_rentree: totalHT * ((d.pct || 100) / 100) * ((r.pct !== undefined ? r.pct : 100) / 100)
+            ca_rentree: totalHT * (champsCommuns.mandatExclusif ? 0.15 : 0.12) * ((d.pct || 100) / 100) * ((r.pct !== undefined ? r.pct : 100) / 100)
           }));
           const saved = await sbInsert('dossier_rentreurs', rows);
           if (saved) DB.dossierRent = [...(DB.dossierRent || []), ...saved];
@@ -4360,7 +4779,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.3.0</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.1</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -4503,6 +4922,8 @@ function refreshButoires() {
   const groupsSeen = new Set();
   const list = DB.dossiers.filter(d => {
     if (!d.dateButoire || d.dateActe) return false;
+    // Exclure si le groupe est déjà encaissé via une autre agence
+    if (d.groupId && DB.dossiers.some(x => x.groupId === d.groupId && x.dateActe)) return false;
     if (!isNet(d) && d.statut !== 'À SIGNER') return false; // Seulement dossiers actifs
     const b = new Date(d.dateButoire);
     const isCurrentOrPast = b <= new Date(now.getFullYear(), now.getMonth() + 1, 0); // <= fin du mois courant
@@ -4718,7 +5139,7 @@ function filterByEncFiltre(dossiers, filtre, dateField) {
 
 function refreshEncHistorique() {
   const filtre = getEncFiltre('enc-hist');
-  const list = filterByEncFiltre(DB.dossiers.filter(d => d.statut === 'SIGNÉ'), filtre, 'dateActe')
+  const list = filterByEncFiltre(DB.dossiers.filter(d => d.statut === 'SIGNÉ' || d.statut === 'AA SIGNÉ'), filtre, 'dateActe')
     .sort((a, b) => new Date(b.dateActe) - new Date(a.dateActe));
 
   const totalHT = list.reduce((s, d) => s + (d.ht || 0), 0);
@@ -4753,7 +5174,8 @@ function refreshEncHistorique() {
 
 function refreshEncPrevisionnel() {
   const filtre = getEncFiltre('enc-prev');
-  const list = filterByEncFiltre(DB.dossiers.filter(d => isNet(d) && !d.dateActe), filtre, 'dateButoire')
+  const groupsDejaEnc = new Set(DB.dossiers.filter(d => d.dateActe && d.groupId).map(d => d.groupId));
+  const list = filterByEncFiltre(DB.dossiers.filter(d => isNet(d) && !d.dateActe && (!d.groupId || !groupsDejaEnc.has(d.groupId))), filtre, 'dateButoire')
     .sort((a, b) => new Date(a.dateButoire) - new Date(b.dateButoire));
 
   const totalHT = list.reduce((s, d) => s + (d.ht || 0), 0);
@@ -4989,11 +5411,76 @@ function openFicheCollab(negId, fromPage) {
   document.getElementById('fiche-collab-sous-titre').textContent = n.agence + ' · ' + (n.poste || 'négociateur') + ' · ' + (n.statut_emploi || '');
 
   refreshFicheCollab(n);
+  loadRemuHistorique(n);
   showPage('fiche-collab', null);
 }
 
 function goBackFromFiche() {
   showPage(ficheCollabFromPage, null);
+}
+
+async function loadRemuHistorique(neg) {
+  const tbody = document.getElementById('fiche-remu-tbody');
+  if (!tbody) return;
+  const isSalarie = ['salarié','responsable'].includes(neg.statut_emploi);
+  if (!isSalarie) return;
+  const moisNoms = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  try {
+    const [validations, remises] = await Promise.all([
+      sbFetch('remuneration_validations', { filter: 'negociateur_id=eq.' + neg.id, order: 'annee.desc,mois.desc' }),
+      sbFetch('remises_avance', { filter: 'negociateur_id=eq.' + neg.id })
+    ]);
+    if (!validations || validations.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Aucune rémunération enregistrée</td></tr>';
+      return;
+    }
+    const hasRemises = remises && remises.length > 0;
+    const isResponsable = neg.statut_emploi === 'responsable';
+    const hasPrime = isResponsable && validations.some(v => (v.prime_agence_montant || 0) > 0);
+    // Afficher/cacher colonnes via th
+    const table = tbody.closest('table');
+    if (table) {
+      const thRemise = table.querySelector('#th-remise');
+      if (thRemise) thRemise.style.display = hasRemises ? '' : 'none';
+      const thPrime = table.querySelector('#th-prime');
+      if (thPrime) thPrime.style.display = hasPrime ? '' : 'none';
+    }
+    const avance = parseFloat(neg.avance_commission) || 0;
+    tbody.innerHTML = validations.map(v => {
+      const commissions = (v.total_commissions || 0) + (v.credit_courtier || 0);
+      const prime = v.prime_agence_montant || 0;
+      // Part non récupérable : réduire le solde antérieur
+      const partNonRecupHist = (neg.statut_emploi === 'responsable' && neg.part_non_recup != null)
+        ? parseFloat(neg.part_non_recup) / 100 : 0;
+      const montantNonRecupHist = Math.round(avance * partNonRecupHist * 100) / 100;
+      const soldeAnt = -(Math.abs(v.solde_initial || 0)) + montantNonRecupHist;
+      const debitCredit = commissions + soldeAnt;
+      const salaireVerse = debitCredit >= avance ? debitCredit : avance;
+      const nouveauSolde = debitCredit >= avance ? 0 : -(avance - debitCredit);
+      const dcColor = debitCredit >= 0 ? '#16a34a' : '#dc2626';
+      const nsColor = nouveauSolde < 0 ? '#d97706' : '#16a34a';
+      const remiseMois = hasRemises ? (remises || []).find(r => r.mois == v.mois && r.annee == v.annee) : null;
+      const remiseCell = hasRemises ? '<td style="text-align:right">' + (remiseMois
+        ? '<span title="' + (remiseMois.motif || '').replace(/"/g, '&quot;') + ' — par ' + (remiseMois.auteur || '') + '" style="cursor:help;color:#d97706;font-weight:700;text-decoration:underline dotted">+ ' + fmtEuro(remiseMois.montant) + '</span>'
+        : '<span style="color:var(--text-muted)">—</span>') + '</td>' : '';
+      const primeCell = hasPrime ? '<td style="text-align:right;color:#7c3aed;font-weight:700">' + (prime > 0 ? fmtEuro(prime) : '—') + '</td>' : '';
+      return '<tr>' +
+        '<td style="font-weight:600">' + (moisNoms[v.mois] || v.mois) + ' ' + v.annee + '</td>' +
+        '<td style="text-align:right;color:var(--primary);font-weight:600">' + fmtEuro(commissions) + '</td>' +
+        '<td style="text-align:right;color:#dc2626">' + (v.solde_initial ? fmtEuro(Math.abs(v.solde_initial)) : '—') + '</td>' +
+        '<td style="text-align:right;font-weight:600;color:' + dcColor + '">' + (debitCredit >= 0 ? '+' : '-') + ' ' + fmtEuro(Math.abs(debitCredit)) + '</td>' +
+        '<td style="text-align:right;color:var(--text-muted)">' + fmtEuro(avance) + '</td>' +
+        '<td style="text-align:right;font-weight:700;color:#16a34a">' + fmtEuro(salaireVerse) + '</td>' +
+        '<td style="text-align:right;font-weight:700;color:' + nsColor + '">' + (nouveauSolde < 0 ? '- ' + fmtEuro(Math.abs(nouveauSolde)) : '0 €') + '</td>' +
+        primeCell +
+        remiseCell +
+        '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:' + (v.mail_envoye ? '#dcfce7' : '#f1f5f9') + ';color:' + (v.mail_envoye ? '#15803d' : '#64748b') + '">' + (v.mail_envoye ? '✓ Mail' : '—') + '</span></td>' +
+        '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d">✓ Validé</span></td>' +
+        '</tr>';
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#dc2626;padding:20px">Erreur de chargement</td></tr>';
+  }
 }
 
 function refreshFicheCollab(n) {
@@ -5004,7 +5491,7 @@ function refreshFicheCollab(n) {
   // Données du collab
   const dosNeg = (DB.dossierNeg || []).filter(l => l.negociateur_id === n.id);
   const dossiersVentes = dosNeg.map(l => {
-    const d = DB.dossiers.find(x => x.id === l.dossier_id && x.statut === 'SIGNÉ');
+    const d = DB.dossiers.find(x => x.id === l.dossier_id && isNet(x));
     if (!d) return null;
     return { ...d, caCollab: (d.ht || 0) * (l.pct_ca / 100), pctCollab: l.pct_ca };
   }).filter(Boolean).sort((a, b) => new Date(b.date || '2000-01-01') - new Date(a.date || '2000-01-01'));
@@ -5056,7 +5543,7 @@ function refreshFicheMoyenne() {
   const annee = document.getElementById('fiche-collab-annee-moy')?.value || '';
   const dosNeg = (DB.dossierNeg || []).filter(l => l.negociateur_id === n.id);
   let ventes = dosNeg.map(l => {
-    const d = DB.dossiers.find(x => x.id === l.dossier_id && x.statut === 'SIGNÉ');
+    const d = DB.dossiers.find(x => x.id === l.dossier_id && isNet(x));
     if (!d) return null;
     return { ...d, caCollab: (d.ht || 0) * (l.pct_ca / 100) };
   }).filter(Boolean);
@@ -5135,23 +5622,33 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
   const totalNb = nbParMois.reduce((s,v) => s+v, 0);
   const totalMoy = totalNb > 0 ? totalCA / totalNb : 0;
 
-  // Encaissé = dossier SIGNÉ avec dateActe dans l'année
+  // Encaissé = dossier avec dateActe dans l'année — chercher dans TOUS les dossiers du collab
+  // (un dossier SSP 2025 peut être encaissé en 2026)
+  const dosEncaissables = allDossiers || dossiersAnnee;
   const encaisseParMois = MONTH_NAMES.map((_, mi) =>
-    dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi)
+    dedup(dosEncaissables.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi))
       .reduce((s, d) => s + (caKey(d)||0), 0));
   const nbEncaisseParMois = MONTH_NAMES.map((_, mi) =>
-    dedup(dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi)).length);
+    dedup(dosEncaissables.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi)).length);
   const totalEncaisse = encaisseParMois.reduce((s,v) => s+v, 0);
   const totalNbEncaisse = nbEncaisseParMois.reduce((s,v) => s+v, 0);
 
   // À encaisser = dossier SIGNÉ sans dateActe avec dateButoire dans l'année
+  // Groupes déjà encaissés : chercher dans TOUTE la base (pas juste les dossiers du négo)
+  // Un intercabinet peut être encaissé sur l'agence d'un autre négo
+  const groupesEncaisses = new Set(
+    DB.dossiers.filter(d => d.dateActe && d.groupId).map(d => d.groupId)
+  );
+  const filtreAEncaisser = d => isNet(d) && !d.dateActe &&
+    (!d.groupId || !groupesEncaisses.has(d.groupId)) &&
+    d.dateButoire;
   const aEncaisserParMois = MONTH_NAMES.map((_, mi) =>
-    (allDossiers||dossiersAnnee).filter(d => isNet(d) && !d.dateActe &&
-      d.dateButoire && new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi)
+    (allDossiers||dossiersAnnee).filter(d => filtreAEncaisser(d) &&
+      new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi)
       .reduce((s, d) => s + (caKey(d)||0), 0));
   const nbAEncaisserParMois = MONTH_NAMES.map((_, mi) =>
-    dedup((allDossiers||dossiersAnnee).filter(d => isNet(d) && !d.dateActe &&
-      d.dateButoire && new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi)).length);
+    dedup((allDossiers||dossiersAnnee).filter(d => filtreAEncaisser(d) &&
+      new Date(d.dateButoire).getFullYear() === annee && new Date(d.dateButoire).getMonth() === mi)).length);
   const totalAEncaisser = aEncaisserParMois.reduce((s,v) => s+v, 0);
   const totalNbAEncaisser = nbAEncaisserParMois.reduce((s,v) => s+v, 0);
 
@@ -5232,25 +5729,25 @@ function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, click
     // Encaissements fusionnés (CA) — toujours visible
     '<tr><td style="font-weight:600;font-size:12px">Encaissements ' + tipEnc + '</td>' +
       MONTH_NAMES.map((_, mi) => {
-        const dosEnc = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
-        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => isNet(d)&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
+        const dosEnc = dosEncaissables.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
+        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => filtreAEncaisser(d)&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
         return mkCellEnc(dosEnc, dosAEnc, encaisseParMois[mi], !isN1 ? aEncaisserParMois[mi] : 0, true);
       }).join('') + (() => {
         // Total colonne
-        const dosEncAll = dossiersAnnee.filter(d=>d.dateActe&&new Date(d.dateActe).getFullYear()===annee);
-        const dosAEncAll = (!isN1) ? (allDossiers||dossiersAnnee).filter(d=>d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee) : [];
+        const dosEncAll = dosEncaissables.filter(d=>d.dateActe&&new Date(d.dateActe).getFullYear()===annee);
+        const dosAEncAll = (!isN1) ? (allDossiers||dossiersAnnee).filter(d=>filtreAEncaisser(d)&&new Date(d.dateButoire).getFullYear()===annee) : [];
         return mkCellEnc(dosEncAll, dosAEncAll, totalEncaisse, !isN1 ? totalAEncaisser : 0, true);
       })() +
     '</tr>' +
     // Nb dossiers encaissements fusionnés
     '<tr><td style="font-weight:600;font-size:12px">Nb encaissements ' + tipNbEnc + '</td>' +
       MONTH_NAMES.map((_, mi) => {
-        const dosEnc = dossiersAnnee.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
-        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => isNet(d)&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
+        const dosEnc = dosEncaissables.filter(d => d.dateActe && new Date(d.dateActe).getFullYear() === annee && new Date(d.dateActe).getMonth() === mi);
+        const dosAEnc = (!isN1) ? (allDossiers||dossiersAnnee).filter(d => filtreAEncaisser(d)&&new Date(d.dateButoire).getFullYear()===annee&&new Date(d.dateButoire).getMonth()===mi) : [];
         return mkCellEnc(dosEnc, dosAEnc, nbEncaisseParMois[mi], !isN1 ? nbAEncaisserParMois[mi] : 0, false);
       }).join('') + (() => {
-        const dosEncAll = dossiersAnnee.filter(d=>d.dateActe&&new Date(d.dateActe).getFullYear()===annee);
-        const dosAEncAll = (!isN1) ? (allDossiers||dossiersAnnee).filter(d=>d.statut==='SIGNÉ'&&!d.dateActe&&d.dateButoire&&new Date(d.dateButoire).getFullYear()===annee) : [];
+        const dosEncAll = dosEncaissables.filter(d=>d.dateActe&&new Date(d.dateActe).getFullYear()===annee);
+        const dosAEncAll = (!isN1) ? (allDossiers||dossiersAnnee).filter(d=>filtreAEncaisser(d)&&new Date(d.dateButoire).getFullYear()===annee) : [];
         return mkCellEnc(dosEncAll, dosAEncAll, totalNbEncaisse, !isN1 ? totalNbAEncaisser : 0, false);
       })() +
     '</tr>';
@@ -5289,7 +5786,19 @@ function buildIndicateurNvsN1(valN, valN1, label) {
 
 // Ouvre un mini-modal avec la liste des dossiers passés en IDs
 function openDossiersEncModal(ids) {
-  const dos = DB.dossiers.filter(d => ids.includes(d.id));
+  let dos = DB.dossiers.filter(d => ids.includes(d.id));
+  // Dédoublonner les intercabinets : ne garder qu'une ligne par groupId
+  // Priorité : l'agence du négociateur courant si applicable
+  const negCourant = ficheCollabId ? DB.negociateurs.find(x => x.id === ficheCollabId) : null;
+  if (negCourant) {
+    const seen = new Map();
+    dos.forEach(d => {
+      const key = d.groupId || d.id;
+      if (!seen.has(key)) { seen.set(key, d); }
+      else if (d.agence === negCourant.agence) { seen.set(key, d); }
+    });
+    dos = [...seen.values()];
+  }
   const existing = document.getElementById('modal-enc-detail');
   if (existing) existing.remove();
   const modal = document.createElement('div');
@@ -5463,6 +5972,10 @@ function onNegStatutChange() {
 
   if (isSalarieCDI) {
     document.getElementById('neg-section-salarie').style.display = 'block';
+    const primeGroup = document.getElementById('neg-prime-agence-group');
+    if (primeGroup) primeGroup.style.display = statut === 'responsable' ? '' : 'none';
+    const partNonRecupGroup = document.getElementById('neg-part-non-recup-group');
+    if (partNonRecupGroup) partNonRecupGroup.style.display = statut === 'responsable' ? '' : 'none';
     document.getElementById('neg-checklist-section').style.display = 'block';
     checkAlertePE();
   } else if (isAgentCo) {
@@ -5641,6 +6154,13 @@ async function loadNegociateurs() {
       date_fin_contrat: n.date_fin_contrat || null,
       date_fin_collaboration: n.date_fin_collaboration || null,
       nb_renouvellements: n.nb_renouvellements || 0,
+      adresse1: n.adresse1 || null,
+      adresse2: n.adresse2 || null,
+      code_postal: n.code_postal || null,
+      ville: n.ville || null,
+      bareme_commissions: n.bareme_commissions || null,
+      prime_agence_pct: n.prime_agence_pct || null,
+      part_non_recup: n.part_non_recup !== null && n.part_non_recup !== undefined ? n.part_non_recup : null,
     }));
     DB.dossierNeg = dossierNegs;
     DB.dossierRent = dossierRents;
@@ -5879,6 +6399,17 @@ function openAddNegociateur() {
   document.getElementById('neg-statut-emploi').onchange = toggleAvanceField;
   document.getElementById('neg-date-entree').value = '';
   document.getElementById('neg-objectif-ca').value = '';
+  const primeAgenceReset = document.getElementById('neg-prime-agence');
+  if (primeAgenceReset) primeAgenceReset.value = '';
+  const partNonRecupReset = document.getElementById('neg-part-non-recup');
+  if (partNonRecupReset) partNonRecupReset.value = 100;
+  const remunAltReset = document.getElementById('neg-remun-alt');
+  if (remunAltReset) remunAltReset.value = '';
+  const retroAltReset = document.getElementById('neg-retro-alt');
+  if (retroAltReset) retroAltReset.value = '';
+  // Reset barème aux valeurs par défaut
+  const baremeDefaults = [['neg-bareme-t1-max',7500],['neg-bareme-t1-taux',12],['neg-bareme-t2-max',15000],['neg-bareme-t2-taux',14],['neg-bareme-t3-max',25000],['neg-bareme-t3-taux',16],['neg-bareme-t4-taux',18]];
+  baremeDefaults.forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.value = val; });
   const isAgenceRole = currentUser.role === 'agence';
   const selAg = document.getElementById('neg-agence');
   const selAgPrec = document.getElementById('neg-agence-precedente');
@@ -5893,6 +6424,7 @@ function openAddNegociateur() {
   selAgPrec.innerHTML = '<option value="">— Aucune / Première agence —</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
   const btnRemuNew = document.getElementById('neg-btn-remuneration');
   if (btnRemuNew) btnRemuNew.style.display = 'none'; // pas de rémunération sur création
+  ['neg-adresse1','neg-adresse2','neg-code-postal','neg-ville'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const finCollabNew = document.getElementById('neg-date-fin-collaboration');
   if (finCollabNew) finCollabNew.value = '';
   const renouvelNew = document.getElementById('neg-nb-renouvellements');
@@ -5922,6 +6454,22 @@ function openEditNegociateur(id) {
   toggleAvanceField();
   document.getElementById('neg-date-entree').value = n.date_entree || '';
   document.getElementById('neg-objectif-ca').value = n.objectif_ca || '';
+  // Prime agence (responsable uniquement)
+  const primeAgenceEl = document.getElementById('neg-prime-agence');
+  if (primeAgenceEl) primeAgenceEl.value = n.prime_agence_pct || '';
+  const partNonRecupEl = document.getElementById('neg-part-non-recup');
+  if (partNonRecupEl) partNonRecupEl.value = n.part_non_recup !== null && n.part_non_recup !== undefined ? n.part_non_recup : 100;
+  // Barème commissions (salarié/responsable)
+  if (['salarié','responsable'].includes(n.statut_emploi)) {
+    const bareme = n.bareme_commissions || {};
+    document.getElementById('neg-bareme-t1-max').value = bareme.t1_max ?? 7500;
+    document.getElementById('neg-bareme-t1-taux').value = bareme.t1_taux ?? 12;
+    document.getElementById('neg-bareme-t2-max').value = bareme.t2_max ?? 15000;
+    document.getElementById('neg-bareme-t2-taux').value = bareme.t2_taux ?? 14;
+    document.getElementById('neg-bareme-t3-max').value = bareme.t3_max ?? 25000;
+    document.getElementById('neg-bareme-t3-taux').value = bareme.t3_taux ?? 16;
+    document.getElementById('neg-bareme-t4-taux').value = bareme.t4_taux ?? 18;
+  }
 
   const selAg = document.getElementById('neg-agence');
   const selAgPrec = document.getElementById('neg-agence-precedente');
@@ -5957,6 +6505,10 @@ function openEditNegociateur(id) {
     document.getElementById('neg-taux-rentree').value = n.taux_retrocession_rentree || '';
     document.getElementById('neg-numero-rcs').value = n.numero_rcs || '';
     document.getElementById('neg-ville-rcs').value = n.ville_rcs || '';
+    document.getElementById('neg-adresse1').value = n.adresse1 || '';
+    document.getElementById('neg-adresse2').value = n.adresse2 || '';
+    document.getElementById('neg-code-postal').value = n.code_postal || '';
+    document.getElementById('neg-ville').value = n.ville || '';
     loadChecklistUI(n.checklist_embauche || {});
     // Agence précédente agent co
     const selAgPrecCo = document.getElementById('neg-agence-precedente-co');
@@ -5968,6 +6520,10 @@ function openEditNegociateur(id) {
     document.getElementById('neg-date-entree-alt').value = n.date_entree || '';
     document.getElementById('neg-niveau-etude').value = n.niveau_etude || '';
     document.getElementById('neg-date-fin-contrat').value = n.date_fin_contrat || '';
+    const remunAltLoad = document.getElementById('neg-remun-alt');
+    if (remunAltLoad) remunAltLoad.value = n.avance_commission || '';
+    const retroAltLoad = document.getElementById('neg-retro-alt');
+    if (retroAltLoad) retroAltLoad.value = n.taux_retrocession_sortie || '';
     loadChecklistUI(n.checklist_embauche || {});
   } else if (isStagiaire) {
     document.getElementById('neg-date-entree-stag').value = n.date_entree || '';
@@ -6007,7 +6563,7 @@ async function saveNegociateur() {
   const poste = document.getElementById('neg-poste').value;
   const statut_emploi = document.getElementById('neg-statut-emploi').value;
   const email = document.getElementById('neg-email').value.trim() || null;
-  const avance_commission = ['salarié','responsable'].includes(statut_emploi) ? (parseFloat(document.getElementById('neg-avance').value) || 0) : 0;
+  let avance_commission = ['salarié','responsable'].includes(statut_emploi) ? (parseFloat(document.getElementById('neg-avance').value) || 0) : 0;
   let date_entree = document.getElementById('neg-date-entree').value || null;
   const objectif_ca = parseFloat(document.getElementById('neg-objectif-ca').value) || 0;
   let agence_precedente = document.getElementById('neg-agence-precedente').value || null;
@@ -6056,6 +6612,9 @@ async function saveNegociateur() {
     date_entree = document.getElementById('neg-date-entree-alt')?.value || null;
     niveau_etude = document.getElementById('neg-niveau-etude')?.value || null;
     date_fin_contrat = document.getElementById('neg-date-fin-contrat')?.value || null;
+    taux_retrocession_sortie = parseFloat(document.getElementById('neg-retro-alt')?.value) || 0;
+    taux_retrocession_rentree = taux_retrocession_sortie / 2;
+    avance_commission = parseFloat(document.getElementById('neg-remun-alt')?.value) || 0;
   } else if (isStagiaire2) {
     date_entree = document.getElementById('neg-date-entree-stag')?.value || null;
     date_fin_contrat = document.getElementById('neg-date-fin-contrat-stag')?.value || null;
@@ -6066,13 +6625,29 @@ async function saveNegociateur() {
 
   const finCollabInput = document.getElementById('neg-date-fin-collaboration');
   const date_fin_collaboration = finCollabInput?.value || null;
+  const prime_agence_pct = statut_emploi === 'responsable' ? (parseFloat(document.getElementById('neg-prime-agence')?.value) || 0) : null;
+  const part_non_recup = statut_emploi === 'responsable' ? (parseFloat(document.getElementById('neg-part-non-recup')?.value) ?? 100) : null;
+  const bareme_commissions = ['salarié','responsable'].includes(statut_emploi) ? {
+    t1_max: parseFloat(document.getElementById('neg-bareme-t1-max')?.value) || 7500,
+    t1_taux: parseFloat(document.getElementById('neg-bareme-t1-taux')?.value) || 12,
+    t2_max: parseFloat(document.getElementById('neg-bareme-t2-max')?.value) || 15000,
+    t2_taux: parseFloat(document.getElementById('neg-bareme-t2-taux')?.value) || 14,
+    t3_max: parseFloat(document.getElementById('neg-bareme-t3-max')?.value) || 25000,
+    t3_taux: parseFloat(document.getElementById('neg-bareme-t3-taux')?.value) || 16,
+    t4_taux: parseFloat(document.getElementById('neg-bareme-t4-taux')?.value) || 18,
+  } : null;
+  const adresse1 = document.getElementById('neg-adresse1')?.value.trim() || null;
+  const adresse2 = document.getElementById('neg-adresse2')?.value.trim() || null;
+  const code_postal = document.getElementById('neg-code-postal')?.value.trim() || null;
+  const ville = document.getElementById('neg-ville')?.value.trim() || null;
   // Warning si date nouvellement saisie (champ non readonly = pas encore enregistrée)
   if (date_fin_collaboration && !finCollabInput?.hasAttribute('readonly')) {
     const ok = confirm('⚠️ Attention — Action irréversible\n\nVous êtes sur le point d\'enregistrer une date de fin de collaboration pour ce collaborateur.\n\nCette action ne pourra pas être annulée. Êtes-vous sûr ?');
     if (!ok) return;
   }
   const nb_renouvellements = parseInt(document.getElementById('neg-nb-renouvellements')?.value) || 0;
-  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca: isSalarieCDI2 ? (parseFloat(document.getElementById('neg-objectif-ca')?.value)||0) : 0, agence_precedente, email, avance_commission: isSalarieCDI2 ? avance_commission : 0, type_contrat, date_fin_periode_essai, periode_essai_validee, checklist_embauche, taux_retrocession_sortie, taux_retrocession_rentree, numero_rcs, ville_rcs, niveau_etude, date_fin_contrat, date_fin_collaboration, nb_renouvellements };
+  const isAlternant2b = statut_emploi === 'alternant';
+  const payload = { nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca: isSalarieCDI2 ? (parseFloat(document.getElementById('neg-objectif-ca')?.value)||0) : 0, agence_precedente, email, avance_commission: (isSalarieCDI2 || isAlternant2b) ? avance_commission : 0, type_contrat, date_fin_periode_essai, periode_essai_validee, checklist_embauche, taux_retrocession_sortie, taux_retrocession_rentree, numero_rcs, ville_rcs, niveau_etude, date_fin_contrat, date_fin_collaboration, nb_renouvellements, adresse1, adresse2, code_postal, ville, bareme_commissions, prime_agence_pct, part_non_recup };
   showLoading(true);
   try {
     if (editId) {
@@ -6127,7 +6702,7 @@ function renderNegociateursList() {
     const caRentree = dosRent.reduce((s, l) => s + (l.ca_rentree || 0), 0);
 
     return '<tr style="cursor:pointer" onclick="openEditNegociateur(' + n.id + ')">' +
-      '<td><span style="cursor:pointer;color:var(--primary);font-weight:700;text-decoration:underline" onclick="openFicheCollab(' + n.id + ',\'negociateurs\')">' + n.nom + '</span>' + (n.agence_precedente ? '<div style="font-size:11px;color:var(--text-muted)">ex ' + n.agence_precedente + '</div>' : '') + '</td>' +
+      '<td><span style="font-weight:700;color:var(--text-primary)">' + n.nom + '</span>' + (n.agence_precedente ? '<div style="font-size:11px;color:var(--text-muted)">ex ' + n.agence_precedente + '</div>' : '') + '</td>' +
       '<td>' + n.agence + '</td>' +
       '<td>' + posteBadge(n.poste) + '</td>' +
       '<td>' + statutBadge(n.statut_emploi) + '</td>' +
@@ -6203,15 +6778,17 @@ function onRentreurNegChange(idx, val) {
 }
 
 function collectRentreursSaisie(parts) {
-  // Calcule le CA_rentrée = % rentreur × % agence × CA net HT total
+  // Calcule le CA_rentrée = taux mandat × % agence × % rentreur × CA net HT total
   const totalHT = parts.reduce((s, p) => s + (p.ht || 0), 0);
+  const mandatExclusif = document.getElementById('s-mandat-exclusif')?.checked || false;
+  const tauxMandat = mandatExclusif ? 0.15 : 0.12;
   return rentreurLignesSaisie
     .filter(l => l.negId)
     .map(l => {
       const part = parts.find(p => p.agence === l.agence);
       const pctAgence = part ? (part.pct / 100) : 1;
       const pctRentreur = (l.pct !== undefined ? l.pct : 100) / 100;
-      const caRentree = totalHT * pctAgence * pctRentreur;
+      const caRentree = totalHT * tauxMandat * pctAgence * pctRentreur;
       return { negociateur_id: parseInt(l.negId), agence: l.agence, ca_rentree: caRentree };
     });
 }
@@ -6639,7 +7216,9 @@ function openReseauModal(mode, targetId) {
     bodyHTML = `<div class="form-group"><label>Forme juridique</label>
       <select id="rm-forme" style="width:100%">
         ${['SARL','EURL','SAS','SASU','SCI'].map(f => `<option${s?.forme_juridique === f ? ' selected' : ''}>${f}</option>`).join('')}
-      </select></div>
+      </select>
+      <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-top:12px;margin-bottom:6px">SIRET</label>
+      <input type="text" id="soc-siret" placeholder="ex: 752 494 344 00019" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit" value="${s?.siret || ''}"></div>
       <div class="form-group"><label>Nom de la société *</label><input id="rm-nom" value="${s?.nom||''}" style="width:100%"></div>
       <div class="form-group"><label>Gérants (un par ligne)</label><textarea id="rm-gerants" rows="3" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">${gerantsSoc}</textarea></div>`;
   } else if (mode === 'agence') {
@@ -6681,7 +7260,8 @@ async function saveReseau(mode, targetId) {
       const nom = document.getElementById('rm-nom').value.trim();
       const forme = document.getElementById('rm-forme').value;
       if (!nom) { showToast('Nom requis', 'error'); showLoading(false); return; }
-      const row = await sbInsert('societes', { nom, forme_juridique: forme });
+      const siret = document.getElementById('soc-siret')?.value.trim() || null;
+      const row = await sbInsert('societes', { nom, forme_juridique: forme, siret });
       if (row && row[0]) {
         DB.societes.push(row[0]);
         const gerantsText = document.getElementById('rm-gerants').value.trim();
@@ -6697,9 +7277,10 @@ async function saveReseau(mode, targetId) {
       const nom = document.getElementById('rm-nom').value.trim();
       const forme = document.getElementById('rm-forme').value;
       if (!nom) { showToast('Nom requis', 'error'); showLoading(false); return; }
-      await sbUpdate('societes', 'id=eq.' + targetId, { nom, forme_juridique: forme });
+      const siretUpd = document.getElementById('soc-siret')?.value.trim() || null;
+      await sbUpdate('societes', 'id=eq.' + targetId, { nom, forme_juridique: forme, siret: siretUpd });
       const idx = DB.societes.findIndex(s => s.id === targetId);
-      if (idx >= 0) { DB.societes[idx].nom = nom; DB.societes[idx].forme_juridique = forme; }
+      if (idx >= 0) { DB.societes[idx].nom = nom; DB.societes[idx].forme_juridique = forme; DB.societes[idx].siret = siretUpd; }
       // Gérants : supprimer et recréer
       await sbDelete('gerants', 'societe_id=eq.' + targetId);
       DB.gerants = DB.gerants.filter(g => g.societe_id !== targetId);
@@ -8642,6 +9223,8 @@ function renderStatsNeg(container, negId) {
   const n = DB.negociateurs.find(x => x.id === negId);
   if (!n) return;
   ficheCollabId = negId;
+  // Peut effacer l'ardoise : admin OU gérant (statut_emploi === 'gérant' sur sa fiche collab)
+
   const now = new Date();
   const curYear = now.getFullYear();
   const n1Year = curYear - 1;
@@ -8664,6 +9247,7 @@ function renderStatsNeg(container, negId) {
     '</div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-neg-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>' +
+    ((['salarié','responsable'].includes(n.statut_emploi)) ? '<div class="card" id="fiche-remu-section" style="margin-bottom:20px"><div class="card-header"><span class="card-title">💶 Historique des rémunérations</span>' + '</div><div style="overflow-x:auto"><table><thead><tr><th>Période</th><th style="text-align:right">Commissions</th><th style="text-align:right">Solde ant.</th><th style="text-align:right">Débit/Crédit</th><th style="text-align:right">Avance</th><th style="text-align:right">Salaire versé</th><th style="text-align:right">Nouveau solde</th><th style="text-align:right" id="th-prime" style="display:none">Prime agence</th><th style="text-align:right" id="th-remise" style="display:none">Remise</th><th style="text-align:center">Mail</th><th style="text-align:center">Statut</th></tr></thead><tbody id="fiche-remu-tbody"><tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Chargement...</td></tr></tbody></table></div></div>' : '') +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-neg-delai" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-neg-annul" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-neg-retro" style="padding:16px"></div></div>' +
@@ -8686,6 +9270,7 @@ function renderStatsNeg(container, negId) {
   // Tableaux
   const years = [...new Set(dossiersVentes.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort();
   document.getElementById('fiche-collab-annee-moy').innerHTML = '<option value="">Depuis arrivée</option>' + years.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+  loadRemuHistorique(n);
   const totN1C = refreshFicheTableau(dossiersVentes, n1Year, 'fiche-tableau-n1', 'fiche-annee-n1-titre', null, true);
   refreshFicheTableau(dossiersVentes, curYear, 'fiche-tableau-annee', 'fiche-annee-titre', totN1C, false);
   refreshFicheMoyenne();
@@ -8719,12 +9304,13 @@ function renderStatsNeg(container, negId) {
 const SEND_EMAIL_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co/functions/v1/send-email';
 
 async function sendEmail(type, to, data) {
+  const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
   try {
     const res = await fetch(SEND_EMAIL_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Authorization': 'Bearer ' + PROD_KEY,
       },
       body: JSON.stringify({ type, to, data })
     });
@@ -9962,6 +10548,7 @@ function sfSaveCurrentStep() {
       // negLines déjà sauvegardés en temps réel
       break;
     case 9:
+      sfData.mandatExclusif = document.getElementById('sf-mandat-exclusif')?.checked || false;
       sfData.rentreurs = [];
       for (let i = 0; i < sfNbRent; i++) {
         const s = document.getElementById('sf-rent-sel-' + i);
@@ -10084,7 +10671,11 @@ function sfBuildStep(n) {
 
     // ── 4. RENTREURS ──
     case 9: return q('Rentreur(s)') +
-      '<p style="font-size:13px;color:var(--text-muted);margin:-10px 0 12px">Le CA rentrée est celui percu par l&apos;agence du rentreur.</p>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 14px;background:#f0fdf4;border-radius:10px;border:1px solid #86efac">' +
+        '<input type="checkbox" id="sf-mandat-exclusif" style="width:18px;height:18px;cursor:pointer;accent-color:#16a34a"' + (sfData.mandatExclusif ? ' checked' : '') + '>' +
+        '<label for="sf-mandat-exclusif" style="font-size:13px;font-weight:600;color:#15803d;cursor:pointer">Mandat exclusif <span style="font-weight:400;color:#64748b">(15% au lieu de 12% pour les salariés)</span></label>' +
+      '</div>' +
+      '<p style="font-size:13px;color:var(--text-muted);margin:-4px 0 12px">Le CA rentrée est calculé selon le type de mandat.</p>' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
         '<button onclick="sfChangeNbRent(-1)" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;color:var(--text)">−</button>' +
         '<span id="sf-nb-rent-disp" style="font-size:18px;font-weight:700;min-width:24px;text-align:center;color:var(--primary)">' + sfNbRent + '</span>' +
@@ -10582,7 +11173,8 @@ async function sfValider() {
       if (!neg) return null;
       const part = agenceParts.find(p => p.agence === neg.agence) || agenceParts[0];
       const pctRent = parseFloat(r.pct) || 100;
-      const caRentree = netHTTotal * ((part?.pct || 100) / 100) * (pctRent / 100);
+      const tauxMandat = sfData.mandatExclusif ? 0.15 : 0.12;
+      const caRentree = netHTTotal * tauxMandat * ((part?.pct || 100) / 100) * (pctRent / 100);
       return { agence: neg.agence, negociateur_id: neg.id, ca_rentree: caRentree };
     }).filter(Boolean);
     for (const ins of inserted) {
@@ -10711,6 +11303,1621 @@ async function submitFeedback() {
   } finally {
     btn.textContent = 'Envoyer le feedback'; btn.disabled = false;
   }
+}
+
+
+// ═══════════════════════════════════════════════════
+// RÉMUNÉRATION AGENT COMMERCIAL
+// ═══════════════════════════════════════════════════
+let remuCurrentNeg = null;       // négociateur courant
+let remuLignes = [];             // lignes calculées
+let remuMailEnvoye = false;      // suivi envoi mail
+let remuValide = false;          // suivi validation
+
+function openRemunerationModal() {
+  const negId = document.getElementById('neg-edit-id').value;
+  if (!negId) return;
+  remuCurrentNeg = DB.negociateurs.find(n => n.id === parseInt(negId));
+  if (!remuCurrentNeg) return;
+
+  // Titre
+  document.getElementById('remu-modal-title').textContent = '💶 Rémunération — ' + remuCurrentNeg.nom;
+
+  // Sélecteurs mois/année par défaut = mois courant
+  const now = new Date();
+  document.getElementById('remu-mois').value = now.getMonth() + 1;
+
+  // Remplir les années (5 dernières)
+  const selAnnee = document.getElementById('remu-annee');
+  selAnnee.innerHTML = '';
+  for (let y = now.getFullYear(); y >= now.getFullYear() - 4; y--) {
+    selAnnee.innerHTML += '<option value="' + y + '">' + y + '</option>';
+  }
+
+  // Reset UI
+  remuLignes = [];
+  remuMailEnvoye = false;
+  remuValide = false;
+  document.getElementById('remu-resultats').style.display = 'none';
+  document.getElementById('remu-empty').style.display = 'block';
+  document.getElementById('remu-statut-badge').style.display = 'none';
+  document.getElementById('remu-credit').value = '';
+  document.getElementById('remu-mail-sent-badge').style.display = 'none';
+  document.getElementById('remu-btn-valider').disabled = false;
+  document.getElementById('remu-btn-valider').style.opacity = '';
+  document.getElementById('remu-solde-initial-zone').style.display = 'none';
+  document.getElementById('remu-solde-initial').value = '';
+  window._remisesMois = [];
+
+  // Vérifier si déjà validé pour ce mois
+  checkRemuValidation();
+
+  document.getElementById('modal-remuneration').classList.add('open');
+}
+
+async function checkRemuValidation() {
+  if (!remuCurrentNeg) return;
+  const now = new Date();
+  const mois = document.getElementById('remu-mois').value;
+  const annee = document.getElementById('remu-annee').value;
+  const isSalarie = ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+  try {
+    // Vérifier si des calculs existent déjà pour ce collab (tous mois confondus)
+    const allValidations = await sbFetch('remuneration_validations', {
+      filter: 'negociateur_id=eq.' + remuCurrentNeg.id
+    });
+    const existing = (allValidations || []).filter(v => v.mois == mois && v.annee == annee);
+    // Solde initial : affiché au 1er calcul global, ou recalculé depuis la dernière validation
+    const soldeZone = document.getElementById('remu-solde-initial-zone');
+    const soldeNom = document.getElementById('remu-solde-nom');
+    const soldeInitialEl = document.getElementById('remu-solde-initial');
+    if (isSalarie) {
+      const validationsMois = (allValidations || []).filter(v => v.mois == mois && v.annee == annee);
+      if (!allValidations || allValidations.length === 0) {
+        // Premier calcul jamais fait → afficher zone de saisie
+        soldeZone.style.display = 'block';
+        if (soldeNom) soldeNom.textContent = remuCurrentNeg.nom;
+      } else if (validationsMois.length === 0) {
+        // Mois pas encore calculé → calculer le solde reporté depuis la dernière validation
+        const sorted = [...allValidations].sort((a,b) => a.annee !== b.annee ? b.annee-a.annee : b.mois-a.mois);
+        const lastV = sorted[0];
+        const avance = parseFloat(remuCurrentNeg.avance_commission) || 0;
+        const lastCommissions = (lastV.total_commissions || 0) + (lastV.credit_courtier || 0);
+        const lastSoldeAnt = -(Math.abs(lastV.solde_initial || 0));
+        const lastDC = lastCommissions + lastSoldeAnt;
+        const lastNvSolde = lastDC >= avance ? 0 : -(avance - lastDC);
+        // Vérifier remise sur ce mois-là
+        const remisesLastMois = await sbFetch('remises_avance', {
+          filter: 'negociateur_id=eq.' + remuCurrentNeg.id + '&mois=eq.' + lastV.mois + '&annee=eq.' + lastV.annee
+        });
+        const remiseMontant = (remisesLastMois || []).reduce((s,r) => s + (r.montant || 0), 0);
+        const soldeReporte = lastNvSolde + remiseMontant;
+        // Pré-remplir le champ et cacher la zone (on affiche juste l'info)
+        if (soldeInitialEl) soldeInitialEl.value = soldeReporte < 0 ? soldeReporte.toFixed(2) : '0';
+        soldeZone.style.display = soldeReporte < 0 ? 'block' : 'none';
+        if (soldeReporte < 0) {
+          const titre = soldeZone.querySelector('div:first-child');
+          if (titre) titre.textContent = '📋 Solde reporté du mois précédent';
+          const desc = soldeZone.querySelector('div:nth-child(2)');
+          if (desc) desc.innerHTML = 'Solde de <strong>' + (lastV.mois + '/' + lastV.annee) + '</strong> reporté automatiquement';
+        }
+        recalcRemuTotal();
+      } else {
+        // Mois déjà validé → cacher la zone
+        soldeZone.style.display = 'none';
+        if (soldeInitialEl) soldeInitialEl.value = validationsMois[0].solde_initial || '0';
+      }
+    } else {
+      soldeZone.style.display = 'none';
+    }
+    if (existing && existing.length > 0) {
+      const badge = document.getElementById('remu-statut-badge');
+      badge.style.display = 'block';
+      badge.style.background = '#dcfce7';
+      badge.style.color = '#16a34a';
+      badge.textContent = '✅ Validé le ' + fmtDate(existing[0].validated_at?.split('T')[0]);
+      document.getElementById('remu-btn-valider').disabled = true;
+      document.getElementById('remu-btn-valider').style.opacity = '0.4';
+      remuValide = true;
+      // Bouton annuler visible uniquement pour admin
+      const btnAnnuler = document.getElementById('remu-btn-annuler-validation');
+      if (btnAnnuler) btnAnnuler.style.display = currentUser?.role === 'admin' ? '' : 'none';
+    } else {
+      const btnAnnuler = document.getElementById('remu-btn-annuler-validation');
+      if (btnAnnuler) btnAnnuler.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+function getTauxBareme(bareme, totalVentes) {
+  // Retourne le taux applicable selon le total des ventes du mois et le barème du collab
+  const b = bareme || { t1_max: 7500, t1_taux: 12, t2_max: 15000, t2_taux: 14, t3_max: 25000, t3_taux: 16, t4_taux: 18 };
+  if (totalVentes <= b.t1_max) return (b.t1_taux || 12) / 100;
+  if (totalVentes <= b.t2_max) return (b.t2_taux || 14) / 100;
+  if (totalVentes <= b.t3_max) return (b.t3_taux || 16) / 100;
+  return (b.t4_taux || 18) / 100;
+}
+
+async function calculerRemuneration() {
+  if (!remuCurrentNeg) return;
+  // Rafraîchir depuis DB pour avoir les dernières données (barème, taux, etc.)
+  const fresh = DB.negociateurs.find(n => n.id === remuCurrentNeg.id);
+  if (fresh) remuCurrentNeg = fresh;
+  // Charger les remises du mois en cache pour recalcRemuTotal
+  const moisCalc = parseInt(document.getElementById('remu-mois').value);
+  const anneeCalc = parseInt(document.getElementById('remu-annee').value);
+  try {
+    window._remisesMois = await sbFetch('remises_avance', { filter: 'negociateur_id=eq.' + remuCurrentNeg.id });
+  } catch(e) { window._remisesMois = []; }
+  const mois = parseInt(document.getElementById('remu-mois').value);
+  const annee = parseInt(document.getElementById('remu-annee').value);
+  const agence = remuCurrentNeg.agence;
+  const isSalarie = ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+  const tauxRentree = parseFloat(remuCurrentNeg.taux_retrocession_rentree) / 100 || 0;
+
+  // Filtrer les dossiers AA SIGNÉ de l'agence du collab avec date_acte dans le mois/année
+  const dossiersDuMois = DB.dossiers.filter(d => {
+    if (d.agence !== agence) return false;
+    if (d.statut !== 'AA SIGNÉ') return false;
+    if (!d.dateActe) return false;
+    const da = new Date(d.dateActe);
+    return da.getMonth() + 1 === mois && da.getFullYear() === annee;
+  });
+
+  remuLignes = [];
+
+  // Pour les salariés : calculer d'abord le total des bases de calcul (ventes) pour déterminer le taux
+  // Le taux s'applique sur le TOTAL du mois, pas dossier par dossier
+  if (isSalarie) {
+    // 1er passage : collecter toutes les lignes sortie avec leur baseCalc
+    const lignesSortie = [];
+    dossiersDuMois.forEach(d => {
+      const linkNeg = (DB.dossierNeg || []).find(l => l.dossier_id === d.id && l.negociateur_id === remuCurrentNeg.id);
+      if (linkNeg) {
+        const pctCa = linkNeg.pct_ca / 100;
+        const htPart = (d.ht || 0) * pctCa;
+        const pctAgence = (d.pct || 100) / 100;
+        const fraisJuridiques = FRAIS_JURIDIQUE * pctAgence;
+        const baseCalc = Math.max(0, htPart - fraisJuridiques);
+        lignesSortie.push({ dossier: d, htPart, fraisJuridiques, baseCalc, pctCa: linkNeg.pct_ca });
+      }
+    });
+    // Total des bases de calcul → détermine le taux du barème
+    const totalBaseCalc = lignesSortie.reduce((s, l) => s + l.baseCalc, 0);
+    const bareme = remuCurrentNeg.bareme_commissions;
+    const tauxSortie = getTauxBareme(bareme, totalBaseCalc);
+
+    // Nombre de rentrées pour le bonus
+    const nbRentrees = dossiersDuMois.reduce((s, d) => {
+      const lr = (DB.dossierRent || []).find(l => l.dossier_id === d.id && l.negociateur_id === remuCurrentNeg.id);
+      return s + (lr && lr.ca_rentree > 0 ? 1 : 0);
+    }, 0);
+    const bonusRentrees = nbRentrees * 0.0025; // +0.25% par rentrée
+    const tauxFinal = tauxSortie + bonusRentrees;
+
+    // 2e passage : créer les lignes avec le taux final
+    lignesSortie.forEach(l => {
+      remuLignes.push({
+        dossier: l.dossier,
+        type: 'Sortie',
+        ht: l.htPart,
+        fraisJuridiques: l.fraisJuridiques,
+        baseCalc: l.baseCalc,
+        taux: tauxFinal,
+        commission: l.baseCalc * tauxFinal,
+        pctCa: l.pctCa
+      });
+    });
+
+    // Rentrées
+    dossiersDuMois.forEach(d => {
+      const linkRent = (DB.dossierRent || []).find(l => l.dossier_id === d.id && l.negociateur_id === remuCurrentNeg.id);
+      if (linkRent && linkRent.ca_rentree > 0) {
+        remuLignes.push({
+          dossier: d,
+          type: 'Entrée',
+          ht: linkRent.ca_rentree,
+          fraisJuridiques: 0,
+          baseCalc: linkRent.ca_rentree,
+          taux: tauxRentree,
+          commission: linkRent.ca_rentree * tauxRentree,
+          pctCa: null
+        });
+      }
+    });
+  } else {
+    // Agent-co et Alternant : taux fixes de rétrocession
+    const isAlt = remuCurrentNeg.statut_emploi === 'alternant';
+    const tauxSortie = parseFloat(remuCurrentNeg.taux_retrocession_sortie) / 100 || 0;
+    const tauxRentreeAlt = isAlt ? tauxSortie / 2 : tauxRentree;
+    dossiersDuMois.forEach(d => {
+      const linkNeg = (DB.dossierNeg || []).find(l => l.dossier_id === d.id && l.negociateur_id === remuCurrentNeg.id);
+      if (linkNeg) {
+        const pctCa = linkNeg.pct_ca / 100;
+        const htPart = (d.ht || 0) * pctCa;
+        const pctAgence = (d.pct || 100) / 100;
+        const fraisJuridiques = FRAIS_JURIDIQUE * pctAgence;
+        const baseCalc = Math.max(0, htPart - fraisJuridiques);
+        remuLignes.push({
+          dossier: d,
+          type: 'Sortie',
+          ht: htPart,
+          fraisJuridiques,
+          baseCalc,
+          taux: tauxSortie,
+          commission: baseCalc * tauxSortie,
+          pctCa: linkNeg.pct_ca
+        });
+      }
+      const linkRent = (DB.dossierRent || []).find(l => l.dossier_id === d.id && l.negociateur_id === remuCurrentNeg.id);
+      if (linkRent && linkRent.ca_rentree > 0) {
+        remuLignes.push({
+          dossier: d,
+          type: 'Entrée',
+          ht: linkRent.ca_rentree,
+          fraisJuridiques: 0,
+          baseCalc: linkRent.ca_rentree,
+          taux: tauxRentreeAlt,
+          commission: linkRent.ca_rentree * tauxRentreeAlt,
+          pctCa: null
+        });
+      }
+    });
+  }
+
+  // Prime d'encaissement agence (responsable uniquement)
+  if (remuCurrentNeg.statut_emploi === 'responsable' && remuCurrentNeg.prime_agence_pct) {
+    const tauxPrime = parseFloat(remuCurrentNeg.prime_agence_pct) / 100;
+    // CA HT net encaissé par l'agence ce mois (AA SIGNÉ avec dateActe dans le mois)
+    const dossAgenceEnc = DB.dossiers.filter(d => {
+      if (d.agence !== agence) return false;
+      if (d.statut !== 'AA SIGNÉ') return false;
+      if (!d.dateActe) return false;
+      const da = new Date(d.dateActe);
+      return da.getMonth() + 1 === mois && da.getFullYear() === annee;
+    });
+    const caAgenceNet = dossAgenceEnc.reduce((s, d) => s + (d.ht || 0), 0);
+    const fraisAgence = dossAgenceEnc.reduce((s, d) => s + FRAIS_JURIDIQUE * ((d.pct || 100) / 100), 0);
+    const baseAgence = Math.max(0, caAgenceNet - fraisAgence);
+    const primeMontant = baseAgence * tauxPrime;
+    if (primeMontant > 0) {
+      remuLignes.push({
+        dossier: { client: 'PRIME AGENCE — ' + agence.toUpperCase(), dateActe: null, id: null },
+        type: 'Prime agence',
+        ht: baseAgence,
+        fraisJuridiques: 0,
+        baseCalc: baseAgence,
+        taux: tauxPrime,
+        commission: primeMontant,
+        pctCa: null,
+        isPrimeAgence: true
+      });
+    }
+  }
+
+
+  renderRemuResultats(mois, annee);
+  checkRemuValidation();
+}
+
+function renderRemuResultats(mois, annee) {
+  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+  if (remuLignes.length === 0) {
+    const isResponsableAvecPrime = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'responsable' && remuCurrentNeg.prime_agence_pct;
+    if (!isResponsableAvecPrime) {
+      document.getElementById('remu-resultats').style.display = 'none';
+      document.getElementById('remu-empty').style.display = 'block';
+      document.getElementById('remu-empty').innerHTML = '<div style="font-size:32px;margin-bottom:12px">🔍</div><div>Aucune affaire AA Signée pour <strong>' + remuCurrentNeg.nom + '</strong> en <strong>' + moisNoms[mois] + ' ' + annee + '</strong></div>';
+      return;
+    }
+    // Responsable avec prime agence : afficher quand même le bilan même sans dossiers personnels
+  }
+
+  document.getElementById('remu-empty').style.display = 'none';
+  document.getElementById('remu-resultats').style.display = 'block';
+  document.getElementById('remu-nb-affaires').textContent = remuLignes.length + ' ligne(s)';
+
+  // Tableau
+  const tbody = document.getElementById('remu-tbody');
+  tbody.innerHTML = remuLignes.map((l, i) => {
+    const d = l.dossier;
+    const nomAffaire = d.client || '—';
+    const fraisCell = l.fraisJuridiques > 0
+      ? '<td style="text-align:right;font-size:12px;color:#dc2626">- ' + fmtEuro(l.fraisJuridiques) + '</td>'
+      : '<td style="text-align:right;font-size:12px;color:var(--text-muted)">—</td>';
+    return '<tr>' +
+      '<td style="font-size:12px">' + fmtDate(d.dateActe) + '</td>' +
+      '<td><span style="cursor:pointer;color:var(--primary);font-weight:600;text-decoration:underline" onclick="openRemuDossier(' + d.id + ')">' + nomAffaire + '</span>' +
+        (l.pctCa !== null && l.pctCa !== 100 ? '<span style="font-size:10px;color:var(--text-muted);margin-left:4px">(' + l.pctCa + '%)</span>' : '') +
+      '</td>' +
+      '<td style="font-weight:600">' + fmtEuro(l.ht) + '</td>' +
+      fraisCell +
+      '<td style="text-align:right;font-weight:600;color:var(--primary)">' + fmtEuro(l.baseCalc) + '</td>' +
+      '<td><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:' + (l.type==='Sortie'?'#dbeafe':'#dcfce7') + ';color:' + (l.type==='Sortie'?'#1d4ed8':'#15803d') + '">' + l.type + '</span></td>' +
+      '<td style="text-align:right;font-weight:700;color:var(--primary)">' + fmtEuro(l.commission) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  recalcRemuTotal();
+
+  // Résumé taux (salariés)
+  const isSalarieTaux = remuCurrentNeg && ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+  const tauxResumeEl = document.getElementById('remu-taux-resume');
+  if (tauxResumeEl) {
+    if (isSalarieTaux && remuLignes.length > 0) {
+      tauxResumeEl.style.display = 'flex';
+      const lignesSortieTaux = remuLignes.filter(l => l.type === 'Sortie');
+      const totalBaseTaux = lignesSortieTaux.reduce((s,l) => s + l.baseCalc, 0);
+      const tauxLigne = lignesSortieTaux[0]?.taux || 0;
+      const bonusRentreesTaux = remuLignes.filter(l=>l.type==='Entrée').length * 0.0025;
+      const tauxBase = tauxLigne - bonusRentreesTaux;
+      document.getElementById('remu-taux-base').textContent = fmtEuro(totalBaseTaux);
+      document.getElementById('remu-taux-pct').textContent = (tauxBase * 100).toFixed(1) + '%';
+      document.getElementById('remu-taux-final').textContent = (tauxLigne * 100).toFixed(2) + '%';
+      const bonusSpan = document.getElementById('remu-bonus-span');
+      if (bonusRentreesTaux > 0) {
+        bonusSpan.style.display = 'inline';
+        document.getElementById('remu-taux-bonus').textContent = '+' + (bonusRentreesTaux * 100).toFixed(2) + '%';
+      } else {
+        bonusSpan.style.display = 'none';
+      }
+    } else {
+      tauxResumeEl.style.display = 'none';
+    }
+  }
+
+  // Récap par type
+  const totalSortie = remuLignes.filter(l=>l.type==='Sortie').reduce((s,l)=>s+l.commission,0);
+  const totalRentree = remuLignes.filter(l=>l.type==='Entrée').reduce((s,l)=>s+l.commission,0);
+  document.getElementById('remu-total-sortie').textContent = fmtEuro(totalSortie);
+  document.getElementById('remu-total-rentree').textContent = fmtEuro(totalRentree);
+
+  const recapType = document.getElementById('remu-recap-type');
+  const nbSortie = remuLignes.filter(l=>l.type==='Sortie').length;
+  const nbRentree = remuLignes.filter(l=>l.type==='Entrée').length;
+  recapType.innerHTML =
+    '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">' +
+      '<span style="font-size:13px">🏷 Ventes (sortie) <span style="color:var(--text-muted);font-size:11px">' + nbSortie + ' ligne(s)</span></span>' +
+      '<span style="font-weight:700;color:#1d4ed8">' + fmtEuro(totalSortie) + '</span>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">' +
+      '<span style="font-size:13px">🏠 Rentrées (entrée) <span style="color:var(--text-muted);font-size:11px">' + nbRentree + ' ligne(s)</span></span>' +
+      '<span style="font-weight:700;color:#15803d">' + fmtEuro(totalRentree) + '</span>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;padding:10px 0">' +
+      '<span style="font-size:13px;font-weight:700">Taux sortie / rentrée</span>' +
+      '<span style="font-size:12px;color:var(--text-muted)">' + (remuCurrentNeg.taux_retrocession_sortie||0) + '% / ' + (remuCurrentNeg.taux_retrocession_rentree||0) + '%</span>' +
+    '</div>';
+}
+
+function recalcRemuTotal() {
+  const totalFrais = remuLignes.reduce((s,l)=>s+(l.fraisJuridiques||0),0);
+  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
+  const fraisEl = document.getElementById('remu-total-frais');
+  if (fraisEl) fraisEl.textContent = totalFrais > 0 ? '- ' + fmtEuro(totalFrais) : '0 €';
+  document.getElementById('remu-sous-total').textContent = fmtEuro(sousTotal);
+  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+  const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+
+  const isAlternantCalc = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'alternant';
+  const isSalarie = remuCurrentNeg && ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+  // Bouton "Offrir solde après calcul" — visible si salarié + solde négatif résultant + droits
+  const btnApres = document.getElementById('remu-btn-offrir-apres');
+  if (btnApres && isSalarie && remuLignes.length > 0) {
+    const userNegBtn = currentUser.role === 'agence'
+      ? DB.negociateurs.find(x => x.agence === currentUser.agence && x.statut_emploi === 'gérant' && x.nom === currentUser.nom)
+      : null;
+    const peutOffrirBtn = currentUser.role === 'admin' || !!userNegBtn;
+    const soldeInitialBtn = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+    const avanceBtn = parseFloat(remuCurrentNeg?.avance_commission) || 0;
+    const sousTotalBtn = remuLignes.reduce((s,l)=>s+l.commission,0);
+    const creditBtn = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+    const dcBtn = (sousTotalBtn + creditBtn) - Math.abs(soldeInitialBtn);
+    const nvSoldeBtn = dcBtn >= avanceBtn ? 0 : -(avanceBtn - dcBtn);
+    btnApres.style.display = (peutOffrirBtn && nvSoldeBtn < 0) ? 'inline-block' : 'none';
+  } else if (btnApres) { btnApres.style.display = 'none'; }
+  const bilanEl = document.getElementById('remu-bilan-salarie');
+
+  if (isAlternantCalc && remuLignes.length > 0) {
+    // Logique alternant : fixe + commissions, pas de report
+    if (bilanEl) bilanEl.style.display = 'block';
+    const commissionsAlt = remuLignes.reduce((s,l)=>s+l.commission,0) + credit;
+    const fixeAlt = parseFloat(remuCurrentNeg.avance_commission) || 0;
+    const totalAlt = commissionsAlt + fixeAlt;
+    document.getElementById('remu-bilan-commissions').textContent = fmtEuro(commissionsAlt);
+    const soldeAntElAlt = document.getElementById('remu-bilan-solde-ant');
+    soldeAntElAlt.textContent = '—'; soldeAntElAlt.style.color = 'var(--text-muted)';
+    const dcElAlt = document.getElementById('remu-bilan-debit-credit');
+    dcElAlt.textContent = '—'; dcElAlt.style.color = 'var(--text-muted)';
+    document.getElementById('remu-bilan-avance').textContent = fmtEuro(fixeAlt);
+    document.getElementById('remu-bilan-salaire').textContent = fmtEuro(totalAlt);
+    const pzAlt = document.getElementById('remu-bilan-prime-zone'); if (pzAlt) pzAlt.style.display = 'none';
+    const tzAlt = document.getElementById('remu-bilan-total-zone'); if (tzAlt) tzAlt.style.display = 'none';
+    const nvSoldeElAlt = document.getElementById('remu-bilan-nouveau-solde');
+    nvSoldeElAlt.textContent = '—'; nvSoldeElAlt.style.color = 'var(--text-muted)';
+    // Adapter les libellés
+    const avLbl = document.getElementById('remu-bilan-avance')?.closest('[style*="padding"]');
+    if (avLbl) { const lbl = avLbl.querySelector('div'); if (lbl) lbl.textContent = 'Rémunération fixe'; }
+    const slLbl = document.getElementById('remu-bilan-salaire')?.closest('[style*="padding"]');
+    if (slLbl) { const lbl = slLbl.querySelector('div'); if (lbl) lbl.textContent = '💰 TOTAL À VERSER'; }
+    document.getElementById('remu-btn-offrir-apres').style.display = 'none';
+  } else if (isSalarie && remuLignes.length > 0) {
+    // Logique salarié : commissions - dette antérieure = crédit/débit vs avance
+    const commissionsTotal = sousTotal + credit;
+    const soldeAnt = -Math.abs(soldeInitial); // solde antérieur = dette (toujours négatif ou 0)
+    const debitCredit = commissionsTotal + soldeAnt; // ce qu'on lui doit réellement
+    const avance = parseFloat(remuCurrentNeg.avance_commission) || 0;
+
+    // Remise déjà accordée sur ce mois ?
+    const moisRemu = parseInt(document.getElementById('remu-mois')?.value) || 0;
+    const anneeRemu = parseInt(document.getElementById('remu-annee')?.value) || 0;
+    const remiseDejaMois = (window._remisesMois || [])
+      .filter(r => r.negociateur_id === remuCurrentNeg?.id && r.mois == moisRemu && r.annee == anneeRemu)
+      .reduce((s,r) => s + (r.montant||0), 0);
+
+    // Séparer la prime agence des commissions pour le calcul débit/crédit
+    const primeLigne = remuLignes.find(l => l.isPrimeAgence);
+    const primeMontantCalc = primeLigne ? primeLigne.commission : 0;
+    const commissionsSansPrime = commissionsTotal - primeMontantCalc;
+
+    // Part non récupérable : % de l'avance offert automatiquement chaque mois
+    const partNonRecup = (remuCurrentNeg.statut_emploi === 'responsable' && remuCurrentNeg.part_non_recup !== null && remuCurrentNeg.part_non_recup !== undefined)
+      ? parseFloat(remuCurrentNeg.part_non_recup) / 100
+      : 0;
+    const montantNonRecup = Math.round(avance * partNonRecup * 100) / 100;
+    // Le solde antérieur est réduit de la part non récupérable (offerte automatiquement)
+    const soldeAntEffectif = soldeAnt + montantNonRecup;
+
+    const debitCreditSansPrime = commissionsSansPrime + soldeAntEffectif;
+
+    let salaireAVerser, nouveauSolde;
+    if (debitCreditSansPrime >= avance) {
+      salaireAVerser = debitCreditSansPrime;
+      nouveauSolde = 0;
+    } else {
+      salaireAVerser = avance;
+      nouveauSolde = -(avance - debitCreditSansPrime) + remiseDejaMois;
+      if (nouveauSolde > 0) nouveauSolde = 0;
+    }
+    const totalAVerser = salaireAVerser + primeMontantCalc;
+
+    if (bilanEl) bilanEl.style.display = 'block';
+    document.getElementById('remu-bilan-commissions').textContent = fmtEuro(commissionsSansPrime);
+    const soldeAntEl = document.getElementById('remu-bilan-solde-ant');
+    if (montantNonRecup > 0 && soldeInitial !== 0) {
+      soldeAntEl.innerHTML = fmtEuro(Math.abs(soldeInitial)) +
+        '<div style="font-size:11px;color:#16a34a;font-weight:400;margin-top:2px">dont ' + fmtEuro(montantNonRecup) + ' offerts (' + Math.round(partNonRecup*100) + '% non récup.)</div>';
+    } else {
+      soldeAntEl.textContent = soldeInitial !== 0 ? fmtEuro(Math.abs(soldeInitial)) : '0 €';
+    }
+    const dcEl = document.getElementById('remu-bilan-debit-credit');
+    dcEl.textContent = (debitCreditSansPrime >= 0 ? '+ ' : '- ') + fmtEuro(Math.abs(debitCreditSansPrime));
+    dcEl.style.color = debitCreditSansPrime >= 0 ? '#16a34a' : '#dc2626';
+    document.getElementById('remu-bilan-avance').textContent = fmtEuro(avance);
+    document.getElementById('remu-bilan-salaire').textContent = fmtEuro(salaireAVerser);
+    // Prime agence
+    const primeZone = document.getElementById('remu-bilan-prime-zone');
+    const totalZone = document.getElementById('remu-bilan-total-zone');
+    if (primeMontantCalc > 0) {
+      if (primeZone) primeZone.style.display = '';
+      if (totalZone) totalZone.style.display = '';
+      document.getElementById('remu-bilan-prime').textContent = fmtEuro(primeMontantCalc);
+      document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAVerser);
+    } else {
+      if (primeZone) primeZone.style.display = 'none';
+      if (totalZone) totalZone.style.display = 'none';
+    }
+    const nvSoldeEl = document.getElementById('remu-bilan-nouveau-solde');
+    if (remiseDejaMois > 0) {
+      const soldeAvantRemise = -(avance - debitCredit);
+      nvSoldeEl.innerHTML = (nouveauSolde < 0 ? '- ' + fmtEuro(Math.abs(nouveauSolde)) : '0 €') +
+        '<div style="font-size:11px;color:#d97706;margin-top:4px;font-weight:400">dont ' + fmtEuro(remiseDejaMois) + ' offerts (solde initial : - ' + fmtEuro(Math.abs(soldeAvantRemise)) + ')</div>';
+    } else {
+      nvSoldeEl.textContent = nouveauSolde < 0 ? '- ' + fmtEuro(Math.abs(nouveauSolde)) : '0 €';
+    }
+    nvSoldeEl.style.color = nouveauSolde < 0 ? '#d97706' : '#16a34a';
+  } else {
+    if (bilanEl) bilanEl.style.display = 'none';
+  }
+}
+
+function openRemuDossier(dossierId) {
+  const d = DB.dossiers.find(x => x.id === dossierId);
+  if (!d) return;
+  const negs = (DB.dossierNeg||[]).filter(l=>l.dossier_id===d.id).map(l=>{
+    const n = DB.negociateurs.find(x=>x.id===l.negociateur_id);
+    return n ? n.nom + ' (' + l.pct_ca + '%)' : '?';
+  }).join(', ');
+  document.getElementById('remu-dossier-titre').textContent = d.client || 'Dossier';
+  document.getElementById('remu-dossier-content').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">' +
+      '<div><div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">CLIENT</div><strong>' + (d.client||'—') + '</strong></div>' +
+      '<div><div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">AGENCE</div>' + (d.agence||'—') + '</div>' +
+      '<div><div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">DATE SSP</div>' + fmtDate(d.date) + '</div>' +
+      '<div><div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">DATE ACTE</div>' + fmtDate(d.dateActe) + '</div>' +
+      '<div><div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">HONORAIRES HT</div><strong style="color:var(--primary)">' + fmtEuro(d.ht||0) + '</strong></div>' +
+      '<div><div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">STATUT</div>' + (d.statut||'—') + '</div>' +
+      '<div style="grid-column:span 2"><div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">NÉGOCIATEURS</div>' + (negs||'—') + '</div>' +
+      (d.remarque ? '<div style="grid-column:span 2"><div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">REMARQUE</div>' + d.remarque + '</div>' : '') +
+    '</div>';
+  document.getElementById('modal-remu-dossier').classList.add('open');
+}
+
+function buildReleveHTML(mois, annee, withPrintStyle) {
+  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const neg = remuCurrentNeg;
+  const agObj = DB.agences.find(a => a.nom === neg.agence);
+  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
+  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
+  const totalNet = sousTotal + credit;
+  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
+
+  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:12px;color:#000} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ccc;padding:6px 10px} th{background:#f5f5f5;font-weight:700} .header{display:flex;justify-content:space-between;margin-bottom:24px} .title{font-size:18px;font-weight:700;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:16px} .totals{margin-top:16px;text-align:right} .totals div{margin:4px 0} .total-net{font-size:14px;font-weight:700} .signature{margin-top:40px;border-top:1px solid #ccc;padding-top:16px} @media print{button{display:none}}</style>' : '';
+
+  // En-tête agence
+  const agAdresse = agObj ? (agObj.adresse || '') : '';
+  const agCP = agObj ? (agObj.code_postal || '') : '';
+  const agVille = agObj ? (agObj.ville || '') : '';
+  const siret = socObj?.siret || '';
+  // En-tête collab
+  const negAdresse1 = neg.adresse1 || '';
+  const negAdresse2 = neg.adresse2 || '';
+  const negCP = neg.code_postal || '';
+  const negVille = neg.ville || '';
+  const negRCS = neg.numero_rcs ? ('RCS ' + (neg.ville_rcs || '') + ' ' + neg.numero_rcs).trim() : '';
+
+  return printStyle + '<div class="header">' +
+    '<div>' +
+      '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'BOOSTER IMMOBILIER') + '</div>' +
+      '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
+      (agAdresse ? '<div style="font-size:11px;color:#555">' + agAdresse + '</div>' : '') +
+      (agCP || agVille ? '<div style="font-size:11px;color:#555">' + [agCP, agVille].filter(Boolean).join(' ') + '</div>' : '') +
+      (siret ? '<div style="font-size:11px;color:#555">SIRET : ' + siret + '</div>' : '') +
+    '</div>' +
+    '<div style="text-align:right">' +
+      '<div style="font-weight:700">' + (neg.nom || '—') + '</div>' +
+      (negAdresse1 ? '<div style="font-size:11px;color:#555">' + negAdresse1 + '</div>' : '') +
+      (negAdresse2 ? '<div style="font-size:11px;color:#555">' + negAdresse2 + '</div>' : '') +
+      (negCP || negVille ? '<div style="font-size:11px;color:#555">' + [negCP, negVille].filter(Boolean).join(' ') + '</div>' : '') +
+      (negRCS ? '<div style="font-size:11px;color:#555">' + negRCS + '</div>' : '') +
+      '<div style="font-size:11px;color:#666;margin-top:6px">Toulouse, le ' + today + '</div>' +
+    '</div>' +
+  '</div>' +
+  '<div class="title">RELEVÉ DE COMMISSIONS DÛES</div>' +
+  '<p style="margin-bottom:16px">Objet : Montant des commissions revenant à <strong>' + neg.nom + '</strong> pour le mois de <strong>' + moisNoms[mois] + ' ' + annee + '</strong></p>' +
+  '<table>' +
+    '<thead><tr><th>Date</th><th>Affaire</th><th>Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base calcul</th><th>Statut</th><th>Taux</th><th>Commission</th></tr></thead>' +
+    '<tbody>' +
+      remuLignes.map(l =>
+        '<tr>' +
+          '<td>' + (l.isPrimeAgence ? '<em style="color:var(--text-muted);font-size:11px">Prime mensuelle</em>' : fmtDate(l.dossier.dateActe)) + '</td>' +
+          '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' (' + l.pctCa + '%)' : '') + '</td>' +
+          '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
+          '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques > 0 ? '- ' + fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
+          '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
+          '<td>' + l.type + '</td>' +
+          '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
+        '</tr>'
+      ).join('') +
+    '</tbody>' +
+  '</table>' +
+  '<div class="totals">' +
+    '<div>Frais juridiques déduits : <strong style="color:#dc2626">- ' + fmtEuro(remuLignes.reduce((s,l)=>s+(l.fraisJuridiques||0),0)) + '</strong></div>' +
+    '<div>Sous-total commissions : <strong>' + fmtEuro(sousTotal) + '</strong></div>' +
+    (credit > 0 ? '<div>Crédit courtier : <strong>+ ' + fmtEuro(credit) + '</strong></div>' : '') +
+    '<div class="total-net" style="margin-top:8px;font-size:14px">Total Hors Taxes : <strong>' + fmtEuro(totalNet) + '</strong></div>' +
+  '</div>' +
+  '<div class="signature">' +
+    '<div>Reçu en main propre le : _______________</div>' +
+    '<div style="margin-top:16px">Signature : _______________</div>' +
+  '</div>';
+}
+
+function buildBulletinAlternantHTML(mois, annee, withPrintStyle) {
+  const moisNoms = ['','Janvier','Fev','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  const neg = remuCurrentNeg;
+  const agObj = DB.agences.find(a => a.nom === neg.agence);
+  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
+  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const agAdresse = agObj?.adresse || '';
+  const agCP = agObj?.code_postal || '';
+  const agVille = agObj?.ville || '';
+  const siret = socObj?.siret || '';
+  const negAdresse1 = neg.adresse1 || '';
+  const negAdresse2 = neg.adresse2 || '';
+  const negCP = neg.code_postal || '';
+  const negVille = neg.ville || '';
+  const fixe = parseFloat(neg.avance_commission) || 0;
+  const tauxSortie = parseFloat(neg.taux_retrocession_sortie) || 0;
+  const tauxRentree = tauxSortie / 2;
+
+  const lignesSortie = remuLignes.filter(l => l.type === 'Sortie');
+  const lignesRentree = remuLignes.filter(l => l.type === 'Entree');
+  const commSortie = lignesSortie.reduce((s,l)=>s+l.commission,0);
+  const commRentree = lignesRentree.reduce((s,l)=>s+l.commission,0);
+  const commissionsTotal = commSortie + commRentree + credit;
+  const totalAVerser = commissionsTotal + fixe;
+
+  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#f5f5f5;font-weight:700;font-size:10px}' +
+    '.header{display:flex;justify-content:space-between;margin-bottom:20px}.title{font-size:16px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}' +
+    '.section-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#666;margin:14px 0 6px;letter-spacing:.05em}' +
+    '.bilan{background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:12px;margin-bottom:14px}' +
+    '.bilan-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:11px}' +
+    '.bilan-highlight-green{background:#f0fdf4;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#15803d;font-size:14px}' +
+    '.signature{margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px}' +
+    '@media print{button{display:none}}</style>' : '';
+
+  const headerHTML = printStyle +
+    '<div class="header">' +
+      '<div>' +
+        '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'BOOSTER IMMOBILIER') + '</div>' +
+        '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
+        (agAdresse ? '<div style="font-size:10px;color:#555">' + agAdresse + '</div>' : '') +
+        (agCP||agVille ? '<div style="font-size:10px;color:#555">' + [agCP,agVille].filter(Boolean).join(' ') + '</div>' : '') +
+        (siret ? '<div style="font-size:10px;color:#555">SIRET : ' + siret + '</div>' : '') +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-weight:700">' + (neg.nom||'—') + '</div>' +
+        '<div style="font-size:10px;color:#555">Alternant — ' + (neg.niveau_etude||'') + '</div>' +
+        (negAdresse1 ? '<div style="font-size:10px;color:#555">' + negAdresse1 + '</div>' : '') +
+        (negAdresse2 ? '<div style="font-size:10px;color:#555">' + negAdresse2 + '</div>' : '') +
+        (negCP||negVille ? '<div style="font-size:10px;color:#555">' + [negCP,negVille].filter(Boolean).join(' ') + '</div>' : '') +
+        '<div style="font-size:10px;color:#666;margin-top:4px">Toulouse, le ' + today + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="title">ETAT DE COMMISSIONS — ALTERNANT — ' + moisNoms[mois].toUpperCase() + ' ' + annee + '</div>' +
+    '<p style="margin-bottom:14px;font-size:11px">Commissions revenant a <strong>' + neg.nom + '</strong> pour le mois de <strong>' + moisNoms[mois] + ' ' + annee + '</strong></p>';
+
+  // Partie 1 — Ventes (sortie)
+  const partie1HTML = '<div class="section-title">Affaires a la sortie (' + tauxSortie + '%)</div>' +
+    (lignesSortie.length === 0
+      ? '<p style="color:#888;font-size:11px;margin-bottom:10px">Aucune affaire ce mois.</p>'
+      : '<table style="font-size:10px;margin-bottom:10px">' +
+          '<thead><tr><th>Date acte</th><th>Affaire</th><th style="text-align:right">Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base</th><th style="text-align:right">Taux</th><th style="text-align:right">Commission</th></tr></thead>' +
+          '<tbody>' +
+          lignesSortie.map(l =>
+            '<tr>' +
+              '<td>' + fmtDate(l.dossier.dateActe) + '</td>' +
+              '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' ('+l.pctCa+'%)' : '') + '</td>' +
+              '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
+              '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques>0 ? '- '+fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
+              '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
+              '<td style="text-align:right">' + tauxSortie + '%</td>' +
+              '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
+            '</tr>'
+          ).join('') +
+          '<tr style="background:#f0fdf4"><td colspan="6" style="font-weight:700">Sous-total sortie</td><td style="text-align:right;font-weight:700;color:#16a34a">' + fmtEuro(commSortie) + '</td></tr>' +
+          '</tbody></table>');
+
+  // Partie 2 — Rentrées
+  const partie2HTML = '<div class="section-title">Affaires a la rentree (' + tauxSortie + '% / 2 = ' + tauxRentree + '%)</div>' +
+    (lignesRentree.length === 0
+      ? '<p style="color:#888;font-size:11px;margin-bottom:10px">Aucune rentree ce mois.</p>'
+      : '<table style="font-size:10px;margin-bottom:14px">' +
+          '<thead><tr><th>Date acte</th><th>Affaire</th><th style="text-align:right">Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base</th><th style="text-align:right">Taux</th><th style="text-align:right">Commission</th></tr></thead>' +
+          '<tbody>' +
+          lignesRentree.map(l =>
+            '<tr>' +
+              '<td>' + fmtDate(l.dossier.dateActe) + '</td>' +
+              '<td>' + (l.dossier.client||'—') + '</td>' +
+              '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
+              '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques>0 ? '- '+fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
+              '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
+              '<td style="text-align:right">' + tauxRentree + '%</td>' +
+              '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
+            '</tr>'
+          ).join('') +
+          '<tr style="background:#f0fdf4"><td colspan="6" style="font-weight:700">Sous-total rentree</td><td style="text-align:right;font-weight:700;color:#16a34a">' + fmtEuro(commRentree) + '</td></tr>' +
+          '</tbody></table>');
+
+  // Bilan
+  const bilanHTML = '<div class="section-title">Bilan du mois</div>' +
+    '<div class="bilan">' +
+      '<div class="bilan-row"><span>Commissions sortie (' + tauxSortie + '%)</span><span style="font-weight:700">+ ' + fmtEuro(commSortie) + '</span></div>' +
+      '<div class="bilan-row"><span>Commissions rentree (' + tauxRentree + '%)</span><span style="font-weight:700">+ ' + fmtEuro(commRentree) + '</span></div>' +
+      (credit > 0 ? '<div class="bilan-row"><span>Credit courtier</span><span style="font-weight:700">+ ' + fmtEuro(credit) + '</span></div>' : '') +
+      '<div class="bilan-row"><span>Total commissions</span><span style="font-weight:700;color:#2D455A">= ' + fmtEuro(commissionsTotal) + '</span></div>' +
+      '<div class="bilan-row" style="border-bottom:none"><span>Remuneration fixe mensuelle</span><span>' + fmtEuro(fixe) + '</span></div>' +
+      '<div class="bilan-highlight-green"><span>Total a verser</span><span>' + fmtEuro(totalAVerser) + '</span></div>' +
+    '</div>';
+
+  const signatureHTML = '<div class="signature">' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Recu en main propre le :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Signature :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+  '</div>';
+
+  return headerHTML + partie1HTML + partie2HTML + bilanHTML + signatureHTML;
+}
+
+function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
+  const moisNoms = ['','Janvier','Fev','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  const neg = remuCurrentNeg;
+  const agObj = DB.agences.find(a => a.nom === neg.agence);
+  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
+  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+  const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const agAdresse = agObj?.adresse || '';
+  const agCP = agObj?.code_postal || '';
+  const agVille = agObj?.ville || '';
+  const siret = socObj?.siret || '';
+  const negAdresse1 = neg.adresse1 || '';
+  const negAdresse2 = neg.adresse2 || '';
+  const negCP = neg.code_postal || '';
+  const negVille = neg.ville || '';
+  const avance = parseFloat(neg.avance_commission) || 0;
+  const primePct = parseFloat(neg.prime_agence_pct) || 0;
+
+  // Séparer lignes perso et prime agence
+  const lignesPerso = remuLignes.filter(l => !l.isPrimeAgence);
+  const lignePrime = remuLignes.find(l => l.isPrimeAgence);
+  const primeMontant = lignePrime ? lignePrime.commission : 0;
+  const baseAgence = lignePrime ? lignePrime.ht : 0;
+
+  // Calculs bilan
+  const commissionsPerso = lignesPerso.reduce((s,l) => s+l.commission, 0) + credit;
+  const partNonRecupPDF = (neg.part_non_recup !== null && neg.part_non_recup !== undefined) ? parseFloat(neg.part_non_recup) / 100 : 0;
+  const montantNonRecupPDF = Math.round(avance * partNonRecupPDF * 100) / 100;
+  const soldeAnt = -Math.abs(soldeInitial) + montantNonRecupPDF;
+  const debitCredit = commissionsPerso + soldeAnt;
+  const salaireAVerser = debitCredit >= avance ? debitCredit : avance;
+  const nouveauSolde = debitCredit >= avance ? 0 : -(avance - debitCredit);
+  const totalAVerser = salaireAVerser + primeMontant;
+
+  // Barème
+  const bareme = neg.bareme_commissions || {t1_max:7500,t1_taux:12,t2_max:15000,t2_taux:14,t3_max:25000,t3_taux:16,t4_taux:18};
+  const tauxApplique = lignesPerso.find(l=>l.type==='Sortie')?.taux || 0;
+  const pctApplique = (tauxApplique*100).toFixed(1);
+
+  // Dossiers encaissés par l'agence ce mois (pour partie 2)
+  const dossAgenceEnc = DB.dossiers.filter(d => {
+    if (d.agence !== neg.agence) return false;
+    if (d.statut !== 'AA SIGNÉ') return false;
+    if (!d.dateActe) return false;
+    const da = new Date(d.dateActe);
+    return da.getMonth()+1 === mois && da.getFullYear() === annee;
+  });
+
+  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#f5f5f5;font-weight:700;font-size:10px}' +
+    '.header{display:flex;justify-content:space-between;margin-bottom:20px}.title{font-size:16px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}' +
+    '.section-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#666;margin:14px 0 6px;letter-spacing:.05em}' +
+    '.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}' +
+    '.bilan{background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:12px;margin-bottom:14px}' +
+    '.bilan-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:11px}' +
+    '.bilan-highlight-green{background:#f0fdf4;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#15803d;font-size:13px}' +
+    '.bilan-highlight-purple{background:#f5f3ff;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#7c3aed;font-size:13px}' +
+    '.bilan-highlight-blue{background:#eff6ff;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#1d4ed8;font-size:14px}' +
+    '.bilan-highlight-amber{background:#fef3c7;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#d97706;font-size:13px}' +
+    '.bareme-table td{font-size:10px;padding:3px 6px}.bareme-active{background:#dbeafe;color:#1d4ed8;font-weight:700}' +
+    '.signature{margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px}' +
+    '@media print{button{display:none}}</style>' : '';
+
+  // En-tête
+  const headerHTML = printStyle +
+    '<div class="header">' +
+      '<div>' +
+        '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'BOOSTER IMMOBILIER') + '</div>' +
+        '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
+        (agAdresse ? '<div style="font-size:10px;color:#555">' + agAdresse + '</div>' : '') +
+        (agCP||agVille ? '<div style="font-size:10px;color:#555">' + [agCP,agVille].filter(Boolean).join(' ') + '</div>' : '') +
+        (siret ? '<div style="font-size:10px;color:#555">SIRET : ' + siret + '</div>' : '') +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-weight:700">' + (neg.nom||'—') + '</div>' +
+        (negAdresse1 ? '<div style="font-size:10px;color:#555">' + negAdresse1 + '</div>' : '') +
+        (negAdresse2 ? '<div style="font-size:10px;color:#555">' + negAdresse2 + '</div>' : '') +
+        (negCP||negVille ? '<div style="font-size:10px;color:#555">' + [negCP,negVille].filter(Boolean).join(' ') + '</div>' : '') +
+        '<div style="font-size:10px;color:#666;margin-top:4px">Toulouse, le ' + today + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="title">ETAT DE COMMISSIONS &#8212; RESPONSABLE D&#39;AGENCE &#8212; ' + moisNoms[mois].toUpperCase() + ' ' + annee + '</div>' +
+    '<p style="margin-bottom:14px;font-size:11px">Commissions revenant a <strong>' + neg.nom + '</strong> &#8212; Responsable d&#39;agence <strong>' + neg.agence + '</strong> &#8212; ' + moisNoms[mois] + ' ' + annee + '</p>';
+
+  // ── PARTIE 1 : Affaires personnelles ─────────────────────────────────────
+  const partie1HTML =
+    '<div class="section-title">Partie 1 — Affaires personnelles (ventes et rentrees)</div>' +
+    (lignesPerso.length === 0
+      ? '<p style="color:#888;font-size:11px;margin-bottom:10px">Aucune affaire personnelle ce mois.</p>'
+      : '<table style="font-size:10px;margin-bottom:10px">' +
+          '<thead><tr><th>Date acte</th><th>Affaire</th><th style="text-align:right">Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base</th><th>Type</th><th style="text-align:right">Commission</th></tr></thead>' +
+          '<tbody>' +
+          lignesPerso.map(l =>
+            '<tr>' +
+              '<td>' + fmtDate(l.dossier.dateActe) + '</td>' +
+              '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' ('+l.pctCa+'%)' : '') + '</td>' +
+              '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
+              '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques>0 ? '- '+fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
+              '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
+              '<td>' + l.type + '</td>' +
+              '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
+            '</tr>'
+          ).join('') +
+          '</tbody></table>') +
+    '<div class="two-col">' +
+      '<div>' +
+        '<div class="section-title">Calcul commissions perso</div>' +
+        '<table style="font-size:11px">' +
+          '<tr><td style="border:none;padding:3px 0;color:#666">Commissions sortie</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(lignesPerso.filter(l=>l.type==='Sortie').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
+          '<tr><td style="border:none;padding:3px 0;color:#666">Commissions rentree</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(lignesPerso.filter(l=>l.type==='Entree').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
+          (credit>0 ? '<tr><td style="border:none;padding:3px 0;color:#666">Credit courtier</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">+ '+fmtEuro(credit)+'</td></tr>' : '') +
+          '<tr style="border-top:1px solid #ccc"><td style="padding:4px 0;font-weight:700">Total commissions perso</td><td style="padding:4px 0;text-align:right;font-weight:700;color:#2D455A">' + fmtEuro(commissionsPerso) + '</td></tr>' +
+        '</table>' +
+      '</div>' +
+      '<div>' +
+        '<div class="section-title">Bareme applique</div>' +
+        '<table class="bareme-table">' +
+          '<tr class="' + (pctApplique==(bareme.t1_taux||12)+'.0' ? 'bareme-active' : '') + '"><td>Tranche 1</td><td>0 – ' + (bareme.t1_max||7500).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t1_taux||12) + '%' + (pctApplique==(bareme.t1_taux||12)+'.0' ? ' ←' : '') + '</td></tr>' +
+          '<tr class="' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? 'bareme-active' : '') + '"><td>Tranche 2</td><td>' + ((bareme.t1_max||7500)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t2_max||15000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t2_taux||14) + '%' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? ' ←' : '') + '</td></tr>' +
+          '<tr class="' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? 'bareme-active' : '') + '"><td>Tranche 3</td><td>' + ((bareme.t2_max||15000)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t3_taux||16) + '%' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? ' ←' : '') + '</td></tr>' +
+          '<tr class="' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? 'bareme-active' : '') + '"><td>Tranche 4</td><td>&gt; ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t4_taux||18) + '%' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? ' ←' : '') + '</td></tr>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+
+  // ── PARTIE 2 : Prime d'encaissement agence ────────────────────────────────
+  const fraisAgenceTotal = dossAgenceEnc.reduce((s,d) => s + FRAIS_JURIDIQUE * ((d.pct||100)/100), 0);
+  const caAgenceNet = dossAgenceEnc.reduce((s,d) => s + (d.ht||0), 0);
+  const partie2HTML = primePct > 0
+    ? '<div class="section-title">Partie 2 &#8212; Prime d&#39;encaissement agence ' + neg.agence + ' (' + primePct + '%)</div>' +
+      (dossAgenceEnc.length === 0
+        ? '<p style="color:#888;font-size:11px;margin-bottom:10px">Aucun encaissement sur l&#39;agence ce mois.</p>'
+        : '<table style="font-size:10px;margin-bottom:8px">' +
+            '<thead><tr><th>Date acte</th><th>Affaire</th><th style="text-align:right">CA HT net</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base</th></tr></thead>' +
+            '<tbody>' +
+            dossAgenceEnc.map(d =>
+              '<tr>' +
+                '<td>' + fmtDate(d.dateActe) + '</td>' +
+                '<td>' + (d.client||'—') + (d.pct < 100 ? ' (intercab. '+d.pct+'%)' : '') + '</td>' +
+                '<td style="text-align:right">' + fmtEuro(d.ht||0) + '</td>' +
+                '<td style="text-align:right;color:#dc2626">- ' + fmtEuro(FRAIS_JURIDIQUE * ((d.pct||100)/100)) + '</td>' +
+                '<td style="text-align:right;font-weight:700">' + fmtEuro((d.ht||0) - FRAIS_JURIDIQUE * ((d.pct||100)/100)) + '</td>' +
+              '</tr>'
+            ).join('') +
+            '</tbody></table>') +
+      '<table style="font-size:11px;width:auto;margin-bottom:14px">' +
+        '<tr><td style="border:none;padding:3px 8px;color:#666">CA HT net agence</td><td style="border:none;padding:3px 8px;text-align:right">' + fmtEuro(caAgenceNet) + '</td></tr>' +
+        '<tr><td style="border:none;padding:3px 8px;color:#666">Frais juridiques</td><td style="border:none;padding:3px 8px;text-align:right;color:#dc2626">- ' + fmtEuro(fraisAgenceTotal) + '</td></tr>' +
+        '<tr style="border-top:1px solid #ccc"><td style="padding:3px 8px;color:#666">Base de calcul</td><td style="padding:3px 8px;text-align:right;font-weight:700">' + fmtEuro(baseAgence) + '</td></tr>' +
+        '<tr><td style="padding:3px 8px;font-weight:700;color:#7c3aed">Prime (' + primePct + '%)</td><td style="padding:3px 8px;text-align:right;font-weight:700;color:#7c3aed">' + fmtEuro(primeMontant) + '</td></tr>' +
+      '</table>'
+    : '';
+
+  // ── PARTIE 3 : Bilan du mois ──────────────────────────────────────────────
+  const bilanHTML = '<div class="section-title">Bilan du mois</div>' +
+    '<div class="bilan">' +
+      '<div class="bilan-row"><span>Commissions perso generees</span><span style="font-weight:700">+ ' + fmtEuro(commissionsPerso) + '</span></div>' +
+      '<div class="bilan-row"><span>Solde anterieur (dette)</span><span style="font-weight:700;color:#dc2626">- ' + fmtEuro(Math.abs(soldeInitial)) + (montantNonRecupPDF > 0 ? ' <span style="font-size:10px;color:#16a34a">(dont ' + fmtEuro(montantNonRecupPDF) + ' offerts)</span>' : '') + '</span></div>' +
+      '<div class="bilan-row"><span>Debit / Credit du mois</span><span style="font-weight:700;color:' + (debitCredit>=0?'#16a34a':'#dc2626') + '">' + (debitCredit>=0?'+ ':'- ') + fmtEuro(Math.abs(debitCredit)) + '</span></div>' +
+      '<div class="bilan-row" style="border-bottom:none"><span>Avance sur commission</span><span>' + fmtEuro(avance) + '</span></div>' +
+      '<div class="bilan-highlight-green"><span>Avance a verser</span><span>' + fmtEuro(salaireAVerser) + '</span></div>' +
+      (primeMontant>0 ? '<div class="bilan-highlight-purple"><span>Prime CA agence (' + primePct + '%)</span><span>+ ' + fmtEuro(primeMontant) + '</span></div>' : '') +
+      (primeMontant>0 ? '<div class="bilan-highlight-blue"><span>Total a verser</span><span>' + fmtEuro(totalAVerser) + '</span></div>' : '') +
+      '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSolde<0 ? '- '+fmtEuro(Math.abs(nouveauSolde)) : '0 €') + '</span></div>' +
+    '</div>';
+
+  const signatureHTML = '<div class="signature">' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Recu en main propre le :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Signature :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+  '</div>';
+
+  return headerHTML + partie1HTML + partie2HTML + bilanHTML + signatureHTML;
+}
+
+function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
+  const moisNoms = ['','Janvier','Fev','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  const neg = remuCurrentNeg;
+  const agObj = DB.agences.find(a => a.nom === neg.agence);
+  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
+  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+  const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
+  const commissionsTotal = sousTotal + credit;
+  const soldeAnt = -Math.abs(soldeInitial);
+  const debitCredit = commissionsTotal + soldeAnt;
+  const avance = parseFloat(neg.avance_commission) || 0;
+  const salaireAVerser = debitCredit >= avance ? debitCredit : avance;
+  const nouveauSolde = debitCredit >= avance ? 0 : -(avance - debitCredit);
+  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const agAdresse = agObj?.adresse || '';
+  const agCP = agObj?.code_postal || '';
+  const agVille = agObj?.ville || '';
+  const siret = socObj?.siret || '';
+  const negAdresse1 = neg.adresse1 || '';
+  const negAdresse2 = neg.adresse2 || '';
+  const negCP = neg.code_postal || '';
+  const negVille = neg.ville || '';
+  const bareme = neg.bareme_commissions || {t1_max:7500,t1_taux:12,t2_max:15000,t2_taux:14,t3_max:25000,t3_taux:16,t4_taux:18};
+  const tauxApplique = remuLignes.find(l=>l.type==='Sortie')?.taux || 0;
+  const pctApplique = (tauxApplique*100).toFixed(1);
+
+  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#f5f5f5;font-weight:700;font-size:10px}' +
+    '.header{display:flex;justify-content:space-between;margin-bottom:20px}.title{font-size:16px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}' +
+    '.section-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#666;margin:14px 0 6px;letter-spacing:.05em}' +
+    '.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}' +
+    '.bilan{background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:12px;margin-bottom:14px}' +
+    '.bilan-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:11px}' +
+    '.bilan-highlight-green{background:#f0fdf4;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#15803d;font-size:13px}' +
+    '.bilan-highlight-amber{background:#fef3c7;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#d97706;font-size:13px}' +
+    '.bareme-table td{font-size:10px;padding:3px 6px}.bareme-active{background:#dbeafe;color:#1d4ed8;font-weight:700}' +
+    '.signature{margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px}' +
+    '@media print{button{display:none}}</style>' : '';
+
+  const headerHTML = printStyle +
+    '<div class="header">' +
+      '<div>' +
+        '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'BOOSTER IMMOBILIER') + '</div>' +
+        '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
+        (agAdresse ? '<div style="font-size:10px;color:#555">' + agAdresse + '</div>' : '') +
+        (agCP||agVille ? '<div style="font-size:10px;color:#555">' + [agCP,agVille].filter(Boolean).join(' ') + '</div>' : '') +
+        (siret ? '<div style="font-size:10px;color:#555">SIRET : ' + siret + '</div>' : '') +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-weight:700">' + (neg.nom||'—') + '</div>' +
+        (negAdresse1 ? '<div style="font-size:10px;color:#555">' + negAdresse1 + '</div>' : '') +
+        (negAdresse2 ? '<div style="font-size:10px;color:#555">' + negAdresse2 + '</div>' : '') +
+        (negCP||negVille ? '<div style="font-size:10px;color:#555">' + [negCP,negVille].filter(Boolean).join(' ') + '</div>' : '') +
+        '<div style="font-size:10px;color:#666;margin-top:4px">Toulouse, le ' + today + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="title">ETAT DE COMMISSIONS — ' + moisNoms[mois].toUpperCase() + ' ' + annee + '</div>' +
+    '<p style="margin-bottom:14px;font-size:11px">Commissions revenant a <strong>' + neg.nom + '</strong> pour le mois de <strong>' + moisNoms[mois] + ' ' + annee + '</strong></p>';
+
+  // Tableau affaires (police 10px)
+  const tableHTML =
+    '<div class="section-title">Affaires traitees</div>' +
+    '<table style="font-size:10px;margin-bottom:14px">' +
+      '<thead><tr><th>Date</th><th>Affaire</th><th style="text-align:right">Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base</th><th>Type</th><th style="text-align:right">Commission</th></tr></thead>' +
+      '<tbody>' +
+      remuLignes.map(l =>
+        '<tr>' +
+          '<td>' + (l.isPrimeAgence ? '<em>Prime mensuelle</em>' : fmtDate(l.dossier.dateActe)) + '</td>' +
+          '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' ('+l.pctCa+'%)' : '') + '</td>' +
+          '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
+          '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques>0 ? '- '+fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
+          '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
+          '<td>' + l.type + '</td>' +
+          '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
+        '</tr>'
+      ).join('') +
+      '</tbody>' +
+    '</table>';
+
+  // Deux colonnes : calcul commissions + barème
+  const twoColHTML = '<div class="two-col">' +
+    '<div>' +
+      '<div class="section-title">Calcul des commissions</div>' +
+      '<table style="font-size:11px">' +
+        '<tr><td style="border:none;padding:3px 0;color:#666">Commissions sortie</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(remuLignes.filter(l=>l.type==='Sortie').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
+        '<tr><td style="border:none;padding:3px 0;color:#666">Commissions rentree</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(remuLignes.filter(l=>l.type==='Entree').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
+        (credit>0 ? '<tr><td style="border:none;padding:3px 0;color:#666">Credit courtier</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">+ '+fmtEuro(credit)+'</td></tr>' : '') +
+        '<tr style="border-top:1px solid #ccc"><td style="padding:4px 0;font-weight:700">Total commissions</td><td style="padding:4px 0;text-align:right;font-weight:700;color:#2D455A">' + fmtEuro(commissionsTotal) + '</td></tr>' +
+      '</table>' +
+    '</div>' +
+    '<div>' +
+      '<div class="section-title">Bareme applique</div>' +
+      '<table class="bareme-table">' +
+        '<tr class="' + (pctApplique==(bareme.t1_taux||12)+'.0' ? 'bareme-active' : '') + '"><td>Tranche 1</td><td>0 – ' + (bareme.t1_max||7500).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t1_taux||12) + '%' + (pctApplique==(bareme.t1_taux||12)+'.0' ? ' ←' : '') + '</td></tr>' +
+        '<tr class="' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? 'bareme-active' : '') + '"><td>Tranche 2</td><td>' + ((bareme.t1_max||7500)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t2_max||15000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t2_taux||14) + '%' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? ' &larr;' : '') + '</td></tr>' +
+        '<tr class="' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? 'bareme-active' : '') + '"><td>Tranche 3</td><td>' + ((bareme.t2_max||15000)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t3_taux||16) + '%' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? ' &larr;' : '') + '</td></tr>' +
+        '<tr class="' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? 'bareme-active' : '') + '"><td>Tranche 4</td><td>&gt; ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t4_taux||18) + '%' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? ' &larr;' : '') + '</td></tr>' +
+      '</table>' +
+    '</div>' +
+  '</div>';
+
+  // Calculs spécifiques responsable
+  const primeLignePDF = remuLignes.find(l => l.isPrimeAgence);
+  const primeMontantPDF = primeLignePDF ? primeLignePDF.commission : 0;
+  const commissionsSansPrimePDF = commissionsTotal - primeMontantPDF;
+  const debitCreditSansPrime = commissionsSansPrimePDF + soldeAnt;
+  const salaireAVerserFinal = debitCreditSansPrime >= avance ? debitCreditSansPrime : avance;
+  const nouveauSoldeFinal = debitCreditSansPrime >= avance ? 0 : -(avance - debitCreditSansPrime);
+  const totalAVerserPDF = salaireAVerserFinal + primeMontantPDF;
+
+  // Bilan du mois
+  const bilanHTML = '<div class="section-title">Bilan du mois</div>' +
+    '<div class="bilan">' +
+      '<div class="bilan-row"><span>Commissions generees</span><span style="font-weight:700">+ ' + fmtEuro(commissionsSansPrimePDF) + '</span></div>' +
+      '<div class="bilan-row"><span>Solde anterieur (dette)</span><span style="font-weight:700;color:#dc2626">- ' + fmtEuro(Math.abs(soldeInitial)) + (montantNonRecupPDF > 0 ? ' <span style="font-size:10px;color:#16a34a">(dont ' + fmtEuro(montantNonRecupPDF) + ' offerts)</span>' : '') + '</span></div>' +
+      '<div class="bilan-row"><span>Debit / Credit du mois</span><span style="font-weight:700;color:' + (debitCreditSansPrime>=0?'#16a34a':'#dc2626') + '">' + (debitCreditSansPrime>=0?'+ ':'- ') + fmtEuro(Math.abs(debitCreditSansPrime)) + '</span></div>' +
+      '<div class="bilan-row"><span>Avance sur commission mensuelle</span><span>' + fmtEuro(avance) + '</span></div>' +
+      (primeMontantPDF > 0 ? '<div class="bilan-row"><span>Prime CA agence (' + (parseFloat(neg.prime_agence_pct)||0) + '%)</span><span style="font-weight:700;color:#7c3aed">+ ' + fmtEuro(primeMontantPDF) + '</span></div>' : '') +
+      (primeMontantPDF > 0 ? '<div class="bilan-row" style="border-bottom:none"><span>Total a verser</span><span style="font-weight:700;color:#16a34a">= ' + fmtEuro(totalAVerserPDF) + '</span></div>' : '<div class="bilan-row" style="border-bottom:none"></div>') +
+      '<div class="bilan-highlight-green"><span>' + (primeMontantPDF > 0 ? 'Dont avance a verser' : 'Salaire brut a verser') + '</span><span>' + fmtEuro(salaireAVerserFinal) + '</span></div>' +
+      '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSoldeFinal<0 ? '- '+fmtEuro(Math.abs(nouveauSoldeFinal)) : '0 €') + '</span></div>' +
+    '</div>';
+
+  const signatureHTML = '<div class="signature">' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Recu en main propre le :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Signature :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+  '</div>';
+
+  return headerHTML + tableHTML + twoColHTML + bilanHTML + signatureHTML;
+}
+
+async function imprimerRelevePDF() {
+  if (remuLignes.length === 0) { showToast('Aucune donnée à imprimer', 'error'); return; }
+  const mois = parseInt(document.getElementById('remu-mois').value);
+  const annee = parseInt(document.getElementById('remu-annee').value);
+  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const nomFichier = 'releve_commissions_' + remuCurrentNeg.nom.replace(/\s+/g,'_') + '_' + moisNoms[mois].toLowerCase() + annee + '.pdf';
+  try {
+    showToast('Génération du PDF...', 'info');
+    const pdfBase64 = await genererPDFBase64(mois, annee);
+    const link = document.createElement('a');
+    link.href = 'data:application/pdf;base64,' + pdfBase64;
+    link.download = nomFichier;
+    link.click();
+    showToast('PDF téléchargé ✓', 'success');
+  } catch(e) {
+    showToast('Erreur génération PDF : ' + e.message, 'error');
+  }
+}
+
+async function genererPDFBase64(mois, annee) {
+  const { jsPDF } = window.jspdf;
+  const isResponsableRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'responsable';
+  const isSalarieRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'salarié';
+  const isAlternantRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'alternant';
+  const html = isResponsableRemu ? buildBulletinResponsableHTML(mois, annee, true)
+    : (isSalarieRemu ? buildBulletinSalarieHTML(mois, annee, true)
+    : (isAlternantRemu ? buildBulletinAlternantHTML(mois, annee, true)
+    : buildReleveHTML(mois, annee, true)));
+  const container = document.getElementById('remu-releve-print');
+  container.innerHTML = html;
+  container.style.display = 'block';
+  container.style.position = 'fixed';
+  container.style.top = '-9999px';
+  container.style.left = '0';
+  container.style.width = '794px';
+  container.style.background = 'white';
+  container.style.padding = '32px';
+  container.style.fontFamily = 'Arial,sans-serif';
+  container.style.fontSize = '12px';
+  await new Promise(r => setTimeout(r, 200));
+  try {
+    const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW - 20;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    let yPos = 10;
+    let remainH = imgH;
+    while (remainH > 0) {
+      const sliceH = Math.min(remainH, pageH - 20);
+      pdf.addImage(imgData, 'JPEG', 10, yPos, imgW, sliceH);
+      remainH -= sliceH;
+      if (remainH > 0) { pdf.addPage(); yPos = 10; }
+    }
+    const base64 = pdf.output('datauristring').split(',')[1];
+    return base64;
+  } finally {
+    container.style.display = 'none';
+    container.innerHTML = '';
+  }
+}
+
+async function envoyerReleveMail() {
+  if (remuLignes.length === 0) { showToast('Aucune donnée à envoyer', 'error'); return; }
+  const email = remuCurrentNeg.email;
+  if (!email) { showToast('Aucun email renseigné pour ce collaborateur', 'error'); return; }
+  const mois = parseInt(document.getElementById('remu-mois').value);
+  const annee = parseInt(document.getElementById('remu-annee').value);
+  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+  const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+  const primeLigneVal = remuLignes.find(l => l.isPrimeAgence);
+  const primeAgenceMontant = primeLigneVal ? primeLigneVal.commission : 0;
+  const commissionsTotal = remuLignes.reduce((s,l)=>s+l.commission,0) + credit;
+  const partNonRecupVal = (remuCurrentNeg.statut_emploi === 'responsable' && remuCurrentNeg.part_non_recup != null)
+    ? parseFloat(remuCurrentNeg.part_non_recup) / 100 : 0;
+  const montantNonRecupVal = Math.round(parseFloat(remuCurrentNeg.avance_commission||0) * partNonRecupVal * 100) / 100;
+  const isSalarie = ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+  const isResponsableRemu = remuCurrentNeg.statut_emploi === 'responsable';
+  const isSalarieRemu = remuCurrentNeg.statut_emploi === 'salarié';
+  const isAlternantRemu = remuCurrentNeg.statut_emploi === 'alternant';
+  const avance = parseFloat(remuCurrentNeg.avance_commission) || 0;
+  const soldeAnt = -Math.abs(soldeInitial);
+  const debitCredit = commissionsTotal + soldeAnt;
+  const salaireAVerser = debitCredit >= avance ? debitCredit : avance;
+  const nouveauSolde = debitCredit >= avance ? 0 : -(avance - debitCredit);
+
+  // Stats SSP du mois (dossiers SIGNÉ ou AA SIGNÉ avec date SSP dans le mois)
+  const dossiersSsp = DB.dossiers.filter(d => {
+    if (d.agence !== remuCurrentNeg.agence) return false;
+    if (!['SIGNÉ','AA SIGNÉ'].includes(d.statut)) return false;
+    const linkNeg = (DB.dossierNeg||[]).find(l => l.dossier_id === d.id && l.negociateur_id === remuCurrentNeg.id);
+    if (!linkNeg) return false;
+    if (!d.date) return false;
+    const da = new Date(d.date);
+    return da.getMonth()+1 === mois && da.getFullYear() === annee;
+  });
+  const nbVentesSsp = dossiersSsp.length;
+  const caSsp = dossiersSsp.reduce((s,d) => {
+    const link = (DB.dossierNeg||[]).find(l => l.dossier_id === d.id && l.negociateur_id === remuCurrentNeg.id);
+    return s + (link ? (d.ht||0)*(link.pct_ca/100) : 0);
+  }, 0);
+
+  const typeTemplate = isResponsableRemu ? 'bulletin_responsable' : (isSalarieRemu ? 'bulletin_salarie' : (isAlternantRemu ? 'bulletin_alternant' : 'releve_commissions'));
+  const prefixFichier = isResponsableRemu ? 'etat_commissions_responsable_' : (isSalarieRemu ? 'etat_commissions_' : (isAlternantRemu ? 'etat_commissions_alternant_' : 'releve_commissions_'));
+  const nomFichier = prefixFichier + remuCurrentNeg.nom.replace(/\s+/g,'_') + '_' + moisNoms[mois].toLowerCase() + annee + '.pdf';
+
+  // Données spécifiques responsable
+  const primeLigneEmail = remuLignes.find(l => l.isPrimeAgence);
+  const primeMontantEmail = primeLigneEmail ? primeLigneEmail.commission : 0;
+  const commissionsPersoEmail = commissionsTotal - primeMontantEmail;
+  // Part non récupérable : réduire le solde antérieur
+  const partNREmail = (isResponsableRemu && remuCurrentNeg.part_non_recup != null)
+    ? parseFloat(remuCurrentNeg.part_non_recup) / 100 : 0;
+  const montantNREmail = Math.round(avance * partNREmail * 100) / 100;
+  const soldeAntEffectifEmail = -Math.abs(soldeInitial) + montantNREmail;
+  const debitCreditEmail = commissionsPersoEmail + soldeAntEffectifEmail;
+  const salaireEmail = debitCreditEmail >= avance ? debitCreditEmail : avance;
+  const totalEmail = salaireEmail + primeMontantEmail;
+  const nvSoldeEmail = debitCreditEmail >= avance ? 0 : -(avance - debitCreditEmail);
+  // CA agence encaissé
+  const caAgenceEmail = DB.dossiers.filter(d => {
+    if (d.agence !== remuCurrentNeg.agence || d.statut !== 'AA SIGNÉ' || !d.dateActe) return false;
+    const da = new Date(d.dateActe);
+    return da.getMonth()+1 === mois && da.getFullYear() === annee;
+  }).reduce((s,d) => s + (d.ht||0), 0);
+
+  // Données spécifiques alternant
+  const commSortieAlt = remuLignes.filter(l=>l.type==='Sortie').reduce((s,l)=>s+l.commission,0);
+  const commRentreeAlt = remuLignes.filter(l=>l.type==='Entrée').reduce((s,l)=>s+l.commission,0);
+  const tauxSortieAlt = parseFloat(remuCurrentNeg.taux_retrocession_sortie) || 0;
+  const fixeAlt = parseFloat(remuCurrentNeg.avance_commission) || 0;
+  const totalAlt = commSortieAlt + commRentreeAlt + credit + fixeAlt;
+
+  const btn = document.getElementById('remu-btn-mail');
+  btn.disabled = true; btn.textContent = '⏳ Génération PDF...';
+  try {
+    const pdfBase64 = await genererPDFBase64(mois, annee);
+    btn.textContent = '⏳ Envoi...';
+    await sendEmail(typeTemplate, email, {
+      nom: remuCurrentNeg.nom,
+      agence: remuCurrentNeg.agence,
+      mois: moisNoms[mois],
+      annee,
+      commissions: fmtEuro(commissionsTotal),
+      commissions_perso: fmtEuro(commissionsPersoEmail),
+      prime_agence: fmtEuro(primeMontantEmail),
+      ca_agence: fmtEuro(caAgenceEmail),
+      prime_pct: (parseFloat(remuCurrentNeg.prime_agence_pct)||0) + '%',
+      avance: fmtEuro(avance),
+      salaire_a_verser: fmtEuro(salaireEmail),
+      total_a_verser: fmtEuro(totalEmail),
+      nouveau_solde: nvSoldeEmail < 0 ? '- ' + fmtEuro(Math.abs(nvSoldeEmail)) : '0 €',
+      nb_affaires_aa: remuLignes.filter(l=>!l.isPrimeAgence).length,
+      nb_ventes_ssp: nbVentesSsp,
+      ca_ssp: fmtEuro(caSsp),
+      // compat autres templates
+      total_net: fmtEuro(commissionsTotal),
+      nb_affaires: remuLignes.length,
+      // alternant
+      comm_sortie: fmtEuro(commSortieAlt),
+      comm_rentree: fmtEuro(commRentreeAlt),
+      taux_sortie: tauxSortieAlt + '%',
+      taux_rentree: (tauxSortieAlt / 2) + '%',
+      remun_fixe: fmtEuro(fixeAlt),
+      total_alt: fmtEuro(totalAlt),
+      pdf_base64: pdfBase64,
+      pdf_filename: nomFichier
+    });
+    remuMailEnvoye = true;
+    document.getElementById('remu-mail-sent-badge').style.display = 'block';
+    showToast('Mail envoyé à ' + email + ' ✓', 'success');
+  } catch(e) {
+    showToast('Erreur lors de l\'envoi du mail : ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '📧 Envoyer par mail';
+  }
+}
+
+// =====================
+// EFFACER L'ARDOISE
+// =====================
+// =====================
+// OFFRIR SOLDE
+// =====================
+let offrirSoldeActuel = 0;
+let offrirSoldeContexte = 'avant'; // 'avant' ou 'apres'
+
+// Appelé quand le solde initial change (premier calcul)
+function onSoldeInitialChange() {
+  recalcRemuTotal();
+  const solde = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+  const btnAvant = document.getElementById('remu-btn-offrir-avant');
+  if (!btnAvant) return;
+  // Vérifier droits
+  const userNeg = currentUser.role === 'agence'
+    ? DB.negociateurs.find(x => x.agence === currentUser.agence && x.statut_emploi === 'gérant' && x.nom === currentUser.nom)
+    : null;
+  const peutOffrir = currentUser.role === 'admin' || !!userNeg;
+  const isSalarie = remuCurrentNeg && ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+  btnAvant.style.display = (isSalarie && peutOffrir && solde < 0) ? 'inline-block' : 'none';
+}
+
+// Ouvrir la modale — contexte 'avant' ou 'apres'
+function openOffrirSolde(contexte) {
+  offrirSoldeContexte = contexte;
+  let soldeNegatif = 0;
+  if (contexte === 'avant') {
+    soldeNegatif = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+  } else {
+    // Calculer depuis le bilan affiché
+    const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
+    const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+    const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+    const avance = parseFloat(remuCurrentNeg?.avance_commission) || 0;
+    const commissions = sousTotal + credit;
+    const debitCredit = commissions - Math.abs(soldeInitial);
+    soldeNegatif = debitCredit >= avance ? 0 : -(avance - debitCredit);
+  }
+  if (soldeNegatif >= 0) { showToast('Pas de solde négatif à offrir', 'info'); return; }
+  offrirSoldeActuel = soldeNegatif;
+  document.getElementById('offrir-solde-affiche').textContent = '- ' + fmtEuro(Math.abs(soldeNegatif));
+  document.getElementById('offrir-solde-contexte').textContent = contexte === 'avant'
+    ? 'Ce montant sera déduit du solde antérieur avant le calcul du mois'
+    : 'Ce montant sera offert sur le solde reporté au mois prochain';
+  document.getElementById('offrir-montant').value = Math.abs(soldeNegatif).toFixed(2);
+  document.getElementById('offrir-motif').value = '';
+  document.getElementById('offrir-password').value = '';
+  updateOffrirPreview();
+  document.getElementById('modal-offrir-solde').classList.add('open');
+}
+
+function offrirTout() {
+  document.getElementById('offrir-montant').value = Math.abs(offrirSoldeActuel).toFixed(2);
+  updateOffrirPreview();
+}
+
+function updateOffrirPreview() {
+  const montant = parseFloat(document.getElementById('offrir-montant').value) || 0;
+  const reste = offrirSoldeActuel + montant;
+  const el = document.getElementById('offrir-preview-solde');
+  el.textContent = reste < 0 ? '- ' + fmtEuro(Math.abs(reste)) : '0 €';
+  el.style.color = reste < 0 ? '#d97706' : '#16a34a';
+}
+
+async function validerOffrirSolde() {
+  const montant = parseFloat(document.getElementById('offrir-montant').value) || 0;
+  const motif = document.getElementById('offrir-motif').value.trim();
+  const password = document.getElementById('offrir-password').value;
+  if (montant <= 0) { showToast('Saisissez un montant à offrir', 'error'); return; }
+  if (!motif) { showToast('Le motif est obligatoire', 'error'); return; }
+  if (!password) { showToast('Saisissez votre mot de passe', 'error'); return; }
+  // Vérifier mot de passe
+  const user = DB.users.find(u => u.id === currentUser.id);
+  if (!user || user.password !== password) { showToast('Mot de passe incorrect ❌', 'error'); return; }
+  const reste = offrirSoldeActuel + montant;
+  const mois = parseInt(document.getElementById('remu-mois').value);
+  const annee = parseInt(document.getElementById('remu-annee').value);
+  try {
+    await sbInsert('remises_avance', {
+      negociateur_id: remuCurrentNeg.id,
+      negociateur_nom: remuCurrentNeg.nom,
+      agence: remuCurrentNeg.agence,
+      montant,
+      solde_avant: offrirSoldeActuel,
+      solde_apres: reste,
+      motif,
+      auteur: currentUser.nom,
+      date: new Date().toISOString().slice(0, 10),
+      mois,
+      annee,
+      contexte: offrirSoldeContexte
+    });
+    // Si offert AVANT : mettre à jour le champ solde initial et recalculer
+    if (offrirSoldeContexte === 'avant') {
+      const soldeInitialEl = document.getElementById('remu-solde-initial');
+      if (soldeInitialEl) {
+        soldeInitialEl.value = reste < 0 ? reste.toFixed(2) : '0';
+        recalcRemuTotal();
+      }
+      // Afficher info remise
+      const infoEl = document.getElementById('remu-remise-avant-info');
+      if (infoEl) {
+        infoEl.style.display = 'block';
+        infoEl.textContent = '✓ Remise de ' + fmtEuro(montant) + ' accordée — ' + motif;
+      }
+      document.getElementById('remu-btn-offrir-avant').style.display = 'none';
+    } else {
+      // Offert APRÈS : masquer le bouton
+      const btnApres = document.getElementById('remu-btn-offrir-apres');
+      if (btnApres) btnApres.style.display = 'none';
+    }
+    showToast('Remise enregistrée ✓', 'success');
+    closeModal('modal-offrir-solde');
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'error');
+  }
+}
+
+async function annulerValidationRemuneration() {
+  if (!remuCurrentNeg) return;
+  const mois = parseInt(document.getElementById('remu-mois').value);
+  const annee = parseInt(document.getElementById('remu-annee').value);
+  const msg1 = '\u26A0\uFE0F Annuler la validation de la r\u00E9mun\u00E9ration de ' + remuCurrentNeg.nom + ' pour ' + mois + '/' + annee + ' ?\n\nCette action est r\u00E9serv\u00E9e \u00E0 l\u2019administrateur.';
+  const ok = confirm(msg1);
+  if (!ok) return;
+  const ok2 = confirm('Confirmer une deuxi\u00E8me fois l\u2019annulation ?');
+  if (!ok2) return;
+  try {
+    await sbDelete('remuneration_validations', 'negociateur_id=eq.' + remuCurrentNeg.id + '&mois=eq.' + mois + '&annee=eq.' + annee);
+    remuValide = false;
+    const badge = document.getElementById('remu-statut-badge');
+    badge.style.display = 'none';
+    const btnValider = document.getElementById('remu-btn-valider');
+    btnValider.disabled = false;
+    btnValider.style.opacity = '';
+    const btnAnnuler = document.getElementById('remu-btn-annuler-validation');
+    if (btnAnnuler) btnAnnuler.style.display = 'none';
+    showToast('Validation annul\u00E9e \u2713', 'success');
+  } catch(e) { showToast('Erreur annulation', 'error'); }
+}
+
+async function validerRemuneration() {
+  if (remuValide) return;
+  if (remuLignes.length === 0) { showToast('Aucune donnée à valider', 'error'); return; }
+  const mois = parseInt(document.getElementById('remu-mois').value);
+  const annee = parseInt(document.getElementById('remu-annee').value);
+  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+  const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+  const totalNet = remuLignes.reduce((s,l)=>s+l.commission,0) + credit + soldeInitial;
+
+  const _primeLigneV = remuLignes.find(l => l.isPrimeAgence);
+  const _primeAgenceMontant = _primeLigneV ? _primeLigneV.commission : 0;
+
+  const ok = confirm('⚠️ Action irréversible\n\nValider la rémunération de ' + remuCurrentNeg.nom + ' pour ' + mois + '/' + annee + ' ?\n\nTotal net : ' + fmtEuro(totalNet));
+  if (!ok) return;
+
+  try {
+    await sbInsert('remuneration_validations', {
+      negociateur_id: remuCurrentNeg.id,
+      negociateur_nom: remuCurrentNeg.nom,
+      agence: remuCurrentNeg.agence,
+      mois,
+      annee,
+      total_commissions: remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0),
+      prime_agence_montant: _primeAgenceMontant,
+      credit_courtier: credit,
+      solde_initial: soldeInitial,
+      total_net: totalNet,
+      mail_envoye: remuMailEnvoye,
+      nb_affaires: remuLignes.length
+    });
+    remuValide = true;
+    const badge = document.getElementById('remu-statut-badge');
+    badge.style.display = 'block';
+    badge.style.background = '#dcfce7';
+    badge.style.color = '#16a34a';
+    badge.textContent = '✅ Validé aujourd\'hui';
+    document.getElementById('remu-btn-valider').disabled = true;
+    document.getElementById('remu-btn-valider').style.opacity = '0.4';
+    showToast('Rémunération validée ✓', 'success');
+  } catch(e) {
+    showToast('Erreur lors de la validation', 'error');
+  }
+}
+
+
+// ═══════════════════════════════════════════════════
+// PAGE RÉMUNÉRATIONS
+// ═══════════════════════════════════════════════════
+
+function initRemunerationPage() {
+  // Remplir les années
+  const anneeEl = document.getElementById('remun-annee-select');
+  if (!anneeEl) return;
+  const now = new Date();
+  anneeEl.innerHTML = '';
+  for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) {
+    anneeEl.innerHTML += '<option value="' + y + '"' + (y === now.getFullYear() ? ' selected' : '') + '>' + y + '</option>';
+  }
+  // Mois par défaut = mois en cours
+  const moisEl = document.getElementById('remun-mois-select');
+  if (moisEl) moisEl.value = now.getMonth() + 1;
+  loadRemunerationsList();
+}
+
+async function loadRemunerationsList() {
+  const mois = parseInt(document.getElementById('remun-mois-select')?.value) || new Date().getMonth() + 1;
+  const annee = parseInt(document.getElementById('remun-annee-select')?.value) || new Date().getFullYear();
+  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const container = document.getElementById('remun-liste-container');
+  const btnPdf = document.getElementById('remun-btn-pdf');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">⏳ Chargement...</div>';
+
+  try {
+    // Collaborateurs éligibles selon rôle
+    const typesEligibles = ['salarié', 'responsable', 'alternant'];
+    let collabs = DB.negociateurs.filter(n =>
+      typesEligibles.includes(n.statut_emploi) && n.actif
+    );
+    if (currentUser.role === 'agence') {
+      collabs = collabs.filter(n => n.agence === currentUser.agence);
+    }
+
+    if (collabs.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">Aucun collaborateur éligible</div>';
+      if (btnPdf) btnPdf.style.display = 'none';
+      return;
+    }
+
+    // Charger les validations du mois
+    const validations = await sbFetch('remuneration_validations', {
+      filter: 'mois=eq.' + mois + '&annee=eq.' + annee
+    });
+    const validMap = {};
+    (validations || []).forEach(v => { validMap[v.negociateur_id] = v; });
+
+    document.getElementById('remun-liste-count').textContent = collabs.length + ' collaborateur(s)';
+    if (btnPdf) btnPdf.style.display = 'block';
+
+    // Stocker pour le PDF
+    window._remunListeData = { collabs, validMap, mois, annee };
+
+    // Construire le tableau
+    const rows = collabs.map(c => {
+      const v = validMap[c.id];
+      const avance = parseFloat(c.avance_commission) || 0;
+      const prime = v ? (v.prime_agence_montant || 0) : 0;
+      const commissions = v ? ((v.total_commissions || 0) + (v.credit_courtier || 0)) : 0;
+      const fixeAlt = c.statut_emploi === 'alternant' ? avance : 0;
+      let totalAVerser = 0;
+      let detailHtml = '';
+
+      if (v) {
+        if (c.statut_emploi === 'alternant') {
+          totalAVerser = commissions + fixeAlt;
+          detailHtml = fmtEuro(commissions) + ' comm. + ' + fmtEuro(fixeAlt) + ' fixe';
+        } else if (c.statut_emploi === 'responsable') {
+          const partNR = (c.part_non_recup != null) ? parseFloat(c.part_non_recup) / 100 : 0;
+          const montantNR = Math.round(avance * partNR * 100) / 100;
+          const soldeAnt = -(Math.abs(v.solde_initial || 0)) + montantNR;
+          const dc = commissions + soldeAnt;
+          const sal = dc >= avance ? dc : avance;
+          totalAVerser = sal + prime;
+          detailHtml = fmtEuro(sal) + ' avance' + (prime > 0 ? ' + ' + fmtEuro(prime) + ' prime' : '');
+        } else {
+          const partNR = (c.part_non_recup != null) ? parseFloat(c.part_non_recup) / 100 : 0;
+          const montantNR = Math.round(avance * partNR * 100) / 100;
+          const soldeAnt = -(Math.abs(v.solde_initial || 0)) + montantNR;
+          const dc = commissions + soldeAnt;
+          totalAVerser = dc >= avance ? dc : avance;
+          detailHtml = fmtEuro(totalAVerser);
+        }
+      }
+
+      const statutHtml = v
+        ? '<span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d">✓ Validé</span>'
+        : '<span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;background:#fef2f2;color:#dc2626">⚠️ Non validé</span>';
+
+      const typeLabel = { salarié: 'CDI', responsable: 'Responsable', alternant: 'Alternant' }[c.statut_emploi] || c.statut_emploi;
+
+      return '<tr style="border-bottom:1px solid var(--border);' + (!v ? 'background:#fef2f2' : '') + '">' +
+        '<td style="padding:10px 12px;font-weight:600">' + c.nom + '</td>' +
+        '<td style="padding:10px 12px;font-size:12px;color:var(--text-muted)">' + c.agence + '</td>' +
+        '<td style="padding:10px 12px"><span style="padding:2px 8px;border-radius:6px;font-size:11px;background:#f1f5f9;font-weight:600">' + typeLabel + '</span></td>' +
+        '<td style="padding:10px 12px;text-align:right">' + (v ? '<strong style="font-size:15px;color:var(--primary)">' + fmtEuro(totalAVerser) + '</strong><br><span style="font-size:11px;color:var(--text-muted)">' + detailHtml + '</span>' : '<span style="color:#dc2626;font-size:12px">—</span>') + '</td>' +
+        '<td style="padding:10px 12px;text-align:center">' + statutHtml + '</td>' +
+        '</tr>';
+    }).join('');
+
+    container.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">' +
+      '<thead><tr style="background:#f8fafc">' +
+      '<th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase">Collaborateur</th>' +
+      '<th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase">Agence</th>' +
+      '<th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase">Type</th>' +
+      '<th style="padding:10px 12px;text-align:right;font-size:11px;color:var(--text-muted);text-transform:uppercase">Total à verser</th>' +
+      '<th style="padding:10px 12px;text-align:center;font-size:11px;color:var(--text-muted);text-transform:uppercase">Statut</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+  } catch(e) {
+    container.innerHTML = '<div style="color:#dc2626;padding:20px">Erreur : ' + e.message + '</div>';
+  }
+}
+
+function genererRecapRemunPDF() {
+  const data = window._remunListeData;
+  if (!data) return;
+  const { collabs, validMap, mois, annee } = data;
+  const moisNoms = ['','Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  // Version locale de fmtEuro sans espaces insécables pour jsPDF
+  const fmt = v => new Intl.NumberFormat('fr-FR', {style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v).replace(/ /g,' ').replace(/ /g,' ');
+
+  const lignes = collabs.map(c => {
+    const v = validMap[c.id];
+    const avance = parseFloat(c.avance_commission) || 0;
+    const prime = v ? (v.prime_agence_montant || 0) : 0;
+    const commissions = v ? ((v.total_commissions || 0) + (v.credit_courtier || 0)) : 0;
+    const fixeAlt = c.statut_emploi === 'alternant' ? avance : 0;
+    let totalAVerser = 0;
+    let detail = '';
+    if (v) {
+      if (c.statut_emploi === 'alternant') {
+        totalAVerser = commissions + fixeAlt;
+        detail = fmt(commissions) + ' commissions + ' + fmt(fixeAlt) + ' fixe';
+      } else if (c.statut_emploi === 'responsable') {
+        const partNR = (c.part_non_recup != null) ? parseFloat(c.part_non_recup) / 100 : 0;
+        const montantNR = Math.round(avance * partNR * 100) / 100;
+        const soldeAnt = -(Math.abs(v.solde_initial || 0)) + montantNR;
+        const dc = commissions + soldeAnt;
+        const sal = dc >= avance ? dc : avance;
+        totalAVerser = sal + prime;
+        detail = fmt(sal) + ' avance' + (prime > 0 ? ' + ' + fmt(prime) + ' prime agence' : '');
+      } else {
+        const partNR = (c.part_non_recup != null) ? parseFloat(c.part_non_recup) / 100 : 0;
+        const montantNR = Math.round(avance * partNR * 100) / 100;
+        const soldeAnt = -(Math.abs(v.solde_initial || 0)) + montantNR;
+        const dc = commissions + soldeAnt;
+        totalAVerser = dc >= avance ? dc : avance;
+        detail = 'Avance versée';
+      }
+    }
+    const typeLabel = { salarié: 'CDI', responsable: 'Responsable', alternant: 'Alternant' }[c.statut_emploi] || c.statut_emploi;
+    return { c, v, totalAVerser, detail, typeLabel };
+  });
+
+  const totalGlobal = lignes.reduce((s, l) => s + l.totalAVerser, 0);
+  const nonValides = lignes.filter(l => !l.v);
+
+  const html = '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}' +
+    'table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 10px}' +
+    'th{background:#f5f5f5;font-weight:700;font-size:10px;text-align:left}' +
+    '.title{font-size:18px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:4px}' +
+    '.subtitle{font-size:12px;color:#666;margin-bottom:20px}' +
+    '.total-row{background:#f0fdf4;font-weight:700}' +
+    '.non-valide{background:#fef2f2;color:#dc2626}' +
+    '@media print{button{display:none}}</style>' +
+    '<div class="title">RÉCAPITULATIF DES RÉMUNÉRATIONS — ' + moisNoms[mois].toUpperCase() + ' ' + annee + '</div>' +
+    '<div class="subtitle">Généré le ' + today + (currentUser.agence ? ' — Agence ' + currentUser.agence : ' — Toutes agences') + '</div>' +
+    (nonValides.length > 0 ? '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:10px;margin-bottom:16px;font-size:11px;color:#dc2626">⚠️ ' + nonValides.length + ' collaborateur(s) sans rémunération validée : ' + nonValides.map(l => l.c.nom).join(', ') + '</div>' : '') +
+    '<table style="margin-bottom:20px">' +
+    '<thead><tr><th>Collaborateur</th><th>Agence</th><th>Type contrat</th><th style="text-align:right">Commissions</th><th style="text-align:right">Total à verser</th><th>Détail</th><th style="text-align:center">Statut</th></tr></thead>' +
+    '<tbody>' +
+    lignes.map(l => '<tr class="' + (!l.v ? 'non-valide' : '') + '">' +
+      '<td style="font-weight:600">' + l.c.nom + '</td>' +
+      '<td>' + l.c.agence + '</td>' +
+      '<td>' + l.typeLabel + '</td>' +
+      '<td style="text-align:right">' + (l.v ? fmt((l.v.total_commissions||0)+(l.v.credit_courtier||0)) : '—') + '</td>' +
+      '<td style="text-align:right;font-weight:700">' + (l.v ? fmt(l.totalAVerser) : '<span style="color:#dc2626">Non validé</span>') + '</td>' +
+      '<td style="font-size:10px;color:#666">' + (l.v ? l.detail : '—') + '</td>' +
+      '<td style="text-align:center">' + (l.v ? '✓ Validé' : '⚠️ Non validé') + '</td>' +
+    '</tr>').join('') +
+    '<tr class="total-row"><td colspan="4" style="text-align:right;font-weight:700">TOTAL À VERSER</td><td style="text-align:right;font-size:14px;color:#16a34a;font-weight:700">' + fmt(totalGlobal) + '</td><td colspan="2"></td></tr>' +
+    '</tbody></table>' +
+    '<div style="margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px">' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Visa responsable :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Date :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+    '</div>';
+
+  const container = document.getElementById('remu-releve-print');
+  container.innerHTML = html;
+  container.style.display = 'block';
+  container.style.position = 'fixed';
+  container.style.top = '-9999px';
+  container.style.left = '0';
+  container.style.width = '210mm';
+  container.style.background = 'white';
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  doc.html(container, {
+    callback: function(doc) {
+      container.style.display = 'none';
+      container.innerHTML = '';
+      doc.save('recap_remunerations_' + moisNoms[mois].toLowerCase() + annee + '.pdf');
+    },
+    x: 10, y: 10, width: 190, windowWidth: 794
+  });
 }
 
 // ═══════════════════════════════════════════════════
