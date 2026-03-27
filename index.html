@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.1</title>
+<title>Scorim v1.4.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -741,7 +741,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.1</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.2</div>
     </div>
   </div>
 </div>
@@ -838,7 +838,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.1</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.2</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -4779,7 +4779,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.1</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.2</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -12943,8 +12943,9 @@ function closeRoadmapOverlay() {
 }
 
 function switchRoadmapTab(tab) {
-  ['feedbacks','roadmap','assistant'].forEach(t => {
-    document.getElementById('rdpanel-' + t).style.display = t === tab ? 'block' : 'none';
+  ['feedbacks','traites','roadmap','assistant'].forEach(t => {
+    const panel = document.getElementById('rdpanel-' + t);
+    if (panel) panel.style.display = t === tab ? 'block' : 'none';
     const btn = document.getElementById('rdtab-' + t);
     if (btn) {
       btn.style.color = t === tab ? 'white' : '#64748b';
@@ -12953,6 +12954,7 @@ function switchRoadmapTab(tab) {
   });
   if (tab === 'roadmap') loadRoadmap();
   if (tab === 'assistant') rdAiInit();
+  if (tab === 'traites') renderFeedbacksTraites();
 }
 
 function closeRdModal(id) {
@@ -12998,7 +13000,9 @@ function renderFeedbacksStats() {
 function renderFeedbacksList() {
   const typeFilter = document.getElementById('rd-filter-type').value;
   const statutFilter = document.getElementById('rd-filter-statut').value;
-  let list = DB_feedbacks;
+  // Exclure les feedbacks traités/rejetés/en roadmap de la liste principale
+  const statutsActifs = ['nouveau', 'en_cours'];
+  let list = DB_feedbacks.filter(f => statutsActifs.includes(f.statut) && !f.roadmap_item_id);
   if (typeFilter) list = list.filter(f => f.type === typeFilter);
   if (statutFilter) list = list.filter(f => f.statut === statutFilter);
 
@@ -13039,6 +13043,51 @@ function renderFeedbacksList() {
   }).join('');
 }
 
+function renderFeedbacksTraites() {
+  const list = DB_feedbacks.filter(f =>
+    f.statut === 'traite' || f.statut === 'rejete' || f.roadmap_item_id
+  ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const container = document.getElementById('rd-feedbacks-traites-list');
+  if (!container) return;
+
+  if (!list.length) {
+    container.innerHTML = '<div style="color:#64748b;text-align:center;padding:48px;border:1px dashed #334155;border-radius:12px">Aucun feedback traité pour l&#39;instant</div>';
+    return;
+  }
+
+  const statutCfg = {
+    nouveau:  { label: 'Nouveau', color: '#3b82f6', bg: '#1e3a5f' },
+    en_cours: { label: 'En cours', color: '#f59e0b', bg: '#422006' },
+    traite:   { label: 'Traité', color: '#10b981', bg: '#052e16' },
+    rejete:   { label: 'Rejeté', color: '#94a3b8', bg: '#1e293b' },
+  };
+  const typeCfg = {
+    bug:  { label: '🐛 Bug', color: '#ef4444' },
+    idea: { label: '💡 Idée', color: '#3b82f6' },
+  };
+
+  container.innerHTML = list.map(f => {
+    const sc = statutCfg[f.statut] || statutCfg.traite;
+    const tc = typeCfg[f.type] || typeCfg.bug;
+    const date = new Date(f.created_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    return `<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:18px 20px;margin-bottom:10px;cursor:pointer;opacity:0.8;transition:opacity .15s" onclick="openFeedbackDetail(${f.id})" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:11px;font-weight:700;color:${tc.color};background:${tc.color}22;padding:3px 8px;border-radius:20px">${tc.label}</span>
+            <span style="font-size:11px;font-weight:700;color:${sc.color};background:${sc.bg};padding:3px 8px;border-radius:20px">${sc.label}</span>
+            ${f.roadmap_item_id ? '<span style="font-size:11px;font-weight:700;color:#6366f1;background:#1e1b4b;padding:3px 8px;border-radius:20px">🗺 Roadmap</span>' : ''}
+          </div>
+          <div style="color:#94a3b8;font-size:13px;line-height:1.5;margin-bottom:8px">${f.description.substring(0, 120)}${f.description.length > 120 ? '...' : ''}</div>
+          <div style="font-size:11px;color:#475569">${f.auteur}${f.agence ? ' · ' + f.agence : ''} · ${date}</div>
+        </div>
+        <div style="font-size:18px;color:#475569;flex-shrink:0">›</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function openFeedbackDetail(id) {
   const f = DB_feedbacks.find(x => x.id === id);
   if (!f) return;
@@ -13069,11 +13118,11 @@ async function openFeedbackDetail(id) {
     <div style="margin-bottom:20px">
       <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:8px">Changer le statut</label>
       <div style="display:flex;gap:8px">
-        ${['nouveau','en_cours','traite'].map(s => `<button onclick="updateFeedbackStatut(${f.id},'${s}')" style="flex:1;padding:8px;border:1px solid ${f.statut===s?'#6366f1':'#334155'};background:${f.statut===s?'#1e1b4b':'#0f172a'};color:${f.statut===s?'white':'#64748b'};border-radius:8px;font-size:12px;cursor:pointer">${{nouveau:'🔵 Nouveau',en_cours:'🟡 En cours',traite:'✅ Traité'}[s]}</button>`).join('')}<button onclick="rejectFeedback(${f.id})" style="padding:8px 14px;border:1px solid #4c0519;background:#0f172a;color:#f87171;border-radius:8px;font-size:12px;cursor:pointer" title="Rejeter cette idée">🚫 Rejeter</button>
+        ${['nouveau','en_cours','traite'].map(s => `<button onclick="updateFeedbackStatut(${f.id},'${s}')" style="flex:1;padding:8px;border:1px solid ${f.statut===s?'#6366f1':'#334155'};background:${f.statut===s?'#1e1b4b':'#0f172a'};color:${f.statut===s?'white':'#64748b'};border-radius:8px;font-size:12px;cursor:pointer">${{nouveau:'🔵 Nouveau',en_cours:'🟡 En cours',traite:'✅ Traité'}[s]}</button>`).join('')}<button onclick="openRejectFeedback(${f.id})" style="padding:8px 14px;border:1px solid #4c0519;background:#0f172a;color:#f87171;border-radius:8px;font-size:12px;cursor:pointer" title="Rejeter cette idée">🚫 Rejeter</button>
       </div>
     </div>
 
-    ${!f.roadmap_item_id ? `<button onclick="convertToRoadmap(${f.id})" style="width:100%;padding:12px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🗺 Ajouter à la roadmap</button>` : `<div style="padding:12px;background:#1e1b4b;border:1px solid #6366f1;border-radius:8px;text-align:center;font-size:13px;color:#6366f1">✓ Déjà dans la roadmap</div>`}
+    ${!f.roadmap_item_id ? `<button onclick="convertToRoadmapWithMail(${f.id})" style="width:100%;padding:12px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🗺 Ajouter à la roadmap</button>` : `<div style="padding:12px;background:#1e1b4b;border:1px solid #6366f1;border-radius:8px;text-align:center;font-size:13px;color:#6366f1">✓ Déjà dans la roadmap</div>`}
   `;
   openRdModal('rd-modal-feedback');
 }
@@ -13100,6 +13149,10 @@ function convertToRoadmap(feedbackId) {
   document.getElementById('rd-item-feedback-id').value = feedbackId;
   document.getElementById('rd-item-titre').value = f.description.substring(0, 80);
   document.getElementById('rd-item-desc').value = f.description;
+  const objEl2 = document.getElementById('rd-item-objectif');
+  if (objEl2) objEl2.value = '';
+  const compEl2 = document.getElementById('rd-item-comportement');
+  if (compEl2) compEl2.value = '';
   document.getElementById('rd-item-priorite').value = 'moyenne';
   document.getElementById('rd-item-categorie').value = f.type === 'bug' ? 'bugfix' : 'feature';
   document.getElementById('rd-item-statut').value = 'backlog';
@@ -13187,6 +13240,10 @@ function openRoadmapItemForm(id) {
   document.getElementById('rd-item-feedback-id').value = item?.feedback_id || '';
   document.getElementById('rd-item-titre').value = item?.titre || '';
   document.getElementById('rd-item-desc').value = item?.description || '';
+  const objEl = document.getElementById('rd-item-objectif');
+  if (objEl) objEl.value = item?.objectif || '';
+  const compEl = document.getElementById('rd-item-comportement');
+  if (compEl) compEl.value = item?.comportement || '';
   document.getElementById('rd-item-priorite').value = item?.priorite || 'moyenne';
   document.getElementById('rd-item-categorie').value = item?.categorie || 'feature';
   document.getElementById('rd-item-statut').value = item?.statut || 'backlog';
@@ -13241,6 +13298,61 @@ async function rejectFeedback(id) {
   } catch(e) { showToast('Erreur', 'error'); }
 }
 
+// Ouvre la modale de rejet avec raison
+function openRejectFeedback(id) {
+  const f = DB_feedbacks.find(x => x.id === id);
+  if (!f) return;
+  document.getElementById('rd-reject-feedback-id').value = id;
+  document.getElementById('rd-reject-raison').value = '';
+  document.getElementById('rd-reject-auteur').textContent = f.auteur;
+  openRdModal('rd-modal-reject');
+}
+
+async function confirmRejectFeedback() {
+  const id = parseInt(document.getElementById('rd-reject-feedback-id').value);
+  const raison = document.getElementById('rd-reject-raison').value.trim();
+  if (!raison) { alert('Merci de saisir une raison de rejet.'); return; }
+  const f = DB_feedbacks.find(x => x.id === id);
+  if (!f) return;
+  try {
+    await sbUpdate('feedbacks', 'id=eq.' + id, { statut: 'rejete' });
+    f.statut = 'rejete';
+    // Envoyer le mail de rejet si l'utilisateur a un email
+    const user = DB.users ? DB.users.find(u => u.nom === f.auteur) : null;
+    if (user?.email) {
+      await sendEmail('feedback_rejete', user.email, {
+        auteur: f.auteur,
+        description: f.description,
+        raison,
+        type: f.type === 'bug' ? 'Bug' : 'Idée'
+      });
+    }
+    renderFeedbacksStats();
+    renderFeedbacksList();
+    updateFeedbackBadge();
+    closeRdModal('rd-modal-reject');
+    closeRdModal('rd-modal-feedback');
+    showToast('Feedback rejeté — mail envoyé ✓', 'success');
+  } catch(e) { showToast('Erreur : ' + e.message, 'error'); }
+}
+
+async function convertToRoadmapWithMail(feedbackId) {
+  const f = DB_feedbacks.find(x => x.id === feedbackId);
+  if (!f) return;
+  // Envoyer mail de confirmation
+  const user = DB.users ? DB.users.find(u => u.nom === f.auteur) : null;
+  if (user?.email) {
+    try {
+      await sendEmail('feedback_accepte', user.email, {
+        auteur: f.auteur,
+        description: f.description,
+        type: f.type === 'bug' ? 'Bug' : 'Idée'
+      });
+    } catch(e) { console.warn('Mail feedback non envoyé:', e.message); }
+  }
+  convertToRoadmap(feedbackId);
+}
+
 function moveRoadmapItem(id, direction) {
   const idx = DB_roadmap.findIndex(x => x.id === id);
   if (idx === -1) return;
@@ -13255,11 +13367,15 @@ async function saveRoadmapItem() {
   const id = document.getElementById('rd-item-id').value;
   const feedbackId = document.getElementById('rd-item-feedback-id').value;
   const titre = document.getElementById('rd-item-titre').value.trim();
+  const objectif = document.getElementById('rd-item-objectif')?.value.trim() || null;
+  const comportement = document.getElementById('rd-item-comportement')?.value.trim() || null;
   if (!titre) { showToast('Le titre est requis', 'error'); return; }
 
   const payload = {
     titre,
     description: document.getElementById('rd-item-desc').value.trim() || null,
+    objectif: objectif,
+    comportement: comportement,
     priorite: document.getElementById('rd-item-priorite').value,
     categorie: document.getElementById('rd-item-categorie').value,
     theme: document.getElementById('rd-item-theme')?.value || null,
@@ -13341,7 +13457,9 @@ function rdAiSelectItem() {
   const preview = document.getElementById('rd-ai-item-preview');
   const statutLabels = { backlog: '📋 Backlog', en_cours: '🔵 En cours', termine: '✅ Terminé', annule: '❌ Annulé' };
   preview.innerHTML = `<strong style="color:white">${item.titre}</strong><br>
-    ${item.description ? item.description + '<br>' : ''}
+    ${item.description ? '<span style="color:#94a3b8">' + item.description + '</span><br>' : ''}
+    ${item.objectif ? '<span style="color:#6366f1;font-size:12px">🎯 ' + item.objectif + '</span><br>' : ''}
+    ${item.comportement ? '<span style="color:#10b981;font-size:12px">⚙️ ' + item.comportement + '</span><br>' : ''}
     <span style="font-size:11px;opacity:.7">${statutLabels[item.statut] || item.statut} · ${item.priorite} · ${item.categorie}${item.theme ? ' · ' + item.theme : ''}${item.version_cible ? ' · v' + item.version_cible : ''}</span>`;
   preview.style.display = 'block';
 
@@ -13381,13 +13499,16 @@ function rdAiReset(item) {
 
 **Titre** : ${target.titre}
 **Description** : ${target.description || '(non renseignée)'}
+**Objectif** : ${target.objectif || '(non renseigné)'}
+**Comportement attendu** : ${target.comportement || '(non renseigné)'}
 **Catégorie** : ${target.categorie}
 **Thème** : ${target.theme || 'non précisé'}
 **Priorité** : ${target.priorite}
 **Statut** : ${target.statut}
 **Version cible** : ${target.version_cible || 'non précisée'}
 
-Analyse cet item et pose-moi 2 à 3 questions ciblées pour comprendre exactement ce qu'il faut développer, avant de générer le prompt structuré.`;
+Analyse cet item en tenant compte de tous les champs renseignés. Si les informations sont suffisantes, génère directement le prompt structuré. Sinon, pose-moi 2 à 3 questions ciblées uniquement sur les points flous.`;
+
 
   rdAiHistory.push({ role: 'user', content: openingMsg });
 
@@ -13763,6 +13884,9 @@ async function callClaudeForRoadmap(messages) {
     <button id="rdtab-feedbacks" onclick="switchRoadmapTab('feedbacks')" style="padding:14px 24px;border:none;border-bottom:3px solid #6366f1;background:transparent;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
       💬 Feedbacks
     </button>
+    <button id="rdtab-traites" onclick="switchRoadmapTab('traites')" style="padding:14px 24px;border:none;border-bottom:3px solid transparent;background:transparent;color:#64748b;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+      ✅ Traités
+    </button>
     <button id="rdtab-roadmap" onclick="switchRoadmapTab('roadmap')" style="padding:14px 24px;border:none;border-bottom:3px solid transparent;background:transparent;color:#64748b;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
       🗺 Roadmap
     </button>
@@ -13822,7 +13946,7 @@ async function callClaudeForRoadmap(messages) {
             <div style="font-size:13px;font-weight:700;color:white">🤖 Assistant de formulation</div>
             <button onclick="rdAiReset()" style="padding:5px 12px;background:#334155;color:#94a3b8;border:none;border-radius:6px;font-size:11px;cursor:pointer">↺ Nouveau</button>
           </div>
-          <div id="rd-ai-messages" style="height:380px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px">
+          <div id="rd-ai-messages" style="height:calc(100vh - 350px);min-height:300px;overflow-y:auto;padding:20px 28px;display:flex;flex-direction:column;gap:14px">
             <div style="text-align:center;color:#475569;font-size:13px;padding:40px 20px">
               <div style="font-size:32px;margin-bottom:12px">🤖</div>
               <div>Sélectionne un item de roadmap pour démarrer</div>
@@ -13845,6 +13969,15 @@ async function callClaudeForRoadmap(messages) {
           <pre id="rd-ai-prompt-text" style="color:#e2e8f0;font-size:12px;line-height:1.6;white-space:pre-wrap;font-family:'Courier New',monospace;margin:0;max-height:300px;overflow-y:auto"></pre>
         </div>
       </div>
+    </div>
+
+    <!-- ── TAB TRAITÉS ── -->
+    <div id="rdpanel-traites" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:13px;color:#64748b">Feedbacks rejetés, traités ou ajoutés à la roadmap</div>
+        <button onclick="loadFeedbacks().then(renderFeedbacksTraites)" style="padding:8px 14px;background:#334155;color:#94a3b8;border:none;border-radius:8px;font-size:13px;cursor:pointer">↻ Actualiser</button>
+      </div>
+      <div id="rd-feedbacks-traites-list"></div>
     </div>
 
     <!-- ── TAB ROADMAP ── -->
@@ -13893,19 +14026,47 @@ async function callClaudeForRoadmap(messages) {
     </div>
   </div>
 
+  <!-- Modal rejet feedback -->
+  <div id="rd-modal-reject" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10002;align-items:center;justify-content:center" onclick="if(event.target===this)closeRdModal('rd-modal-reject')">
+    <div style="background:#1e293b;border-radius:16px;padding:28px;width:90%;max-width:480px;border:1px solid #4c0519">
+      <h3 style="color:#f87171;margin:0 0 8px;font-size:16px">🚫 Rejeter le feedback</h3>
+      <p style="color:#94a3b8;font-size:13px;margin:0 0 20px">de <strong id="rd-reject-auteur" style="color:white"></strong></p>
+      <input type="hidden" id="rd-reject-feedback-id">
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:8px">Raison du rejet *</label>
+        <textarea id="rd-reject-raison" rows="4" placeholder="Expliquez pourquoi vous rejetez cette demande..." style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #4c0519;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        <div style="font-size:11px;color:#64748b;margin-top:6px">Ce message sera envoyé par mail à l'utilisateur.</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeRdModal('rd-modal-reject')" style="padding:10px 20px;background:#334155;color:#94a3b8;border:none;border-radius:8px;font-size:13px;cursor:pointer">Annuler</button>
+        <button onclick="confirmRejectFeedback()" style="padding:10px 20px;background:#dc2626;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🚫 Confirmer le rejet</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal item roadmap -->
   <div id="rd-modal-item" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;align-items:center;justify-content:center" onclick="if(event.target===this)closeRdModal('rd-modal-item')">
-    <div style="background:#1e293b;border-radius:16px;padding:28px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;border:1px solid #334155">
+    <div style="background:#1e293b;border-radius:16px;padding:28px;width:95%;max-width:800px;max-height:90vh;overflow-y:auto;border:1px solid #334155">
       <h3 style="color:white;margin:0 0 20px;font-size:18px" id="rd-item-modal-title">Nouvel item roadmap</h3>
       <input type="hidden" id="rd-item-id">
       <input type="hidden" id="rd-item-feedback-id">
-      <div style="margin-bottom:14px">
-        <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Titre *</label>
-        <input id="rd-item-titre" type="text" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit">
-      </div>
-      <div style="margin-bottom:14px">
-        <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Description</label>
-        <textarea id="rd-item-desc" rows="3" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="grid-column:1/-1;margin-bottom:4px">
+          <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Titre *</label>
+          <input id="rd-item-titre" type="text" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:4px">
+          <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Description</label>
+          <textarea id="rd-item-desc" rows="5" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        </div>
+        <div style="margin-bottom:4px">
+          <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Objectif</label>
+          <textarea id="rd-item-objectif" rows="5" placeholder="Quel est l'objectif de cette fonctionnalité ? Quel problème résout-elle ?" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        </div>
+        <div style="grid-column:1/-1;margin-bottom:4px">
+          <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px">Comportement attendu</label>
+          <textarea id="rd-item-comportement" rows="4" placeholder="Décrivez comment doit se comporter la fonctionnalité (UX, cas limites, règles métier...)" style="width:100%;padding:10px 12px;background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
         <div>
