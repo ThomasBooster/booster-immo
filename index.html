@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.5</title>
+<title>Scorim v1.4.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -760,7 +760,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.5</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.6</div>
     </div>
   </div>
 </div>
@@ -857,7 +857,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.5</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.6</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -3187,7 +3187,7 @@ async function initApp() {
       return negs.some(n =>
         n.agence === currentUser.agence &&
         n.statut_emploi === 'gérant' &&
-        (n.nom === currentUser.nom || n.email === currentUser.email)
+        (n.nom.toLowerCase() === currentUser.nom.toLowerCase() || n.email === currentUser.email)
       );
     };
     const isGerant = checkGerant();
@@ -4843,7 +4843,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.5</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.6</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -11770,7 +11770,7 @@ function recalcRemuTotal() {
   const btnApres = document.getElementById('remu-btn-offrir-apres');
   if (btnApres && isSalarie && remuLignes.length > 0) {
     const userNegBtn = currentUser.role === 'agence'
-      ? DB.negociateurs.find(x => x.agence === currentUser.agence && x.statut_emploi === 'gérant' && x.nom === currentUser.nom)
+      ? DB.negociateurs.find(x => x.agence === currentUser.agence && x.statut_emploi === 'gérant' && x.nom.toLowerCase() === currentUser.nom.toLowerCase())
       : null;
     const peutOffrirBtn = currentUser.role === 'admin' || !!userNegBtn;
     const soldeInitialBtn = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
