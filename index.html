@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.6</title>
+<title>Scorim v1.4.7</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -760,7 +760,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.6</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.7</div>
     </div>
   </div>
 </div>
@@ -857,7 +857,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.6</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.7</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -1206,11 +1206,17 @@
             <option value="">Tous les statuts</option>
             <option value="À SIGNER">À signer</option>
             <option value="SIGNÉ">Signés</option>
-            <option value="AA SIGNÉ" disabled style="color:#94a3b8">🗂 AA signé (automatique)</option>
+            <option value="AA SIGNÉ">🗂 AA signé</option>
             <option value="REPORT">Report</option>
             <option value="ANNULÉ">Annulés</option>
             <option value="SRU">SRU</option>
             <option value="REFUS DE CRÉDIT">Refus de crédit</option>
+          </select>
+          <select class="filter-select" id="filter-neg-dos" onchange="refreshDossiers()" style="min-width:160px">
+            <option value="">Tous les négociateurs</option>
+          </select>
+          <select class="filter-select" id="filter-rent-dos" onchange="refreshDossiers()" style="min-width:140px">
+            <option value="">Tous les rentreurs</option>
           </select>
           <button class="btn btn-outline btn-sm" onclick="clearSearchDos()">✕ Effacer</button>
         </div>
@@ -3179,6 +3185,19 @@ async function initApp() {
     document.getElementById('nav-feedback').style.display = 'flex';
     document.getElementById('nav-saisie-section').style.display = 'none';
     document.getElementById('nav-rh-section').style.display = 'block';
+    // Gérants : accès à Tous les dossiers + Apporteurs (lecture seule)
+    const isGerantMenu = (DB.negociateurs || []).some(n =>
+      n.agence === currentUser.agence &&
+      n.statut_emploi === 'gérant' &&
+      n.nom.toLowerCase() === currentUser.nom.toLowerCase()
+    );
+    if (isGerantMenu) {
+      document.getElementById('nav-saisie-section').style.display = 'block';
+      // Masquer Saisie SSP pour les gérants
+      document.querySelectorAll('#nav-saisie-section .nav-item').forEach(el => {
+        if (el.getAttribute('onclick')?.includes("'saisie'")) el.style.display = 'none';
+      });
+    }
     // Rémunérations visible uniquement pour les gérants
     // Un gérant est un négociateur avec statut_emploi='gérant' sur la même agence
     // On cherche par nom ET par agence, avec fallback si DB pas encore chargé
@@ -3315,6 +3334,7 @@ function showPage(name, navEl) {
   if (name === 'ranking') { if (currentRankTab === 'mensuel') refreshRanking(); else refreshRankingAnnuel(); }
   if (name === 'saisie') { refreshMyDossiers(); renderRepartition(); populateApporteurSelects(); }
   if (name === 'apporteurs') { refreshApporteurs(); }
+  if (name === 'dossiers') { initDossiersFiltres(); refreshDossiers(); }
   if (name === 'negociateurs') { renderNegociateursList(); }
   if (name === 'remunerations') { initRemunerationPage(); }
   if (name === 'negociateurs-classement') { initNegClassement(); }
@@ -4291,13 +4311,74 @@ function refreshMyDossiers() {
 // =====================
 // TOUS LES DOSSIERS
 // =====================
+function initDossiersFiltres() {
+  // Déterminer le scope (gérant = sa société, sinon tout)
+  let agencesFiltrees = AGENCES;
+  if (currentUser.role === 'agence') {
+    const isGerantF = (DB.negociateurs || []).some(n =>
+      n.agence === currentUser.agence && n.statut_emploi === 'gérant' &&
+      n.nom.toLowerCase() === currentUser.nom.toLowerCase()
+    );
+    if (isGerantF) {
+      const agenceObj = (DB.agences || []).find(a => a.nom === currentUser.agence);
+      if (agenceObj) agencesFiltrees = (DB.agences || []).filter(a => a.societe_id === agenceObj.societe_id).map(a => a.nom);
+    }
+  }
+  // Négociateurs éligibles
+  const negs = (DB.negociateurs || []).filter(n =>
+    agencesFiltrees.includes(n.agence) && n.actif && !n.nom.startsWith('🍒') &&
+    ['négociateur','rentreur','les deux'].includes(n.poste)
+  ).sort((a,b) => a.nom.localeCompare(b.nom));
+
+  const negEl = document.getElementById('filter-neg-dos');
+  const rentEl = document.getElementById('filter-rent-dos');
+  if (negEl) {
+    negEl.innerHTML = '<option value="">Tous les négociateurs</option>' +
+      negs.filter(n => ['négociateur','les deux'].includes(n.poste)).map(n =>
+        '<option value="' + n.id + '">' + n.nom + ' (' + n.agence + ')</option>'
+      ).join('');
+  }
+  if (rentEl) {
+    rentEl.innerHTML = '<option value="">Tous les rentreurs</option>' +
+      negs.filter(n => ['rentreur','les deux'].includes(n.poste)).map(n =>
+        '<option value="' + n.id + '">' + n.nom + ' (' + n.agence + ')</option>'
+      ).join('');
+  }
+}
+
 function refreshDossiers() {
   const mois = document.getElementById('filter-mois-dos')?.value || '';
   const agence = document.getElementById('filter-agence-dos')?.value || '';
   const statut = document.getElementById('filter-statut-dos')?.value || '';
   const search = (document.getElementById('search-dos')?.value || '').trim().toLowerCase();
+  const negFilter = document.getElementById('filter-neg-dos')?.value || '';
+  const rentFilter = document.getElementById('filter-rent-dos')?.value || '';
   let list = getDossiers({ mois, agence, statut }).sort((a, b) => b.id - a.id);
   if (search) list = list.filter(d => d.client && d.client.toLowerCase().includes(search));
+  // Filtre négociateur
+  if (negFilter) {
+    const negId = parseInt(negFilter);
+    list = list.filter(d => (DB.dossierNeg || []).some(l => l.dossier_id === d.id && l.negociateur_id === negId));
+  }
+  // Filtre rentreur
+  if (rentFilter) {
+    const rentId = parseInt(rentFilter);
+    list = list.filter(d => (DB.dossierRent || []).some(l => l.dossier_id === d.id && l.negociateur_id === rentId && l.ca_rentree > 0));
+  }
+  // Restriction gérant : uniquement dossiers de sa société
+  if (currentUser.role === 'agence') {
+    const isGerantDos = (DB.negociateurs || []).some(n =>
+      n.agence === currentUser.agence && n.statut_emploi === 'gérant' &&
+      n.nom.toLowerCase() === currentUser.nom.toLowerCase()
+    );
+    if (isGerantDos) {
+      const agenceObj = (DB.agences || []).find(a => a.nom === currentUser.agence);
+      if (agenceObj) {
+        const agencesSociete = (DB.agences || []).filter(a => a.societe_id === agenceObj.societe_id).map(a => a.nom);
+        list = list.filter(d => agencesSociete.includes(d.agence));
+      }
+    }
+  }
   const tbody = document.getElementById('dos-tbody');
   document.getElementById('dos-count').textContent = list.length + ' dossier(s)';
   const totalBar = document.getElementById('dos-total-bar');
@@ -4313,9 +4394,11 @@ function refreshDossiers() {
     totalBar.innerHTML = parts.join('<span style="color:var(--border)"> | </span>');
   }
   const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin';
+  const isGerantView = currentUser.role === 'agence' && (DB.negociateurs || []).some(n => n.agence === currentUser.agence && n.statut_emploi === 'gérant' && n.nom.toLowerCase() === currentUser.nom.toLowerCase());
+  const canEditEffectif = canEdit && !isGerantView;
   if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier trouvé</td></tr>'; return; }
   tbody.innerHTML = list.map(d => `
-    <tr class="${canEdit ? 'tr-clickable' : ''}" style="${canEdit ? 'cursor:pointer' : ''}" ${canEdit ? `onclick="openEdit(${d.id})"` : ''}>
+    <tr class="${canEditEffectif ? 'tr-clickable' : ''}" style="${canEditEffectif ? 'cursor:pointer' : ''}" ${canEditEffectif ? `onclick="openEdit(${d.id})"` : ''}>
       <td><strong>${d.client}</strong>${d.groupId ? ` <span style="font-size:10px;color:var(--text-muted)">#G${d.groupId}</span>` : ''}</td>
       <td>${agenceBadge(d)}</td>
       <td style="font-size:12px">${d.ttc ? fmtEuro(d.ttc) : '—'}</td>
@@ -4329,7 +4412,7 @@ function refreshDossiers() {
       <td style="font-size:12px;color:var(--text-muted)">${d.mois}</td>
       <td style="font-size:12px;color:var(--text-muted);text-transform:capitalize">${d.saisi}</td>
       <td onclick="event.stopPropagation()">
-        ${canEdit ? `<button class="btn btn-sm btn-danger" onclick="openDelete(${d.id})">🗑</button>` : '—'}
+        ${canEditEffectif ? `<button class="btn btn-sm btn-danger" onclick="openDelete(${d.id})">🗑</button>` : '—'}
       </td>
     </tr>`).join('');
 }
@@ -4597,8 +4680,9 @@ async function confirmEdit() {
 }
 
 function clearSearchDos() {
-  const el = document.getElementById('search-dos');
-  if (el) { el.value = ''; refreshDossiers(); }
+  const els = ['search-dos','filter-mois-dos','filter-agence-dos','filter-statut-dos','filter-neg-dos','filter-rent-dos'];
+  els.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  refreshDossiers();
 }
 
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -4843,7 +4927,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.6</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.7</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
