@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.11</title>
+<title>Scorim v1.4.12</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -762,7 +762,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.11</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.12</div>
     </div>
   </div>
 </div>
@@ -859,7 +859,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.11</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.12</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -4473,17 +4473,37 @@ function refreshDossiers() {
     }
   }
   const tbody = document.getElementById('dos-tbody');
-  document.getElementById('dos-count').textContent = list.length + ' dossier(s)';
+  // Comptage intelligent : les intercabinets (même groupId) comptent pour 1
+  const countAffaires = (arr) => {
+    const groupsSeen = new Set();
+    let count = 0;
+    arr.forEach(d => {
+      if (d.groupId) {
+        if (!groupsSeen.has(d.groupId)) { groupsSeen.add(d.groupId); count++; }
+      } else {
+        count++;
+      }
+    });
+    return count;
+  };
+  const nbTotal = countAffaires(list);
+  document.getElementById('dos-count').textContent = nbTotal + ' affaire(s)';
   const totalBar = document.getElementById('dos-total-bar');
   if (totalBar) {
-    const dosSignes = list.filter(d => isNet(d));
-    const totalHTNet = dosSignes.reduce((s,d) => s+(d.ht||0), 0);
     const parts = [];
-    if (dosSignes.length > 0) parts.push('<span style="font-weight:700;color:var(--primary)">' + fmtEuro(totalHTNet) + ' HT net</span><span style="color:var(--text-muted)">·</span><span style="color:var(--text-muted)">' + dosSignes.length + ' signé(s)</span>');
+    // CA total de tous les dossiers visibles avec un montant HT
+    const totalHTVisible = list.reduce((s,d) => s+(d.ht||0), 0);
+    if (totalHTVisible > 0) parts.push('<span style="font-weight:700;color:var(--primary)">' + fmtEuro(totalHTVisible) + ' HT net</span>');
+    // Signés
+    const dosSignes = list.filter(d => d.statut === 'SIGNÉ');
+    const nbSignes = countAffaires(dosSignes);
+    if (nbSignes > 0) parts.push('<span style="color:var(--text-muted)">' + nbSignes + ' signé(s)</span>');
+    // Annulations
     const dosSru = list.filter(d => d.statut === 'SRU' || d.statut === 'REFUS DE CRÉDIT');
-    if (dosSru.length > 0) parts.push('<span style="color:#dc2626">' + dosSru.length + ' annulation(s)</span>');
+    if (dosSru.length > 0) parts.push('<span style="color:#dc2626">' + countAffaires(dosSru) + ' annulation(s)</span>');
+    // À signer
     const dosAsigner = list.filter(d => d.statut === 'À SIGNER');
-    if (dosAsigner.length > 0) parts.push('<span style="color:#0369a1">' + dosAsigner.length + ' à signer</span>');
+    if (dosAsigner.length > 0) parts.push('<span style="color:#0369a1">' + countAffaires(dosAsigner) + ' à signer</span>');
     totalBar.innerHTML = parts.join('<span style="color:var(--border)"> | </span>');
   }
   const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin';
@@ -5041,7 +5061,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.11</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.12</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -8684,6 +8704,17 @@ function buildASignerCards(dosFiltre) {
     '</div>' +
   '</div>';
 }
+
+function buildRatioVentes(last10) {
+  if (!last10 || last10.length === 0) return '';
+  const now = new Date();
+  const oldest = last10[last10.length - 1];
+  if (!oldest || !oldest.date) return '';
+  const jours = Math.floor((now - new Date(oldest.date)) / 86400000);
+  if (jours <= 0) return '';
+  const ratio = (jours / last10.length).toFixed(1).replace('.0','');
+  return '<span style="font-size:12px;color:var(--text-muted);font-weight:500">1 vente tous les <strong style="color:var(--primary)">' + ratio + ' j</strong></span>';
+}
 function buildStatCards(c1l, c1v, c2l, c2v, c3l, c3v, c4l, c4v) {
   return '<div class="stats-grid" style="margin-bottom:20px">' +
     '<div class="stat-card"><div class="stat-label">' + c1l + '</div><div class="stat-value">' + c1v + '</div></div>' +
@@ -9573,7 +9604,7 @@ function renderStatsSociete(container, socId) {
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏛 ' + (s.forme_juridique?s.forme_juridique+' ':'') + s.nom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards(DB.dossiers.filter(d => agenceNoms.includes(d.agence))) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span><span id="ratio-soc-ventes"></span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-soc-sel-annee-moy" onchange="refreshStatsMoyenneSociete()" class="filter-select" style="font-size:12px"></select></div><div id="stats-soc-moyenne" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div></div>' +
@@ -9602,6 +9633,8 @@ function renderStatsSociete(container, socId) {
   document.getElementById('fiche-societe-ventes').innerHTML = last10.map((d,i) =>
     '<tr style="border-bottom:1px solid var(--border);' + (i%2?'background:#f8fafc':'') + '"><td style="padding:8px;font-weight:600">' + d.client + '</td><td style="padding:8px;font-size:12px">' + d.agence + '</td><td style="padding:8px;font-size:12px">' + fmtDate(d.date) + '</td><td style="padding:8px;font-weight:700;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td><td style="padding:8px">' + statusBadge(d.statut) + '</td></tr>'
   ).join('');
+  const ratioSocEl = document.getElementById('ratio-soc-ventes');
+  if (ratioSocEl) ratioSocEl.innerHTML = buildRatioVentes(last10);
 
   const years = [...new Set(dos.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
   const yearOpts = years.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
@@ -9650,7 +9683,7 @@ function renderStatsAgence(container, agNom) {
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dosAgence.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards(DB.dossiers.filter(d => d.agence === agNom)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span><span id="ratio-ag-ventes"></span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-ag-sel-annee-moy" onchange="refreshStatsMoyenneAgence()" class="filter-select" style="font-size:12px"></select></div><div id="stats-ag-moyenne" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div></div>' +
@@ -9689,6 +9722,9 @@ function renderStatsAgence(container, agNom) {
       '<td style="padding:8px">' + statusBadge(d.statut) + '</td>' +
     '</tr>';
   }).join('');
+  const last10ag = [...dosAgence].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0,10);
+  const ratioAgEl = document.getElementById('ratio-ag-ventes');
+  if (ratioAgEl) ratioAgEl.innerHTML = buildRatioVentes(last10ag);
 
   const years = [...new Set(dosAgence.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort((a,b)=>b-a);
   const yearOpts = years.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
@@ -9759,7 +9795,7 @@ function renderStatsNeg(container, negId) {
     '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + n.agence + ' · ' + (n.poste||'négociateur') + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dossiersVentes.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards((DB.dossierNeg||[]).filter(l=>l.negociateur_id===n.id).map(l=>DB.dossiers.find(x=>x.id===l.dossier_id)).filter(Boolean)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
+    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span><span id="ratio-neg-ventes"></span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-n1"></table></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
@@ -9787,6 +9823,9 @@ function renderStatsNeg(container, negId) {
     const j = d.date?Math.floor((now-new Date(d.date))/86400000):'—';
     return '<tr><td><strong>'+d.client+'</strong></td><td>'+d.agence+'</td><td>'+fmtDate(d.date)+'</td><td style="color:'+(j>90?'#dc2626':j>30?'#f59e0b':'#10b981')+';font-weight:600">'+(j!=='—'?j+'j':'—')+'</td><td style="font-weight:600;color:var(--primary)">'+fmtEuro(d.caCollab)+'</td><td>'+statusBadge(d.statut)+'</td></tr>';
   }).join('');
+  const last10neg = [...dossiersVentes].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0,10);
+  const ratioNegEl = document.getElementById('ratio-neg-ventes');
+  if (ratioNegEl) ratioNegEl.innerHTML = buildRatioVentes(last10neg);
 
   // Tableaux
   const years = [...new Set(dossiersVentes.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort();
