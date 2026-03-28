@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.13bb</title>
+<title>Scorim v1.4.13cc</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -762,7 +762,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.13b</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.13c</div>
     </div>
     </div>
   </div>
@@ -863,7 +863,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.13bb</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.13cc</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -3174,7 +3174,17 @@ async function initApp() {
   // Sidebar
   document.getElementById('sidebar-avatar').textContent = currentUser.nom.charAt(0).toUpperCase();
   document.getElementById('sidebar-username').textContent = currentUser.nom;
-  document.getElementById('sidebar-role').textContent = currentUser.role === 'admin' ? 'Administrateur' : currentUser.role === 'saisie' ? 'Saisie' : currentUser.role === 'gratuit' ? 'Accès gratuit' : 'Agence';
+  document.getElementById('sidebar-role').textContent = currentUser.role === 'admin' ? 'Administrateur' : currentUser.role === 'saisie' ? 'Saisie' : currentUser.role === 'gratuit' ? '' : 'Agence';
+  // Masquer rôle + version pour gratuit
+  const sidebarRoleEl = document.getElementById('sidebar-role');
+  const sidebarVersionEl = document.querySelector('.sidebar-footer [style*="letter-spacing"]');
+  if (currentUser.role === 'gratuit') {
+    if (sidebarRoleEl) sidebarRoleEl.style.display = 'none';
+    if (sidebarVersionEl) sidebarVersionEl.style.display = 'none';
+  } else {
+    if (sidebarRoleEl) sidebarRoleEl.style.display = '';
+    if (sidebarVersionEl) sidebarVersionEl.style.display = '';
+  }
 
   // Navigation selon rôle
   const saisieSection = document.getElementById('nav-saisie-section');
@@ -5180,7 +5190,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.13bb</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.13cc</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
