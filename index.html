@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.7</title>
+<title>Scorim v1.4.8</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -760,7 +760,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.7</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.8</div>
     </div>
   </div>
 </div>
@@ -857,7 +857,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.7</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.8</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -4622,6 +4622,17 @@ async function confirmEdit() {
       if (idx >= 0) DB.dossiers[idx] = { ...DB.dossiers[idx], ...champsCommuns, pct, ttc: ttcPart, brutHT: brutHTPart, ht: netHTPart, apportHT: apportHTPart };
     }
 
+    // Forcer la mise à jour de negLignesEdit depuis le DOM avant sauvegarde
+    document.querySelectorAll('[id^="neg-edit-lignes-"]').forEach((container, agenceIdx) => {
+      if (!negLignesEdit[agenceIdx]) return;
+      container.querySelectorAll('select').forEach((sel, li) => {
+        if (negLignesEdit[agenceIdx][li] !== undefined) negLignesEdit[agenceIdx][li].negId = sel.value;
+      });
+      container.querySelectorAll('input[type=number]').forEach((inp, li) => {
+        if (negLignesEdit[agenceIdx][li] !== undefined) negLignesEdit[agenceIdx][li].pct = inp.value;
+      });
+    });
+
     // Sauvegarde négociateurs : supprime les anciens et recrée
     const agencesGroupe = cibles.map(d => d.agence);
     const negToSave = collectNegociateursEdit(agencesGroupe);
@@ -4645,6 +4656,16 @@ async function confirmEdit() {
       await sbDelete('dossier_rentreurs', 'dossier_id=eq.' + d.id);
       DB.dossierRent = (DB.dossierRent || []).filter(r => r.dossier_id !== d.id);
     }
+    // Forcer la mise à jour de rentreurLignesEdit depuis le DOM
+    rentreurLignesEdit.forEach((ligne, idx) => {
+      const row = document.getElementById('rent-edit-row-' + idx);
+      if (!row) return;
+      const sels = row.querySelectorAll('select');
+      const inp = row.querySelector('input[type=number]');
+      if (sels[1]) rentreurLignesEdit[idx].negId = sels[1].value;
+      if (inp) rentreurLignesEdit[idx].pct = inp.value;
+    });
+
     const rentToSave = rentreurLignesEdit.filter(l => l.negId);
     if (rentToSave.length > 0) {
       // Recalcule le CA_rentrée depuis le % agence × % rentreur
@@ -4927,7 +4948,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.7</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.8</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -6453,7 +6474,7 @@ function buildNegLigneEdit(agenceIdx, ligneIdx, agence, negsAgence, ligne) {
   return '<div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px">' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onNegEditSelect(' + agenceIdx + ',' + ligneIdx + ',this.value)">' + selectOptions + '</select>' +
     '<div style="display:flex;align-items:center;gap:4px">' +
-    '<input type="number" min="0" max="100" step="1" placeholder="%" value="' + (ligne.pct || '') + '" style="width:70px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onNegEditPct(' + agenceIdx + ',' + ligneIdx + ',this.value)">' +
+    '<input type="number" min="0" max="100" step="1" placeholder="%" value="' + (ligne.pct || '') + '" style="width:70px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onNegEditPct(' + agenceIdx + ',' + ligneIdx + ',this.value)" oninput="onNegEditPct(' + agenceIdx + ',' + ligneIdx + ',this.value)">' +
     '<span style="font-size:12px;color:var(--text-muted)">%</span></div>' +
     (ligneIdx > 0 ? '<button class="btn btn-sm btn-danger" onclick="removeNegLigneEdit(' + agenceIdx + ',' + ligneIdx + ')">✕</button>' : '<div></div>') +
     '</div>';
@@ -6887,7 +6908,7 @@ function buildRentreurLigneSaisie(idx, ligne) {
   const negsAgence = ligne.agence ? negosByAgence(ligne.agence) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
   const pct = ligne.pct !== undefined ? ligne.pct : 100;
-  return '<div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
+  return '<div id="rent-edit-row-' + idx + '" style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurAgenceChange(' + idx + ',this.value)">' + agenceOpts + '</select>' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurNegChange(' + idx + ',this.value)">' + negOpts + '</select>' +
     '<div style="display:flex;align-items:center;gap:3px">' +
@@ -6967,7 +6988,7 @@ function buildRentreurLigneEdit(idx, ligne) {
   const negsAgence = ligne.agence ? negosByAgence(ligne.agence) : [];
   const negOpts = '<option value="">— Rentreur —</option>' + negsAgence.map(n => '<option value="' + n.id + '"' + (String(n.id) === String(ligne.negId) ? ' selected' : '') + '>' + n.nom + '</option>').join('');
   const pct = ligne.pct !== undefined ? ligne.pct : 100;
-  return '<div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
+  return '<div id="rent-edit-row-' + idx + '" style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px">' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurEditAgence(' + idx + ',this.value)">' + agenceOpts + '</select>' +
     '<select style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" onchange="onRentreurEditNeg(' + idx + ',this.value)">' + negOpts + '</select>' +
     '<div style="display:flex;align-items:center;gap:3px">' +
