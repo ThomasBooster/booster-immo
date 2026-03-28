@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.13</title>
+<title>Scorim v1.4.13bb</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -750,7 +750,7 @@
       </svg>
       <p style="margin-top:8px">Suivi des ventes — Accès privé</p>
     </div>
-    <div class="auth-form">
+        <div class="auth-form">
       <h2>Connexion</h2>
       <div class="form-group">
         <label>Identifiant</label>
@@ -762,7 +762,8 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.13</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.13b</div>
+    </div>
     </div>
   </div>
 </div>
@@ -794,6 +795,9 @@
           <div class="nav-item" id="nav-ranking" onclick="showPage('ranking', this)">
             <span class="nav-icon">🏆</span> Classement agences
           </div>
+          <div class="nav-item" id="nav-nouveau-dossier" style="display:none" onclick="showPage('saisie', this)">
+            <span class="nav-icon">✏️</span> Nouveau dossier
+          </div>
           <div class="nav-item" onclick="showPage('negociateurs-classement', this)">
             <span class="nav-icon">🥇</span> Classement Négociateurs
           </div>
@@ -811,12 +815,6 @@
           </div>
           <div class="nav-item" onclick="showPage('chatbot', this)">
             <span class="nav-icon">💬</span> Assistant IA
-          </div>
-        </div>
-        <div class="nav-section" id="nav-gratuit-section" style="display:none">
-          <div class="nav-section-title">Gestion</div>
-          <div class="nav-item" onclick="showPage('saisie', this)">
-            <span class="nav-icon">✏️</span> Nouveau dossier
           </div>
         </div>
         <div class="nav-section" id="nav-saisie-section" style="display:none">
@@ -865,7 +863,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.13</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.13bb</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -3274,14 +3272,22 @@ async function initApp() {
     document.getElementById('nav-feedback').style.display = 'none';
     document.getElementById('nav-saisie-section').style.display = 'none';
     document.getElementById('nav-rh-section').style.display = 'none';
-    document.getElementById('nav-gratuit-section').style.display = 'block';
-    // Masquer tout sauf classement agences dans la nav principale
+    // Masquer tous les nav-item sauf classement + nouveau dossier
     document.querySelectorAll('.nav-item').forEach(el => {
       const fn = el.getAttribute('onclick') || '';
-      if (!fn.includes("'ranking'") && !el.closest('#nav-gratuit-section') && !el.closest('#nav-feedback-section')) {
+      const id = el.id || '';
+      if (!fn.includes("'ranking'") && id !== 'nav-nouveau-dossier') {
         el.style.display = 'none';
       }
     });
+    // Masquer les titres de section vides
+    document.querySelectorAll('.nav-section').forEach(sec => {
+      const visibleItems = [...sec.querySelectorAll('.nav-item')].filter(el => el.style.display !== 'none');
+      if (visibleItems.length === 0) sec.style.display = 'none';
+    });
+    // Afficher le bouton Nouveau dossier
+    const nvEl = document.getElementById('nav-nouveau-dossier');
+    if (nvEl) nvEl.style.display = 'flex';
     // Rediriger vers classement agences par défaut
     showPage('ranking', document.getElementById('nav-ranking'));
   } else {
@@ -5174,7 +5180,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.13</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.13bb</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
