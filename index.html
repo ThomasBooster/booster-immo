@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.13cc</title>
+<title>Scorim v1.4.13c</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -696,14 +696,18 @@
   }
   .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
   .tr-clickable:hover { background: var(--color-background-secondary, #f8fafc) !important; transition: background .1s; }
-  /* Mode gratuit : masquer via classe body */
-  body.role-gratuit .nav-item:not(#nav-ranking):not(#nav-nouveau-dossier) { display: none !important; }
-  body.role-gratuit .nav-section { display: none; }
-  body.role-gratuit #nav-ranking,
+  /* Mode gratuit : masquer tout sauf classement + nouveau dossier */
+  body.role-gratuit .nav-section { display: none !important; }
+  body.role-gratuit .nav-section-title { display: none !important; }
+  body.role-gratuit #nav-saisie-section { display: none !important; }
+  body.role-gratuit #nav-rh-section { display: none !important; }
+  body.role-gratuit #nav-feedback-section { display: none !important; }
+  body.role-gratuit #nav-ranking { display: flex !important; }
   body.role-gratuit #nav-nouveau-dossier { display: flex !important; }
-  body.role-gratuit .nav-section:has(#nav-ranking) { display: block !important; }
-  body.role-gratuit #sidebar-role,
-  body.role-gratuit .sidebar-footer [style*="letter-spacing"] { display: none !important; }
+  body.role-gratuit #nav-ranking,
+  body.role-gratuit #nav-nouveau-dossier { visibility: visible !important; }
+  body.role-gratuit #sidebar-role { display: none !important; }
+  body.role-gratuit .sidebar-version { display: none !important; }
 
 
 /* ── Tooltip custom rémunération ─────────────────────────── */
@@ -760,14 +764,8 @@
     </div>
         <div class="auth-form">
       <h2>Connexion</h2>
-      <div class="form-group">
-        <label>Identifiant</label>
-        <input type="text" id="login-user" placeholder="Votre identifiant">
-      </div>
-      <div class="form-group">
-        <label>Mot de passe</label>
-        <input type="password" id="login-pass" placeholder="Votre mot de passe" onkeydown="if(event.key==='Enter') doLogin()">
-      </div>
+      <div class="form-group"><label>Identifiant</label><input type="text" id="login-user" placeholder="Votre identifiant"></div>
+      <div class="form-group"><label>Mot de passe</label><input type="password" id="login-pass" placeholder="Votre mot de passe" onkeydown="if(event.key==='Enter') doLogin()"></div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
       <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.13c</div>
@@ -800,12 +798,12 @@
           <div class="nav-item active" onclick="showPage('dashboard', this)">
             <span class="nav-icon">📊</span> Vue d'ensemble
           </div>
-          <div class="nav-item" id="nav-ranking" onclick="showPage('ranking', this)">
+          <div class="nav-section" id="nav-gratuit-wrapper" style="display:none"><div class="nav-item" id="nav-ranking" onclick="showPage('ranking', this)">
             <span class="nav-icon">🏆</span> Classement agences
           </div>
           <div class="nav-item" id="nav-nouveau-dossier" style="display:none" onclick="showPage('saisie', this)">
             <span class="nav-icon">✏️</span> Nouveau dossier
-          </div>
+          </div></div>
           <div class="nav-item" onclick="showPage('negociateurs-classement', this)">
             <span class="nav-icon">🥇</span> Classement Négociateurs
           </div>
@@ -871,7 +869,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.13cc</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.13c</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -3278,6 +3276,10 @@ async function initApp() {
   } else if (currentUser.role === 'gratuit') {
     // Rôle gratuit : classe CSS sur body, pas de manipulation DOM directe
     document.body.classList.add('role-gratuit');
+    const wrapperEl = document.getElementById('nav-gratuit-wrapper');
+    if (wrapperEl) wrapperEl.style.display = 'block';
+    const nvDosEl = document.getElementById('nav-nouveau-dossier');
+    if (nvDosEl) nvDosEl.style.display = 'flex';
     // Rediriger vers classement agences par défaut
     showPage('ranking', document.getElementById('nav-ranking'));
   } else {
@@ -5170,7 +5172,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.13cc</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.13c</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
