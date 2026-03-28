@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.4</title>
+<title>Scorim v1.4.5</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -697,6 +697,25 @@
   .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
   .tr-clickable:hover { background: var(--color-background-secondary, #f8fafc) !important; transition: background .1s; }
 
+
+/* ── Tooltip custom rémunération ─────────────────────────── */
+#remu-tooltip {
+  position: fixed;
+  z-index: 99999;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  white-space: nowrap;
+  display: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  transition: opacity .05s;
+}
+#remu-tooltip.show { display: block; }
+#remu-tooltip.red   { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+#remu-tooltip.blue  { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
+#remu-tooltip.green { background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -741,7 +760,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.4</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.5</div>
     </div>
   </div>
 </div>
@@ -838,7 +857,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.4</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.5</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -1503,7 +1522,10 @@
             <select id="remun-annee-select" class="filter-select" style="width:100px" onchange="loadRemunerationsList()"></select>
             <button class="btn btn-outline btn-sm" onclick="loadRemunerationsList()">🔄 Actualiser</button>
             <div style="flex:1"></div>
-            <button class="btn btn-accent" id="remun-btn-pdf" onclick="genererRecapRemunPDF()" style="display:none">🖨️ Générer PDF récapitulatif</button>
+            <div id="remun-btn-pdf-zone" style="display:none;text-align:right">
+              <button class="btn btn-accent" id="remun-btn-pdf" onclick="genererRecapRemunPDF()">🖨️ Générer PDF (salariés)</button>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Agents co exclus du PDF</div>
+            </div>
           </div>
         </div>
 
@@ -1513,7 +1535,7 @@
             <span class="card-title">📋 État des rémunérations</span>
             <span id="remun-liste-count" style="font-size:12px;color:var(--text-muted)"></span>
           </div>
-          <div id="remun-liste-container" style="padding:16px">
+          <div id="remun-liste-container">
             <div style="text-align:center;padding:40px;color:var(--text-muted)">Sélectionnez une période et actualisez</div>
           </div>
         </div>
@@ -4821,7 +4843,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.4</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.5</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -12786,10 +12808,10 @@ async function loadRemunerationsList() {
   container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">⏳ Chargement...</div>';
 
   try {
-    // Collaborateurs éligibles selon rôle
-    const typesEligibles = ['salarié', 'responsable', 'alternant'];
+    // Tous les collabs avec rémunération (salariés + responsables + alternants + agents co)
+    const typesEligibles = ['salarié', 'responsable', 'alternant', 'agent-co'];
     let collabs = DB.negociateurs.filter(n =>
-      typesEligibles.includes(n.statut_emploi) && n.actif
+      typesEligibles.includes(n.statut_emploi) && n.actif && !n.nom.startsWith('🍒')
     );
     if (currentUser.role === 'agence') {
       collabs = collabs.filter(n => n.agence === currentUser.agence);
@@ -12797,7 +12819,8 @@ async function loadRemunerationsList() {
 
     if (collabs.length === 0) {
       container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">Aucun collaborateur éligible</div>';
-      if (btnPdf) btnPdf.style.display = 'none';
+      const pdfZone = document.getElementById('remun-btn-pdf-zone');
+      if (pdfZone) pdfZone.style.display = 'none';
       return;
     }
 
@@ -12808,15 +12831,33 @@ async function loadRemunerationsList() {
     const validMap = {};
     (validations || []).forEach(v => { validMap[v.negociateur_id] = v; });
 
+    // Charger la dernière validation pour chaque collab (si pas de validation ce mois)
+    const allValidations = await sbFetch('remuneration_validations', {
+      filter: 'negociateur_id=in.(' + collabs.map(c => c.id).join(',') + ')',
+      order: 'annee.desc,mois.desc'
+    });
+    const lastValidMap = {};
+    (allValidations || []).forEach(v => {
+      if (!lastValidMap[v.negociateur_id]) lastValidMap[v.negociateur_id] = v;
+    });
+
     document.getElementById('remun-liste-count').textContent = collabs.length + ' collaborateur(s)';
-    if (btnPdf) btnPdf.style.display = 'block';
+    const pdfZone = document.getElementById('remun-btn-pdf-zone');
+    if (pdfZone) pdfZone.style.display = 'block';
 
-    // Stocker pour le PDF
-    window._remunListeData = { collabs, validMap, mois, annee };
+    // Stocker pour le PDF (sans agents co)
+    window._remunListeData = { collabs: collabs.filter(c => c.statut_emploi !== 'agent-co'), validMap, mois, annee };
 
-    // Construire le tableau
+    const typeBadges = {
+      salarié: '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#E6F1FB;color:#0C447C">CDI</span>',
+      responsable: '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#EEEDFE;color:#3C3489">Responsable</span>',
+      alternant: '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#FAEEDA;color:#633806">Alternant</span>',
+      'agent-co': '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#F1EFE8;color:#444441">Agent co</span>',
+    };
+
     const rows = collabs.map(c => {
       const v = validMap[c.id];
+      const lastV = lastValidMap[c.id];
       const avance = parseFloat(c.avance_commission) || 0;
       const prime = v ? (v.prime_agence_montant || 0) : 0;
       const commissions = v ? ((v.total_commissions || 0) + (v.credit_courtier || 0)) : 0;
@@ -12824,48 +12865,138 @@ async function loadRemunerationsList() {
       let totalAVerser = 0;
       let detailHtml = '';
 
+      const moisNomsCourt = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+      const moisNomsBouton = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+      // Calcul totalAVerser — avec fallback si salaire_a_verser pas encore renseigné
+      const _calcTotal = (val, collab) => {
+        if (!val) return 0;
+        const _sal = val.salaire_a_verser || 0;
+        const _comm = (val.total_commissions || 0) + (val.credit_courtier || 0);
+        const _fixe = collab.statut_emploi === 'alternant' ? (parseFloat(collab.avance_commission) || 0) : 0;
+        const _prime = val.prime_agence_montant || 0;
+        if (collab.statut_emploi === 'alternant') return _comm + _fixe;
+        if (_sal > 0) return collab.statut_emploi === 'responsable' ? _sal + _prime : _sal;
+        // Fallback recalcul (anciennes validations sans salaire_a_verser)
+        const _avance = parseFloat(collab.avance_commission) || 0;
+        const _partNR = collab.part_non_recup != null ? parseFloat(collab.part_non_recup) / 100 : 0;
+        const _montantNR = Math.round(_avance * _partNR * 100) / 100;
+        const _soldeAnt = -Math.abs(val.solde_initial || 0) + _montantNR;
+        const _dc = _comm + _soldeAnt;
+        const _s = _dc >= _avance ? _dc : _avance;
+        return collab.statut_emploi === 'responsable' ? _s + _prime : _s;
+      };
+
       if (v) {
-        // Utiliser salaire_a_verser stocké à la validation — source de vérité
-        const sal = v.salaire_a_verser || 0;
+        totalAVerser = _calcTotal(v, c);
+        const _sal = v.salaire_a_verser || 0;
+        const _prime = v.prime_agence_montant || 0;
         if (c.statut_emploi === 'alternant') {
-          totalAVerser = commissions + fixeAlt;
-          detailHtml = fmtEuro(commissions) + ' comm. + ' + fmtEuro(fixeAlt) + ' fixe';
+          const _comm = (v.total_commissions || 0) + (v.credit_courtier || 0);
+          const _fixe = parseFloat(c.avance_commission) || 0;
+          detailHtml = fmtEuro(_comm) + ' comm. + ' + fmtEuro(_fixe) + ' fixe';
         } else if (c.statut_emploi === 'responsable') {
-          totalAVerser = sal + prime;
-          detailHtml = fmtEuro(sal) + ' avance' + (prime > 0 ? ' + ' + fmtEuro(prime) + ' prime' : '');
+          const _base = totalAVerser - _prime;
+          detailHtml = fmtEuro(_base) + ' avance' + (_prime > 0 ? ' + ' + fmtEuro(_prime) + ' prime' : '');
         } else {
-          totalAVerser = sal;
-          detailHtml = fmtEuro(sal);
+          detailHtml = fmtEuro(totalAVerser);
         }
       }
 
+      // Dernière rémunération connue (si pas ce mois)
+      let derniereMois = '';
+      const lastVMontant = lastV ? _calcTotal(lastV, c) : 0;
+      if (!v && lastV) {
+        derniereMois = '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + moisNomsCourt[lastV.mois] + ' ' + lastV.annee + '</div>';
+      }
+
+      // Tooltip — montant = totalAVerser pour vert, lastVMontant pour bleu
+      let btnTooltip = 'Aucune rémunération calculée';
+      let btnColor = 'red';
+      if (v) {
+        btnTooltip = '✓ Validé ' + moisNomsBouton[mois] + ' ' + annee + ' — ' + fmtEuro(totalAVerser);
+        btnColor = 'green';
+      } else if (lastV) {
+        btnTooltip = 'Dernier calcul validé : ' + moisNomsCourt[lastV.mois] + ' ' + lastV.annee + ' — ' + fmtEuro(lastVMontant);
+        btnColor = 'blue';
+      }
+      const btnStyle = v
+        ? 'padding:6px 10px;border-radius:8px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;font-size:13px;cursor:pointer'
+        : 'padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:13px;cursor:pointer';
+
       const statutHtml = v
-        ? '<span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d">✓ Validé</span>'
-        : '<span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;background:#fef2f2;color:#dc2626">⚠️ Non validé</span>';
+        ? '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#EAF3DE;color:#27500A">✓ Validé</span>'
+        : '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#FCEBEB;color:#791F1F">⚠️ Non validé</span>';
 
-      const typeLabel = { salarié: 'CDI', responsable: 'Responsable', alternant: 'Alternant' }[c.statut_emploi] || c.statut_emploi;
-
-      return '<tr style="border-bottom:1px solid var(--border);' + (!v ? 'background:#fef2f2' : '') + '">' +
-        '<td style="padding:10px 12px;font-weight:600">' + c.nom + '</td>' +
-        '<td style="padding:10px 12px;font-size:12px;color:var(--text-muted)">' + c.agence + '</td>' +
-        '<td style="padding:10px 12px"><span style="padding:2px 8px;border-radius:6px;font-size:11px;background:#f1f5f9;font-weight:600">' + typeLabel + '</span></td>' +
-        '<td style="padding:10px 12px;text-align:right">' + (v ? '<strong style="font-size:15px;color:var(--primary)">' + fmtEuro(totalAVerser) + '</strong><br><span style="font-size:11px;color:var(--text-muted)">' + detailHtml + '</span>' : '<span style="color:#dc2626;font-size:12px">—</span>') + '</td>' +
-        '<td style="padding:10px 12px;text-align:center">' + statutHtml + '</td>' +
+      return '<tr style="border-bottom:1px solid var(--border);' + (!v ? 'background:#fef9f9' : '') + '">' +
+        '<td style="padding:10px 14px;width:50px">' +
+          '<button style="' + btnStyle + '" onclick="openRemunerationForCollab(' + c.id + ')" data-remu-tooltip="' + btnTooltip + '" data-remu-color="' + btnColor + '">💶</button>' +
+        '</td>' +
+        '<td style="padding:10px 14px;font-weight:600">' + c.nom + '</td>' +
+        '<td style="padding:10px 14px;font-size:12px;color:var(--text-muted)">' + c.agence + '</td>' +
+        '<td style="padding:10px 14px">' + (typeBadges[c.statut_emploi] || c.statut_emploi) + '</td>' +
+        '<td style="padding:10px 14px;text-align:right">' +
+          (v ? '<div style="font-size:15px;font-weight:700;color:var(--primary)">' + fmtEuro(totalAVerser) + '</div><div style="font-size:11px;color:var(--text-muted)">' + detailHtml + '</div>'
+             : (lastV ? '<div style="font-size:13px;color:var(--text-muted)">' + fmtEuro(lastVMontant) + '</div>' + derniereMois : '<span style="color:var(--text-muted);font-size:12px">—</span>')) +
+        '</td>' +
+        '<td style="padding:10px 14px;text-align:center">' + statutHtml + '</td>' +
         '</tr>';
     }).join('');
 
     container.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">' +
-      '<thead><tr style="background:#f8fafc">' +
-      '<th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase">Collaborateur</th>' +
-      '<th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase">Agence</th>' +
-      '<th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase">Type</th>' +
-      '<th style="padding:10px 12px;text-align:right;font-size:11px;color:var(--text-muted);text-transform:uppercase">Total à verser</th>' +
-      '<th style="padding:10px 12px;text-align:center;font-size:11px;color:var(--text-muted);text-transform:uppercase">Statut</th>' +
+      '<thead><tr style="background:#f8fafc;border-bottom:1px solid var(--border)">' +
+      '<th style="padding:10px 14px;width:50px"></th>' +
+      '<th style="padding:10px 14px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase">Collaborateur</th>' +
+      '<th style="padding:10px 14px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase">Agence</th>' +
+      '<th style="padding:10px 14px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase">Type</th>' +
+      '<th style="padding:10px 14px;text-align:right;font-size:11px;color:var(--text-muted);text-transform:uppercase">Dernière rémunération</th>' +
+      '<th style="padding:10px 14px;text-align:center;font-size:11px;color:var(--text-muted);text-transform:uppercase">Statut</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 
   } catch(e) {
     container.innerHTML = '<div style="color:#dc2626;padding:20px">Erreur : ' + e.message + '</div>';
   }
+}
+
+function openRemunerationForCollab(negId) {
+  const neg = DB.negociateurs.find(n => n.id === negId);
+  if (!neg) return;
+  remuCurrentNeg = neg;
+
+  // Titre
+  document.getElementById('remu-modal-title').textContent = '💶 Rémunération — ' + neg.nom;
+
+  // Sélecteurs mois/année = mois courant
+  const now = new Date();
+  const moisEl = document.getElementById('remu-mois');
+  if (moisEl) moisEl.value = now.getMonth() + 1;
+
+  const selAnnee = document.getElementById('remu-annee');
+  if (selAnnee) {
+    selAnnee.innerHTML = '';
+    for (let y = now.getFullYear(); y >= now.getFullYear() - 4; y--) {
+      selAnnee.innerHTML += '<option value="' + y + '">' + y + '</option>';
+    }
+  }
+
+  // Reset UI
+  remuLignes = [];
+  remuMailEnvoye = false;
+  remuValide = false;
+  document.getElementById('remu-resultats').style.display = 'none';
+  document.getElementById('remu-empty').style.display = 'block';
+  document.getElementById('remu-statut-badge').style.display = 'none';
+  document.getElementById('remu-credit').value = '';
+  document.getElementById('remu-mail-sent-badge').style.display = 'none';
+  document.getElementById('remu-btn-valider').disabled = false;
+  document.getElementById('remu-btn-valider').style.opacity = '';
+  document.getElementById('remu-solde-initial-zone').style.display = 'none';
+  document.getElementById('remu-solde-initial').value = '';
+  window._remisesMois = [];
+  window._remuOpenedFrom = 'remunerations';
+
+  checkRemuValidation();
+  document.getElementById('modal-remuneration').classList.add('open');
 }
 
 function genererRecapRemunPDF() {
@@ -12905,55 +13036,135 @@ function genererRecapRemunPDF() {
   const totalGlobal = lignes.reduce((s, l) => s + l.totalAVerser, 0);
   const nonValides = lignes.filter(l => !l.v);
 
-  const html = '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}' +
-    'table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 10px}' +
-    'th{background:#f5f5f5;font-weight:700;font-size:10px;text-align:left}' +
-    '.title{font-size:18px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:4px}' +
-    '.subtitle{font-size:12px;color:#666;margin-bottom:20px}' +
-    '.total-row{background:#f0fdf4;font-weight:700}' +
-    '.non-valide{background:#fef2f2;color:#dc2626}' +
-    '@media print{button{display:none}}</style>' +
-    '<div class="title">RÉCAPITULATIF DES RÉMUNÉRATIONS — ' + moisNoms[mois].toUpperCase() + ' ' + annee + '</div>' +
-    '<div class="subtitle">Généré le ' + today + (currentUser.agence ? ' — Agence ' + currentUser.agence : ' — Toutes agences') + '</div>' +
-    (nonValides.length > 0 ? '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:10px;margin-bottom:16px;font-size:11px;color:#dc2626">⚠️ ' + nonValides.length + ' collaborateur(s) sans rémunération validée : ' + nonValides.map(l => l.c.nom).join(', ') + '</div>' : '') +
-    '<table style="margin-bottom:20px">' +
-    '<thead><tr><th>Collaborateur</th><th>Agence</th><th>Type contrat</th><th style="text-align:right">Commissions</th><th style="text-align:right">Total à verser</th><th>Détail</th><th style="text-align:center">Statut</th></tr></thead>' +
-    '<tbody>' +
-    lignes.map(l => '<tr class="' + (!l.v ? 'non-valide' : '') + '">' +
-      '<td style="font-weight:600">' + l.c.nom + '</td>' +
-      '<td>' + l.c.agence + '</td>' +
-      '<td>' + l.typeLabel + '</td>' +
-      '<td style="text-align:right">' + (l.v ? fmt((l.v.total_commissions||0)+(l.v.credit_courtier||0)) : '—') + '</td>' +
-      '<td style="text-align:right;font-weight:700">' + (l.v ? fmt(l.totalAVerser) : '<span style="color:#dc2626">Non validé</span>') + '</td>' +
-      '<td style="font-size:10px;color:#666">' + (l.v ? l.detail : '—') + '</td>' +
-      '<td style="text-align:center">' + (l.v ? '✓ Validé' : '⚠️ Non validé') + '</td>' +
-    '</tr>').join('') +
-    '<tr class="total-row"><td colspan="4" style="text-align:right;font-weight:700">TOTAL À VERSER</td><td style="text-align:right;font-size:14px;color:#16a34a;font-weight:700">' + fmt(totalGlobal) + '</td><td colspan="2"></td></tr>' +
-    '</tbody></table>' +
-    '<div style="margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px">' +
-    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Visa responsable :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
-    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Date :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
-    '</div>';
+  const titreDoc = 'Tableau des montants a reporter sur les fiches de paye du mois de ' + moisNoms[mois] + ' ' + annee;
 
-  const container = document.getElementById('remu-releve-print');
-  container.innerHTML = html;
-  container.style.display = 'block';
-  container.style.position = 'fixed';
-  container.style.top = '-9999px';
-  container.style.left = '0';
-  container.style.width = '210mm';
-  container.style.background = 'white';
+  // Entité juridique
+  let entiteLabel = 'Booster Immobilier - Toutes agences';
+  if (currentUser.agence) {
+    const agenceObj = (DB.agences || []).find(a => a.nom === currentUser.agence);
+    if (agenceObj) {
+      const societeObj = (DB.societes || []).find(s => s.id === agenceObj.societe_id);
+      entiteLabel = 'Booster ' + currentUser.agence + (societeObj ? ' - ' + (societeObj.forme_juridique ? societeObj.forme_juridique + ' ' : '') + societeObj.nom : '');
+    } else {
+      entiteLabel = 'Booster ' + currentUser.agence;
+    }
+  }
 
+  // ── Dessin natif jsPDF (coordonnées absolues, paysage A4 = 297×210mm) ──────
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-  doc.html(container, {
-    callback: function(doc) {
-      container.style.display = 'none';
-      container.innerHTML = '';
-      doc.save('recap_remunerations_' + moisNoms[mois].toLowerCase() + annee + '.pdf');
-    },
-    x: 10, y: 10, width: 190, windowWidth: 794
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  const ML = 10; // marge gauche
+  const MR = 10; // marge droite
+  const MT = 10; // marge haute
+  const pageW = 297;
+  const tableW = pageW - ML - MR; // 277mm
+
+  // Largeurs colonnes (en mm, total = 277)
+  const cols = [42, 32, 22, 26, 28, 127]; // collaborateur, agence, contrat, commissions, total, détail
+
+  let y = MT;
+
+  // ── Titre ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(45, 69, 90);
+  doc.text(titreDoc, ML, y);
+  y += 5;
+  doc.setDrawColor(45, 69, 90);
+  doc.setLineWidth(0.5);
+  doc.line(ML, y, ML + tableW, y);
+  y += 4;
+
+  // ── Sous-titre ──
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Genere le ' + today + ' - ' + entiteLabel, ML, y);
+  y += 3;
+
+  // ── Alerte non validés ──
+  if (nonValides.length > 0) {
+    y += 2;
+    doc.setFillColor(254, 242, 242);
+    doc.rect(ML, y, tableW, 6, 'F');
+    doc.setTextColor(153, 27, 27);
+    doc.setFontSize(7.5);
+    doc.text('Attention : ' + nonValides.length + ' collaborateur(s) sans remuneration validee : ' + nonValides.map(l => l.c.nom).join(', '), ML + 2, y + 4);
+    doc.setTextColor(0, 0, 0);
+    y += 8;
+  } else {
+    y += 4;
+  }
+
+  // ── En-tête tableau ──
+  const headers = ['Collaborateur', 'Agence', 'Contrat', 'Commissions', 'Total a verser', 'Detail'];
+  const hRight = [false, false, false, true, true, false];
+  doc.setFillColor(45, 69, 90);
+  doc.rect(ML, y, tableW, 7, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  let cx = ML;
+  headers.forEach((h, i) => {
+    const x = hRight[i] ? cx + cols[i] - 2 : cx + 2;
+    doc.text(h.toUpperCase(), x, y + 4.8, { align: hRight[i] ? 'right' : 'left' });
+    cx += cols[i];
   });
+  y += 7;
+
+  // ── Lignes données ──
+  doc.setFont('helvetica', 'normal');
+  lignes.forEach((l, idx) => {
+    const rowH = 7;
+    // fond alterné
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(ML, y, tableW, rowH, 'F');
+    }
+    if (!l.v) {
+      doc.setFillColor(254, 242, 242);
+      doc.rect(ML, y, tableW, rowH, 'F');
+    }
+    // séparateur bas
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.2);
+    doc.line(ML, y + rowH, ML + tableW, y + rowH);
+
+    const vals = [l.c.nom, l.c.agence, l.typeLabel, l.v ? fmt((l.v.total_commissions||0)+(l.v.credit_courtier||0)) : '-', l.v ? fmt(l.totalAVerser) : 'Non valide', l.v ? l.detail : '-'];
+    const vRight = [false, false, false, true, true, false];
+    const vBold = [true, false, false, false, true, false];
+    cx = ML;
+    vals.forEach((val, i) => {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', vBold[i] ? 'bold' : 'normal');
+      if (i === 4 && l.v) doc.setTextColor(22, 101, 52);
+      else if (!l.v && i === 4) doc.setTextColor(220, 38, 38);
+      else doc.setTextColor(60, 60, 60);
+      const tx = vRight[i] ? cx + cols[i] - 2 : cx + 2;
+      // Tronquer si trop long
+      const maxW = cols[i] - 4;
+      const splitText = doc.splitTextToSize(val, maxW);
+      doc.text(splitText[0], tx, y + 4.8, { align: vRight[i] ? 'right' : 'left' });
+      cx += cols[i];
+    });
+    y += rowH;
+  });
+
+  // ── Zone visa ──
+  y += 10;
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.3);
+  doc.line(ML, y, ML, y); // reset
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Visa responsable :', ML, y);
+  doc.line(ML + 35, y + 1, ML + 100, y + 1);
+  doc.text('Date :', ML + 150, y);
+  doc.line(ML + 163, y + 1, ML + 220, y + 1);
+
+  doc.save('recap_remunerations_' + moisNoms[mois].toLowerCase() + annee + '.pdf');
 }
 
 // ═══════════════════════════════════════════════════
@@ -13668,6 +13879,35 @@ async function callClaudeForRoadmap(messages) {
   return data.content[0].text;
 }
 
+
+// ── Tooltip custom rémunération ──────────────────────────────────────────────
+(function() {
+  const tip = document.createElement('div');
+  tip.id = 'remu-tooltip';
+  document.body.appendChild(tip);
+
+  document.addEventListener('mouseover', function(e) {
+    const btn = e.target.closest('[data-remu-tooltip]');
+    if (!btn) { tip.classList.remove('show'); return; }
+    const text = btn.dataset.remuTooltip;
+    const color = btn.dataset.remuColor || 'blue';
+    tip.textContent = text;
+    tip.className = 'show ' + color;
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!tip.classList.contains('show')) return;
+    const x = e.clientX + 12;
+    const y = e.clientY - 36;
+    tip.style.left = Math.min(x, window.innerWidth - tip.offsetWidth - 16) + 'px';
+    tip.style.top = Math.max(y, 8) + 'px';
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    if (!e.target.closest('[data-remu-tooltip]')) return;
+    tip.classList.remove('show');
+  });
+})();
 </script>
 
   <!-- MODAL AFFAIRES COLLABORATEUR -->
