@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.9</title>
+<title>Scorim v1.4.10</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -760,7 +760,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.9</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.10</div>
     </div>
   </div>
 </div>
@@ -857,7 +857,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.9</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.10</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -4321,14 +4321,17 @@ function onAnneeDosChange() {
   moisEl.innerHTML = '<option value="">Tous les mois</option>';
   if (annee) {
     // Récupérer les mois existants pour cette année
+    // Si filtre AA SIGNÉ actif → utiliser dateActe
+    const statutCourant = document.getElementById('filter-statut-dos')?.value || '';
     const moisSet = new Set();
     DB.dossiers.forEach(d => {
-      if (d.date) {
-        const dt = new Date(d.date);
+      const dateRef = (statutCourant === 'AA SIGNÉ' && d.dateActe) ? d.dateActe : d.date;
+      if (dateRef) {
+        const dt = new Date(dateRef);
         if (dt.getFullYear().toString() === annee) {
-          moisSet.add(dateToMoisStr(d.date));
+          moisSet.add(dateToMoisStr(dateRef));
         }
-      } else if (d.mois && d.mois.endsWith(annee)) {
+      } else if (!statutCourant && d.mois && d.mois.endsWith(annee)) {
         moisSet.add(d.mois);
       }
     });
@@ -4374,6 +4377,7 @@ function initDossiersFiltres() {
     const anneeSet = new Set();
     DB.dossiers.forEach(d => {
       if (d.date) anneeSet.add(new Date(d.date).getFullYear().toString());
+      if (d.dateActe) anneeSet.add(new Date(d.dateActe).getFullYear().toString());
       else if (d.mois) { const parts = d.mois.split(' '); if (parts[1]) anneeSet.add(parts[1]); }
     });
     anneeEl.innerHTML = '<option value="">Toutes les années</option>' +
@@ -4407,11 +4411,26 @@ function refreshDossiers() {
   const search = (document.getElementById('search-dos')?.value || '').trim().toLowerCase();
   const negFilter = document.getElementById('filter-neg-dos')?.value || '';
   const rentFilter = document.getElementById('filter-rent-dos')?.value || '';
-  let list = getDossiers({ mois, agence, statut }).sort((a, b) => b.id - a.id);
-  // Filtre par année si sélectionnée et pas de mois précis
+  // Pour AA SIGNÉ, le filtre mois/année doit porter sur dateActe, pas date SSP
+  let list;
+  if (statut === 'AA SIGNÉ' && (moisCourt || annee)) {
+    const moisNomsFull = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    list = getDossiers({ mois: '', agence, statut }).filter(d => {
+      if (!d.dateActe) return false;
+      const da = new Date(d.dateActe);
+      const moisStr = moisNomsFull[da.getMonth()+1] + ' ' + da.getFullYear();
+      if (moisCourt && moisStr !== moisCourt) return false;
+      if (annee && !moisCourt && da.getFullYear().toString() !== annee) return false;
+      return true;
+    }).sort((a, b) => b.id - a.id);
+  } else {
+    list = getDossiers({ mois, agence, statut }).sort((a, b) => b.id - a.id);
+  }
+  // Filtre par année — utilise dateActe si statut AA SIGNÉ, sinon date SSP
   if (annee && !moisCourt) {
     list = list.filter(d => {
-      if (d.date) return new Date(d.date).getFullYear().toString() === annee;
+      const dateRef = (statut === 'AA SIGNÉ' && d.dateActe) ? d.dateActe : d.date;
+      if (dateRef) return new Date(dateRef).getFullYear().toString() === annee;
       if (d.mois) return d.mois.endsWith(annee);
       return false;
     });
@@ -5010,7 +5029,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.9</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.10</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
