@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.8</title>
+<title>Scorim v1.4.9</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -760,7 +760,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.8</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.9</div>
     </div>
   </div>
 </div>
@@ -857,7 +857,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.8</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.9</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -1196,7 +1196,10 @@
       <div class="page" id="page-dossiers">
         <div class="filters">
           <input type="text" id="search-dos" class="filter-select" placeholder="🔍 Rechercher un client..." oninput="refreshDossiers()" style="min-width:220px">
-          <select class="filter-select" id="filter-mois-dos" onchange="refreshDossiers()">
+          <select class="filter-select" id="filter-annee-dos" onchange="onAnneeDosChange()" style="width:100px">
+            <option value="">Toutes les années</option>
+          </select>
+          <select class="filter-select" id="filter-mois-dos" onchange="refreshDossiers()" style="width:130px">
             <option value="">Tous les mois</option>
           </select>
           <select class="filter-select" id="filter-agence-dos" onchange="refreshDossiers()">
@@ -3248,7 +3251,7 @@ function populateFilters() {
   const currentMonthStr = MONTH_NAMES[now.getMonth()] + ' ' + now.getFullYear();
 
   // Filtres dashboard + dossiers
-  ['filter-mois','filter-mois-dos'].forEach(id => {
+  ['filter-mois'].forEach(id => {  // filter-mois-dos géré par onAnneeDosChange
     const sel = document.getElementById(id);
     if (!sel) return;
     while (sel.options.length > 1) sel.remove(1);
@@ -4311,6 +4314,41 @@ function refreshMyDossiers() {
 // =====================
 // TOUS LES DOSSIERS
 // =====================
+function onAnneeDosChange() {
+  const annee = document.getElementById('filter-annee-dos')?.value || '';
+  const moisEl = document.getElementById('filter-mois-dos');
+  if (!moisEl) return;
+  moisEl.innerHTML = '<option value="">Tous les mois</option>';
+  if (annee) {
+    // Récupérer les mois existants pour cette année
+    const moisSet = new Set();
+    DB.dossiers.forEach(d => {
+      if (d.date) {
+        const dt = new Date(d.date);
+        if (dt.getFullYear().toString() === annee) {
+          moisSet.add(dateToMoisStr(d.date));
+        }
+      } else if (d.mois && d.mois.endsWith(annee)) {
+        moisSet.add(d.mois);
+      }
+    });
+    // Trier et ajouter
+    const moisNomOrdre = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const moisList = [...moisSet].sort((a, b) => {
+      const [ma, aa] = a.split(' ');
+      const [mb, ab] = b.split(' ');
+      if (aa !== ab) return parseInt(aa) - parseInt(ab);
+      return moisNomOrdre.indexOf(ma) - moisNomOrdre.indexOf(mb);
+    });
+    moisList.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m;
+      moisEl.appendChild(o);
+    });
+  }
+  refreshDossiers();
+}
+
 function initDossiersFiltres() {
   // Déterminer le scope (gérant = sa société, sinon tout)
   let agencesFiltrees = AGENCES;
@@ -4330,6 +4368,18 @@ function initDossiersFiltres() {
     ['négociateur','rentreur','les deux'].includes(n.poste)
   ).sort((a,b) => a.nom.localeCompare(b.nom));
 
+  // Peupler les années disponibles
+  const anneeEl = document.getElementById('filter-annee-dos');
+  if (anneeEl) {
+    const anneeSet = new Set();
+    DB.dossiers.forEach(d => {
+      if (d.date) anneeSet.add(new Date(d.date).getFullYear().toString());
+      else if (d.mois) { const parts = d.mois.split(' '); if (parts[1]) anneeSet.add(parts[1]); }
+    });
+    anneeEl.innerHTML = '<option value="">Toutes les années</option>' +
+      [...anneeSet].sort((a,b) => b-a).map(a => '<option value="' + a + '">' + a + '</option>').join('');
+  }
+
   const negEl = document.getElementById('filter-neg-dos');
   const rentEl = document.getElementById('filter-rent-dos');
   if (negEl) {
@@ -4347,13 +4397,25 @@ function initDossiersFiltres() {
 }
 
 function refreshDossiers() {
-  const mois = document.getElementById('filter-mois-dos')?.value || '';
+  const annee = document.getElementById('filter-annee-dos')?.value || '';
+  const moisCourt = document.getElementById('filter-mois-dos')?.value || '';
+  // Construire le filtre mois complet (ex: "Mars 2026") ou juste l'année
+  let mois = moisCourt;
+  if (annee && !moisCourt) mois = ''; // on filtrera par année séparément
   const agence = document.getElementById('filter-agence-dos')?.value || '';
   const statut = document.getElementById('filter-statut-dos')?.value || '';
   const search = (document.getElementById('search-dos')?.value || '').trim().toLowerCase();
   const negFilter = document.getElementById('filter-neg-dos')?.value || '';
   const rentFilter = document.getElementById('filter-rent-dos')?.value || '';
   let list = getDossiers({ mois, agence, statut }).sort((a, b) => b.id - a.id);
+  // Filtre par année si sélectionnée et pas de mois précis
+  if (annee && !moisCourt) {
+    list = list.filter(d => {
+      if (d.date) return new Date(d.date).getFullYear().toString() === annee;
+      if (d.mois) return d.mois.endsWith(annee);
+      return false;
+    });
+  }
   if (search) list = list.filter(d => d.client && d.client.toLowerCase().includes(search));
   // Filtre négociateur
   if (negFilter) {
@@ -4701,7 +4763,7 @@ async function confirmEdit() {
 }
 
 function clearSearchDos() {
-  const els = ['search-dos','filter-mois-dos','filter-agence-dos','filter-statut-dos','filter-neg-dos','filter-rent-dos'];
+  const els = ['search-dos','filter-annee-dos','filter-mois-dos','filter-agence-dos','filter-statut-dos','filter-neg-dos','filter-rent-dos'];
   els.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   refreshDossiers();
 }
@@ -4948,7 +5010,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.8</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.9</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
