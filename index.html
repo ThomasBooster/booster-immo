@@ -696,6 +696,14 @@
   }
   .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
   .tr-clickable:hover { background: var(--color-background-secondary, #f8fafc) !important; transition: background .1s; }
+  /* Mode gratuit : masquer via classe body */
+  body.role-gratuit .nav-item:not(#nav-ranking):not(#nav-nouveau-dossier) { display: none !important; }
+  body.role-gratuit .nav-section { display: none; }
+  body.role-gratuit #nav-ranking,
+  body.role-gratuit #nav-nouveau-dossier { display: flex !important; }
+  body.role-gratuit .nav-section:has(#nav-ranking) { display: block !important; }
+  body.role-gratuit #sidebar-role,
+  body.role-gratuit .sidebar-footer [style*="letter-spacing"] { display: none !important; }
 
 
 /* ── Tooltip custom rémunération ─────────────────────────── */
@@ -3159,6 +3167,7 @@ async function doLogin() {
 }
 
 function doLogout() {
+  document.body.classList.remove('role-gratuit');
   currentUser = null;
   DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [], dossierRent: [], societes: [], agences: [], gerants: [] };
   document.getElementById('auth-screen').style.display = 'flex';
@@ -3175,16 +3184,7 @@ async function initApp() {
   document.getElementById('sidebar-avatar').textContent = currentUser.nom.charAt(0).toUpperCase();
   document.getElementById('sidebar-username').textContent = currentUser.nom;
   document.getElementById('sidebar-role').textContent = currentUser.role === 'admin' ? 'Administrateur' : currentUser.role === 'saisie' ? 'Saisie' : currentUser.role === 'gratuit' ? '' : 'Agence';
-  // Masquer rôle + version pour gratuit
-  const sidebarRoleEl = document.getElementById('sidebar-role');
-  const sidebarVersionEl = document.querySelector('.sidebar-footer [style*="letter-spacing"]');
-  if (currentUser.role === 'gratuit') {
-    if (sidebarRoleEl) sidebarRoleEl.style.display = 'none';
-    if (sidebarVersionEl) sidebarVersionEl.style.display = 'none';
-  } else {
-    if (sidebarRoleEl) sidebarRoleEl.style.display = '';
-    if (sidebarVersionEl) sidebarVersionEl.style.display = '';
-  }
+
 
   // Navigation selon rôle
   const saisieSection = document.getElementById('nav-saisie-section');
@@ -3276,28 +3276,8 @@ async function initApp() {
       }, 1500);
     }
   } else if (currentUser.role === 'gratuit') {
-    // Rôle gratuit : seulement classement agences + nouveau dossier
-    document.getElementById('nav-rapport').style.display = 'none';
-    document.getElementById('nav-params').style.display = 'none';
-    document.getElementById('nav-feedback').style.display = 'none';
-    document.getElementById('nav-saisie-section').style.display = 'none';
-    document.getElementById('nav-rh-section').style.display = 'none';
-    // Masquer tous les nav-item sauf classement + nouveau dossier
-    document.querySelectorAll('.nav-item').forEach(el => {
-      const fn = el.getAttribute('onclick') || '';
-      const id = el.id || '';
-      if (!fn.includes("'ranking'") && id !== 'nav-nouveau-dossier') {
-        el.style.display = 'none';
-      }
-    });
-    // Masquer les titres de section vides
-    document.querySelectorAll('.nav-section').forEach(sec => {
-      const visibleItems = [...sec.querySelectorAll('.nav-item')].filter(el => el.style.display !== 'none');
-      if (visibleItems.length === 0) sec.style.display = 'none';
-    });
-    // Afficher le bouton Nouveau dossier
-    const nvEl = document.getElementById('nav-nouveau-dossier');
-    if (nvEl) nvEl.style.display = 'flex';
+    // Rôle gratuit : classe CSS sur body, pas de manipulation DOM directe
+    document.body.classList.add('role-gratuit');
     // Rediriger vers classement agences par défaut
     showPage('ranking', document.getElementById('nav-ranking'));
   } else {
