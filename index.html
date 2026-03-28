@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.10</title>
+<title>Scorim v1.4.11</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -725,6 +725,8 @@
 
 
 
+
+
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-card">
@@ -760,7 +762,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.10</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.11</div>
     </div>
   </div>
 </div>
@@ -857,7 +859,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.10</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.11</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -1335,6 +1337,8 @@
           <select id="stats-sel-agence" style="display:none;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"></select>
           <select id="stats-sel-neg" style="display:none;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"></select>
           <button onclick="refreshStatsPage()" style="padding:8px 16px;border:none;border-radius:8px;background:var(--primary);color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif">Afficher</button>
+          <div style="flex:1"></div>
+          <button onclick="exportStatsPDF()" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:#f8fafc;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif">🖨️ PDF</button>
 
         </div>
 
@@ -2145,6 +2149,7 @@
 
         <!-- Stats rapides -->
         <div class="stats-grid" id="fiche-collab-stats" style="margin-bottom:20px"></div>
+        <div id="fiche-collab-asigner"></div>
 
         <!-- 10 dernières ventes -->
         <div class="card" style="margin-bottom:20px">
@@ -2820,6 +2825,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // Credentials prod pour Scorim_Dev (feedbacks + roadmap partagés)
 const SUPABASE_URL_PROD = 'https://bqzluhzkzpalludrfxyr.supabase.co';
 const SUPABASE_KEY_PROD = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
+
 const AGENCES_STATIC = ['Saint-Cyprien','Minimes','Bonnefoy','Roseraie','Saint-Agne','Côte Pavée'];
 // AGENCES est dynamique : utilise Supabase si chargé, sinon fallback statique
 Object.defineProperty(window, 'AGENCES', {
@@ -3113,6 +3119,12 @@ let currentUser = null;
 // =====================
 // AUTH
 // =====================
+function quickLogin(user, pass) {
+  document.getElementById('login-user').value = user;
+  document.getElementById('login-pass').value = pass;
+  doLogin();
+}
+
 async function doLogin() {
   const user = document.getElementById('login-user').value.trim().toLowerCase();
   const pass = document.getElementById('login-pass').value;
@@ -5029,7 +5041,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.10</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.11</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -5751,11 +5763,15 @@ function refreshFicheCollab(n) {
   const totalCARentree = dosRent.reduce((s, l) => s + (l.ca_rentree || 0), 0);
 
   // Stats rapides
+  const dosNegoIds5 = (DB.dossierNeg||[]).filter(l => l.negociateur_id === n.id).map(l => l.dossier_id);
+  const dosNegoAll5 = DB.dossiers.filter(d => dosNegoIds5.includes(d.id));
   document.getElementById('fiche-collab-stats').innerHTML =
     '<div class="stat-card"><div class="stat-label">CA SORTIE TOTAL</div><div class="stat-value">' + fmtEuro(totalCASortie) + '</div></div>' +
     '<div class="stat-card"><div class="stat-label">CA RENTRÉE TOTAL</div><div class="stat-value" style="color:#10b981">' + fmtEuro(totalCARentree) + '</div></div>' +
     '<div class="stat-card"><div class="stat-label">VENTES SIGNÉES</div><div class="stat-value">' + dossiersVentes.length + '</div></div>' +
     (n.objectif_ca ? '<div class="stat-card"><div class="stat-label">OBJECTIF MENSUEL</div><div class="stat-value">' + fmtEuro(n.objectif_ca) + '</div></div>' : '');
+  const aSignerEl = document.getElementById('fiche-collab-asigner');
+  if (aSignerEl) aSignerEl.innerHTML = buildASignerCards(dosNegoAll5);
 
   // 10 dernières ventes
   const tbody = document.getElementById('fiche-collab-ventes');
@@ -8401,17 +8417,18 @@ function nbNegosActifsSurMois(annee, mois, filtre) {
   const finMois = new Date(annee, mois + 1, 0, 23, 59, 59);
   return (DB.negociateurs || []).filter(n => {
     if (n.nom.startsWith('🍒')) return false;
+    // Seuls les négociateurs (poste = 'négociateur' ou 'les deux')
     if (!['négociateur','les deux'].includes(n.poste)) return false;
     if (filtre && !filtre(n)) return false;
-    // Date d'entrée doit être ≤ fin du mois
-    if (!n.date_entree) return false;
-    const entree = new Date(n.date_entree);
+    const dateEntreeStr = n.date_entree || null;
+    if (!dateEntreeStr) return false;
+    const entree = new Date(dateEntreeStr);
     if (entree > finMois) return false;
-    // Actif ou date_inactivite > début du mois
-    if (n.actif === false) {
-      if (!n.date_inactivite) return false;
-      const inactif = new Date(n.date_inactivite);
-      if (inactif < debutMois) return false;
+    if (n.date_fin_collaboration) {
+      const fin = new Date(n.date_fin_collaboration);
+      if (fin < debutMois) return false;
+    } else if (n.actif === false) {
+      return false;
     }
     return true;
   }).length;
@@ -8628,6 +8645,45 @@ function refreshStatsPage() {
 
 // ── Réseau ──
 
+
+function buildASignerCards(dosFiltre) {
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth();
+  const nextMonthDate = new Date(curYear, curMonth + 1, 1);
+  const nextYear = nextMonthDate.getFullYear();
+  const nextMonth = nextMonthDate.getMonth();
+  const moisNomsFull = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const curPrefix = curYear + '-' + String(curMonth + 1).padStart(2, '0');
+  const nextPrefix = nextYear + '-' + String(nextMonth + 1).padStart(2, '0');
+  const curLabel = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const nextLabel = nextMonthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const aSigner = dosFiltre.filter(d => d.statut === 'À SIGNER');
+  const ce_mois = aSigner.filter(d => {
+    if (d.date) return d.date.startsWith(curPrefix);
+    if (d.mois) return d.mois.toLowerCase() === curLabel.toLowerCase();
+    return false;
+  });
+  const mois_suivant = aSigner.filter(d => {
+    if (d.date) return d.date.startsWith(nextPrefix);
+    if (d.mois) return d.mois.toLowerCase() === nextLabel.toLowerCase();
+    return false;
+  });
+  const caCeMois = ce_mois.reduce((s,d) => s+(d.ht||0), 0);
+  const caMoisSuivant = mois_suivant.reduce((s,d) => s+(d.ht||0), 0);
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">' +
+    '<div class="stat-card" style="border-left:3px solid #f59e0b">' +
+      '<div class="stat-label">CA à signer — ' + moisNomsFull[curMonth] + '</div>' +
+      '<div class="stat-value" style="color:#d97706">' + fmtEuro(caCeMois) + '</div>' +
+      '<div class="stat-sub">' + ce_mois.length + ' dossier(s)</div>' +
+    '</div>' +
+    '<div class="stat-card" style="border-left:3px solid #3b82f6">' +
+      '<div class="stat-label">CA à signer — ' + moisNomsFull[nextMonth] + '</div>' +
+      '<div class="stat-value" style="color:#2563eb">' + fmtEuro(caMoisSuivant) + '</div>' +
+      '<div class="stat-sub">' + mois_suivant.length + ' dossier(s)</div>' +
+    '</div>' +
+  '</div>';
+}
 function buildStatCards(c1l, c1v, c2l, c2v, c3l, c3v, c4l, c4v) {
   return '<div class="stats-grid" style="margin-bottom:20px">' +
     '<div class="stat-card"><div class="stat-label">' + c1l + '</div><div class="stat-value">' + c1v + '</div></div>' +
@@ -9185,6 +9241,212 @@ function renderGlissant(canvasId, dos, caKey, chartKey) {
   });
 }
 
+
+async function exportStatsPDF() {
+  const { jsPDF } = window.jspdf;
+  const niveau = document.getElementById('stats-niveau')?.value || 'reseau';
+  const today = new Date().toLocaleDateString('fr-FR');
+  let titreEntite = 'Réseau Booster Immobilier';
+  if (niveau === 'societe') {
+    const socId = parseInt(document.getElementById('stats-sel-societe')?.value);
+    const soc = (DB.societes||[]).find(s => s.id === socId);
+    if (soc) titreEntite = (soc.forme_juridique ? soc.forme_juridique + ' ' : '') + soc.nom;
+  } else if (niveau === 'agence') {
+    titreEntite = 'Agence ' + (document.getElementById('stats-sel-agence')?.value || '');
+  } else if (niveau === 'negociateur') {
+    const negId = parseInt(document.getElementById('stats-sel-neg')?.value);
+    const neg = (DB.negociateurs||[]).find(n => n.id === negId);
+    if (neg) titreEntite = neg.nom + ' — ' + neg.agence;
+  }
+
+  // ── Approche html2canvas : capture fidèle du DOM ──────────────────────────
+  const statsContent = document.getElementById('stats-content');
+  if (!statsContent) { showToast('Aucune stat à exporter', 'error'); return; }
+
+  const btn = document.querySelector('[onclick="exportStatsPDF()"]');
+  if (btn) { btn.textContent = '⏳ Génération...'; btn.disabled = true; }
+
+  try {
+    // A3 paysage : 420 × 297mm
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+    const pageW = 420, pageH = 297, ML = 10, MT = 10, MR = 10, MB = 10;
+    const contentW = pageW - ML - MR;
+    const contentH = pageH - MT - MB;
+
+    // Capturer chaque card/section indépendamment
+    const sections = [...statsContent.children];
+    let y = MT + 14; // laisser place pour l'en-tête
+    let isFirstPage = true;
+
+    const addHeader = (doc, titre, today, pageW, ML, MT) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(45, 69, 90);
+      doc.text('Statistiques — ' + titre, ML, MT + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Généré le ' + today, pageW - ML - 30, MT + 5);
+      doc.setDrawColor(45, 69, 90);
+      doc.setLineWidth(0.3);
+      doc.line(ML, MT + 7, pageW - ML, MT + 7);
+    };
+
+    addHeader(doc, titreEntite, today, pageW, ML, MT);
+
+    for (const section of sections) {
+      // Ignorer les éléments non visibles ou vides
+      if (section.offsetHeight < 5) continue;
+
+      // Capturer la section
+      const canvas = await html2canvas(section, {
+        scale: 1.5,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        ignoreElements: el => el.tagName === 'BUTTON' || el.classList.contains('btn')
+      });
+
+      const imgW = contentW;
+      const ratio = canvas.height / canvas.width;
+      let imgH = imgW * ratio;
+
+      // Si l'image est trop haute pour la page, la redimensionner
+      const maxH = contentH - (isFirstPage ? 14 : 0);
+      if (imgH > maxH) {
+        imgH = maxH;
+      }
+
+      // Nouvelle page si nécessaire
+      const yStart = isFirstPage ? MT + 14 : MT;
+      if (y + imgH > pageH - MB) {
+        doc.addPage();
+        isFirstPage = false;
+        y = MT;
+        addHeader(doc, titreEntite, today, pageW, ML, MT);
+        y = MT + 12;
+      }
+
+      const imgData = canvas.toDataURL('image/png');
+      doc.addImage(imgData, 'PNG', ML, y, imgW, imgH);
+      y += imgH + 4;
+    }
+
+    doc.save('stats_' + niveau + '_' + today.replace(/\//g, '-') + '.pdf');
+    showToast('PDF exporté ✓', 'success');
+  } catch(e) {
+    showToast('Erreur PDF : ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    if (btn) { btn.textContent = '🖨️ PDF'; btn.disabled = false; }
+  }
+}
+
+// ── Ancienne version jsPDF natif (conservée pour les autres PDF) ────────────
+async function exportStatsPDFNatif() {
+  const { jsPDF } = window.jspdf;
+  const niveau = document.getElementById('stats-niveau')?.value || 'reseau';
+  const today = new Date().toLocaleDateString('fr-FR');
+  let titreEntite = 'Réseau Booster Immobilier';
+  if (niveau === 'societe') {
+    const socId = parseInt(document.getElementById('stats-sel-societe')?.value);
+    const soc = (DB.societes||[]).find(s => s.id === socId);
+    if (soc) titreEntite = (soc.forme_juridique ? soc.forme_juridique + ' ' : '') + soc.nom;
+  } else if (niveau === 'agence') {
+    titreEntite = 'Agence ' + (document.getElementById('stats-sel-agence')?.value || '');
+  } else if (niveau === 'negociateur') {
+    const negId = parseInt(document.getElementById('stats-sel-neg')?.value);
+    const neg = (DB.negociateurs||[]).find(n => n.id === negId);
+    if (neg) titreEntite = neg.nom + ' — ' + neg.agence;
+  }
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const ML = 12, pageW = 210, contentW = pageW - ML * 2;
+  let y = 12;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(45, 69, 90);
+  doc.text('Statistiques — ' + titreEntite, ML, y); y += 5;
+  doc.setDrawColor(45, 69, 90); doc.setLineWidth(0.4); doc.line(ML, y, ML + contentW, y); y += 4;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+  doc.text('Généré le ' + today, ML, y); y += 8;
+
+  const statsContent = document.getElementById('stats-content');
+  if (!statsContent) { showToast('Aucune stat à exporter', 'error'); return; }
+
+  // Indicateurs clés
+  const cards = [...statsContent.querySelectorAll('.stat-card')].slice(0, 4);
+  if (cards.length > 0) {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(45, 69, 90);
+    doc.text('INDICATEURS CLÉS', ML, y); y += 3;
+    const colW = contentW / cards.length;
+    doc.setFillColor(248, 250, 252); doc.rect(ML, y, contentW, 18, 'F');
+    doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.2); doc.rect(ML, y, contentW, 18);
+    cards.forEach((card, i) => {
+      const label = (card.querySelector('.stat-label')?.textContent || '').replace(/[^\w\s\u00C0-\u024F€%.,\/\-]/g, '').trim();
+      const val = (card.querySelector('.stat-value')?.textContent || '').replace(/[^\w\s\u00C0-\u024F€%.,\/\-]/g, '').trim();
+      const cx = ML + i * colW + 2;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(120, 120, 120);
+      doc.text(doc.splitTextToSize(label, colW - 4)[0] || '', cx, y + 6);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(45, 69, 90);
+      doc.text((val || '').substring(0, 12), cx, y + 14);
+    });
+    y += 22;
+  }
+
+  // Graphiques
+  const canvases = [...statsContent.querySelectorAll('canvas')].filter(c => c.width > 0 && c.height > 0);
+  const imgW = (contentW - 4) / 2;
+  for (let i = 0; i < canvases.length; i += 2) {
+    const row = [canvases[i], canvases[i+1]].filter(Boolean);
+    let rowH = 0;
+    row.forEach(c => { rowH = Math.max(rowH, Math.min((c.height/c.width)*imgW, 48)); });
+    rowH = Math.max(rowH, 30);
+    if (y + rowH + 12 > 280) { doc.addPage(); y = 12; }
+    row.forEach((canvas, j) => {
+      try {
+        const imgData = canvas.toDataURL('image/png');
+        const ratio = canvas.height / canvas.width;
+        const imgH = Math.min(ratio * imgW, 48);
+        const cx = ML + j * (imgW + 4);
+        const cardTitle = (canvas.closest('.card')?.querySelector('.card-title')?.textContent || '').replace(/[^\w\s\u00C0-\u024F€%.,\/\-]/g, '').trim();
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(100, 100, 100);
+        doc.text(cardTitle.substring(0, 28), cx, y + 4);
+        doc.setFillColor(250, 250, 250); doc.rect(cx, y + 6, imgW, imgH, 'F');
+        doc.addImage(imgData, 'PNG', cx, y + 6, imgW, imgH);
+      } catch(e) {}
+    });
+    y += rowH + 14;
+  }
+
+  // Tableaux
+  let tableCount = 0;
+  for (const table of statsContent.querySelectorAll('table')) {
+    if (tableCount >= 2) break;
+    const rows = [...table.querySelectorAll('tr')];
+    if (rows.length < 2) continue;
+    const titleText = (table.closest('.card')?.querySelector('.card-title')?.textContent || '').replace(/[^\w\s\u00C0-\u024F€%.,\/\-]/g, '').trim();
+    if (!titleText) continue;
+    if (y + 30 > 275) { doc.addPage(); y = 12; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(45, 69, 90);
+    doc.text(titleText.substring(0, 50), ML, y); y += 4;
+    const headers = [...rows[0].querySelectorAll('th')].map(th => th.textContent.trim().substring(0, 5));
+    if (!headers.length) continue;
+    const colWT = contentW / headers.length;
+    doc.setFillColor(45, 69, 90); doc.rect(ML, y, contentW, 5, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(255, 255, 255);
+    headers.forEach((h, i) => doc.text(h, ML + i * colWT + 1, y + 3.5));
+    y += 5;
+    [...rows].slice(1).forEach((row, ri) => {
+      if (y > 272) return;
+      const cells = [...row.querySelectorAll('td')].map(td => td.textContent.trim().replace(/\s+/g, ' ').replace(/[^\w\s\u00C0-\u024F€%.,\/\-]/g, '').substring(0, 9));
+      if (ri % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(ML, y, contentW, 4.5, 'F'); }
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(60, 60, 60);
+      cells.forEach((c, i) => doc.text(c, ML + i * colWT + 1, y + 3));
+      y += 4.5;
+    });
+    y += 6; tableCount++;
+  }
+  doc.save('stats_' + niveau + '_' + today.replace(/\//g, '-') + '.pdf');
+  showToast('PDF exporté ✓', 'success');
+}
 function renderStatsReseau(container) {
   const now = new Date();
   const curYear = now.getFullYear();
@@ -9200,6 +9462,7 @@ function renderStatsReseau(container) {
   container.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🌐 Réseau Booster Immobilier</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
+    buildASignerCards(DB.dossiers) +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="stats-table-n"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="stats-table-n1"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-reseau-sel-annee-moy" onchange="refreshStatsMoyenneReseau()" class="filter-select" style="font-size:12px"></select></div><div id="stats-reseau-moyenne" style="padding:16px"></div></div>' +
@@ -9267,23 +9530,28 @@ function renderStatsReseauGraphs() {
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
   const selAnnee = document.getElementById('stats-graph-annee');
   if (selAnnee && !selAnnee.options.length) {
-    selAnnee.innerHTML = years.map(y => '<option value="'+y+'">'+y+'</option>').join('');
+    selAnnee.innerHTML = '<option value="all">Toutes les années</option>' + years.map(y => '<option value="'+y+'">'+y+'</option>').join('');
     selAnnee.value = new Date().getFullYear();
   }
-  const annee = parseInt(selAnnee?.value || new Date().getFullYear());
-  const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a'];
-  const datasets = [{
-    label: String(annee),
-    data: MONTH_NAMES.map((_,mi) => dos.filter(d=>new Date(d.date).getFullYear()===annee&&new Date(d.date).getMonth()===mi).reduce((s,d)=>s+(d.ht||0),0)),
-    borderColor: palette[0], backgroundColor: palette[0]+'22', tension:0.3, fill:false, pointRadius:3
-  }];
+  const anneeVal = selAnnee?.value || String(new Date().getFullYear());
+  const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9b59b6','#e67e22'];
+  let datasets;
+  if (anneeVal === 'all') {
+    datasets = years.map((y,i) => ({ label: String(y), data: MONTH_NAMES.map((_,mi) => dos.filter(d=>new Date(d.date).getFullYear()===y&&new Date(d.date).getMonth()===mi).reduce((s,d)=>s+(d.ht||0),0)), borderColor: palette[i%palette.length], backgroundColor: palette[i%palette.length]+'22', tension:0.3, fill:false, pointRadius:3 }));
+  } else {
+    const annee = parseInt(anneeVal);
+    datasets = [{ label: String(annee), data: MONTH_NAMES.map((_,mi) => dos.filter(d=>new Date(d.date).getFullYear()===annee&&new Date(d.date).getMonth()===mi).reduce((s,d)=>s+(d.ht||0),0)), borderColor: palette[0], backgroundColor: palette[0]+'22', tension:0.3, fill:false, pointRadius:3 }];
+  }
   const ctxCA = document.getElementById('stats-chart-ca');
   const ctxNb = document.getElementById('stats-chart-nb');
   if (!ctxCA || !ctxNb) return;
+  const showLegend = anneeVal === 'all' && years.length > 1;
+  const anneeNb = anneeVal === 'all' ? parseInt(years[years.length-1]) : parseInt(anneeVal);
+  const datasetsNb = datasets.map(ds => ({ ...ds, data: MONTH_NAMES.map((_,mi) => { const y2 = parseInt(ds.label); return dos.filter(d=>new Date(d.date).getFullYear()===y2&&new Date(d.date).getMonth()===mi).length; })}));
   if (window._statsChartCA) window._statsChartCA.destroy();
   if (window._statsChartNb) window._statsChartNb.destroy();
-  window._statsChartCA = new Chart(ctxCA, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ ticks:{ callback:v=>fmtEuro(v), font:{ size:10 } }, beginAtZero:true }, x:{ ticks:{ font:{ size:10 } } } } } });
-  window._statsChartNb = new Chart(ctxNb, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets:[{ ...datasets[0], data: MONTH_NAMES.map((_,mi)=>dos.filter(d=>new Date(d.date).getFullYear()===annee&&new Date(d.date).getMonth()===mi).length) }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 } } }, x:{ ticks:{ font:{ size:10 } } } } } });
+  window._statsChartCA = new Chart(ctxCA, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets }, options:{ responsive:true, plugins:{ legend:{ display:showLegend, labels:{ boxWidth:10, font:{ size:10 } } } }, scales:{ y:{ ticks:{ callback:v=>fmtEuro(v), font:{ size:10 } }, beginAtZero:true }, x:{ ticks:{ font:{ size:10 } } } } } });
+  window._statsChartNb = new Chart(ctxNb, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets:datasetsNb }, options:{ responsive:true, plugins:{ legend:{ display:showLegend, labels:{ boxWidth:10, font:{ size:10 } } } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 } } }, x:{ ticks:{ font:{ size:10 } } } } } });
 }
 
 function renderStatsSociete(container, socId) {
@@ -9304,13 +9572,14 @@ function renderStatsSociete(container, socId) {
   container.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏛 ' + (s.forme_juridique?s.forme_juridique+' ':'') + s.nom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
+    buildASignerCards(DB.dossiers.filter(d => agenceNoms.includes(d.agence))) +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-soc-sel-annee-moy" onchange="refreshStatsMoyenneSociete()" class="filter-select" style="font-size:12px"></select></div><div id="stats-soc-moyenne" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="fiche-societe-graph-annee" onchange="refreshFicheSocieteGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select></div><div style="padding:10px"><canvas id="fiche-societe-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><select id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select></div><div style="padding:10px"><canvas id="fiche-societe-chart-nb" height="90"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee" onchange="refreshFicheSocieteGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all" onchange="refreshFicheSocieteGraphs()"> Toutes</label></div></div><div style="padding:10px"><canvas id="fiche-societe-chart-ca" height="90"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all-nb" onchange="refreshFicheSocieteGraphNb()"> Toutes</label></div></div><div style="padding:10px"><canvas id="fiche-societe-chart-nb" height="90"></canvas></div></div>' +
     '</div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-soc-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-soc-delai" style="padding:16px"></div></div>' +
@@ -9380,6 +9649,7 @@ function renderStatsAgence(container, agNom) {
   container.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dosAgence.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
+    buildASignerCards(DB.dossiers.filter(d => d.agence === agNom)) +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-ag-sel-annee-moy" onchange="refreshStatsMoyenneAgence()" class="filter-select" style="font-size:12px"></select></div><div id="stats-ag-moyenne" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
@@ -9488,12 +9758,13 @@ function renderStatsNeg(container, negId) {
     '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:4px">👤 ' + n.nom + '</div>' +
     '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + n.agence + ' · ' + (n.poste||'négociateur') + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dossiersVentes.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
+    buildASignerCards((DB.dossierNeg||[]).filter(l=>l.negociateur_id===n.id).map(l=>DB.dossiers.find(x=>x.id===l.dossier_id)).filter(Boolean)) +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-annee"></table></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-n1"></table></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span></div><div style="padding:10px"><canvas id="stats-neg-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span></div><div style="padding:10px"><canvas id="stats-neg-chart-nb" height="90"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all" onchange="refreshStatsNegGraphs()"> Toutes</label></div></div><div style="padding:10px"><canvas id="stats-neg-chart-ca" height="90"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee-nb" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all-nb" onchange="refreshStatsNegGraphs()"> Toutes</label></div></div><div style="padding:10px"><canvas id="stats-neg-chart-nb" height="90"></canvas></div></div>' +
     '</div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-neg-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>' +
@@ -9533,18 +9804,40 @@ function renderStatsNeg(container, negId) {
   const dosAvecAp = dossiersVentes.filter(d => d.hasApporteur && d.apporteurNom);
   buildApporteursSection('stats-neg-apporteurs', dosAvecAp);
 
-  // Graphiques négo
-  const palette = ['#2D455A'];
-  const dataCA = MONTH_NAMES.map((_,mi)=>dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear&&new Date(d.date).getMonth()===mi).reduce((s,d)=>s+d.caCollab,0));
-  const dataNb = MONTH_NAMES.map((_,mi)=>dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear&&new Date(d.date).getMonth()===mi).length);
+  // Graphiques négo : peupler les selects années
+  const yearsNeg = [...new Set(dossiersVentes.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort();
+  const yearOptsNeg = yearsNeg.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+  ['stats-neg-graph-annee','stats-neg-graph-annee-nb'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = yearOptsNeg; el.value = curYear; }
+  });
+  window._statsNegDossiers = dossiersVentes;
+  refreshStatsNegGraphs();
+  renderGlissant('stats-neg-chart-glissant', dossiersVentes, d=>d.caCollab||0, '_statsNegChartG');
+}
+
+function refreshStatsNegGraphs() {
+  const dos = window._statsNegDossiers || [];
+  const years = [...new Set(dos.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort();
+  const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9b59b6','#e67e22'];
+  const allCA = document.getElementById('stats-neg-graph-all')?.checked;
+  const allNb = document.getElementById('stats-neg-graph-all-nb')?.checked;
+  const anneeCA = parseInt(document.getElementById('stats-neg-graph-annee')?.value) || new Date().getFullYear();
+  const anneeNb = parseInt(document.getElementById('stats-neg-graph-annee-nb')?.value) || new Date().getFullYear();
+  const makeDatasets = (all, annee, valueKey) => {
+    const yearsToShow = all ? years : [annee];
+    return yearsToShow.map((y,i) => ({
+      label: String(y),
+      data: MONTH_NAMES.map((_,mi) => dos.filter(d=>d.date&&new Date(d.date).getFullYear()===y&&new Date(d.date).getMonth()===mi).reduce((s,d)=>s+(valueKey==='ca'?d.caCollab:1),0)),
+      borderColor: palette[i%palette.length], backgroundColor: palette[i%palette.length]+'22', tension:0.3, fill:false, pointRadius:3
+    }));
+  };
   const ctxCA = document.getElementById('stats-neg-chart-ca');
   const ctxNb = document.getElementById('stats-neg-chart-nb');
-  if (ctxCA) { if(window._statsNegChartCA) window._statsNegChartCA.destroy(); window._statsNegChartCA = new Chart(ctxCA, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets:[{ label:String(curYear), data:dataCA, borderColor:palette[0], backgroundColor:palette[0]+'22', tension:0.3, fill:false, pointRadius:3 }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ticks:{callback:v=>fmtEuro(v),font:{size:10}},beginAtZero:true}, x:{ticks:{font:{size:10}}} } } }); }
-  if (ctxNb) { if(window._statsNegChartNb) window._statsNegChartNb.destroy(); window._statsNegChartNb = new Chart(ctxNb, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets:[{ label:String(curYear), data:dataNb, borderColor:palette[0], backgroundColor:palette[0]+'22', tension:0.3, fill:false, pointRadius:3 }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}}}, x:{ticks:{font:{size:10}}} } } }); }
-
-  // Graphique glissant négo
-  const ctxG = document.getElementById('stats-neg-chart-glissant');
-  renderGlissant('stats-neg-chart-glissant', dossiersVentes, d=>d.caCollab||0, '_statsNegChartG');
+  const showLegCA = allCA && years.length > 1;
+  const showLegNb = allNb && years.length > 1;
+  if (ctxCA) { if(window._statsNegChartCA) window._statsNegChartCA.destroy(); window._statsNegChartCA = new Chart(ctxCA, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets:makeDatasets(allCA, anneeCA, 'ca') }, options:{ responsive:true, plugins:{legend:{display:showLegCA, labels:{boxWidth:10,font:{size:10}}}}, scales:{ y:{ticks:{callback:v=>fmtEuro(v),font:{size:10}},beginAtZero:true}, x:{ticks:{font:{size:10}}} } } }); }
+  if (ctxNb) { if(window._statsNegChartNb) window._statsNegChartNb.destroy(); window._statsNegChartNb = new Chart(ctxNb, { type:'line', data:{ labels:MONTH_NAMES.map(m=>m.substring(0,3)), datasets:makeDatasets(allNb, anneeNb, 'nb') }, options:{ responsive:true, plugins:{legend:{display:showLegNb, labels:{boxWidth:10,font:{size:10}}}}, scales:{ y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}}}, x:{ticks:{font:{size:10}}} } } }); }
 }
 
 
