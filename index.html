@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scorim v1.4.12</title>
+<title>Scorim v1.4.13</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -762,7 +762,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.12</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.4.13</div>
     </div>
   </div>
 </div>
@@ -791,8 +791,8 @@
           <div class="nav-item active" onclick="showPage('dashboard', this)">
             <span class="nav-icon">📊</span> Vue d'ensemble
           </div>
-          <div class="nav-item" onclick="showPage('ranking', this)">
-            <span class="nav-icon">🏆</span> Classement
+          <div class="nav-item" id="nav-ranking" onclick="showPage('ranking', this)">
+            <span class="nav-icon">🏆</span> Classement agences
           </div>
           <div class="nav-item" onclick="showPage('negociateurs-classement', this)">
             <span class="nav-icon">🥇</span> Classement Négociateurs
@@ -811,6 +811,12 @@
           </div>
           <div class="nav-item" onclick="showPage('chatbot', this)">
             <span class="nav-icon">💬</span> Assistant IA
+          </div>
+        </div>
+        <div class="nav-section" id="nav-gratuit-section" style="display:none">
+          <div class="nav-section-title">Gestion</div>
+          <div class="nav-item" onclick="showPage('saisie', this)">
+            <span class="nav-icon">✏️</span> Nouveau dossier
           </div>
         </div>
         <div class="nav-section" id="nav-saisie-section" style="display:none">
@@ -859,7 +865,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.12</div>
+        <div style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.4.13</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -879,12 +885,16 @@
         <div class="stats-grid" id="stats-grid"></div>
 
         <div class="filters">
-          <select class="filter-select" id="filter-mois" onchange="refreshDashboard()">
+          <select class="filter-select" id="filter-annee-dash" onchange="onAnneeDashChange()" style="width:100px">
+            <option value="">Toutes les années</option>
+          </select>
+          <select class="filter-select" id="filter-mois" onchange="refreshDashboard()" style="width:130px">
             <option value="">Tous les mois</option>
           </select>
           <select class="filter-select" id="filter-agence-dash" onchange="refreshDashboard()">
             <option value="">Toutes les agences</option>
           </select>
+          <button class="btn btn-outline btn-sm" onclick="clearDashFilters()">✕ Effacer</button>
         </div>
 
         <!-- Dates butoire du mois -->
@@ -2612,6 +2622,7 @@
         <select id="user-role" onchange="onUserRoleChange()">
           <option value="saisie">Saisie</option>
           <option value="agence">Agence</option>
+          <option value="gratuit">Gratuit</option>
           <option value="admin">Admin</option>
         </select>
       </div>
@@ -3165,7 +3176,7 @@ async function initApp() {
   // Sidebar
   document.getElementById('sidebar-avatar').textContent = currentUser.nom.charAt(0).toUpperCase();
   document.getElementById('sidebar-username').textContent = currentUser.nom;
-  document.getElementById('sidebar-role').textContent = currentUser.role === 'admin' ? 'Administrateur' : currentUser.role === 'saisie' ? 'Saisie' : 'Agence';
+  document.getElementById('sidebar-role').textContent = currentUser.role === 'admin' ? 'Administrateur' : currentUser.role === 'saisie' ? 'Saisie' : currentUser.role === 'gratuit' ? 'Accès gratuit' : 'Agence';
 
   // Navigation selon rôle
   const saisieSection = document.getElementById('nav-saisie-section');
@@ -3179,6 +3190,28 @@ async function initApp() {
   document.getElementById('current-month-badge').textContent = monthNames[now.getMonth()] + ' ' + now.getFullYear();
 
   populateFilters();
+
+  // Valeurs par défaut dashboard : année + mois courant, agence si rôle agence
+  const _now = new Date();
+  const _curYear = _now.getFullYear().toString();
+  const _curMoisLabel = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'][_now.getMonth()] + ' ' + _curYear;
+  const _anneeEl = document.getElementById('filter-annee-dash');
+  const _moisEl = document.getElementById('filter-mois');
+  const _agenceEl = document.getElementById('filter-agence-dash');
+  if (_anneeEl) _anneeEl.value = _curYear;
+  // Peupler les mois de l'année courante et sélectionner le mois courant
+  if (_anneeEl && _moisEl) {
+    onAnneeDashChange();
+    if (_moisEl) _moisEl.value = _curMoisLabel;
+  }
+  // Pré-filtrer sur l'agence de l'utilisateur si rôle agence
+  if (_agenceEl && currentUser.role === 'agence') {
+    _agenceEl.value = currentUser.agence;
+    _agenceEl.style.display = 'none';
+  } else if (_agenceEl) {
+    _agenceEl.style.display = '';
+  }
+
   loadProfile();
   document.getElementById('tva-display-val').textContent = DB.settings.tva + '%';
 
@@ -3234,6 +3267,23 @@ async function initApp() {
         if (el) el.style.display = isGerantRetry ? 'flex' : 'none';
       }, 1500);
     }
+  } else if (currentUser.role === 'gratuit') {
+    // Rôle gratuit : seulement classement agences + nouveau dossier
+    document.getElementById('nav-rapport').style.display = 'none';
+    document.getElementById('nav-params').style.display = 'none';
+    document.getElementById('nav-feedback').style.display = 'none';
+    document.getElementById('nav-saisie-section').style.display = 'none';
+    document.getElementById('nav-rh-section').style.display = 'none';
+    document.getElementById('nav-gratuit-section').style.display = 'block';
+    // Masquer tout sauf classement agences dans la nav principale
+    document.querySelectorAll('.nav-item').forEach(el => {
+      const fn = el.getAttribute('onclick') || '';
+      if (!fn.includes("'ranking'") && !el.closest('#nav-gratuit-section') && !el.closest('#nav-feedback-section')) {
+        el.style.display = 'none';
+      }
+    });
+    // Rediriger vers classement agences par défaut
+    showPage('ranking', document.getElementById('nav-ranking'));
   } else {
     document.getElementById('nav-rapport').style.display = 'none';
     document.getElementById('nav-params').style.display = 'flex';
@@ -3288,12 +3338,24 @@ function populateFilters() {
     for (let opt of selAnnee.options) { if (opt.value === curYear) { opt.selected = true; break; } }
   }
 
+  // Filtre années dashboard
+  const selAnneeDash = document.getElementById('filter-annee-dash');
+  if (selAnneeDash) {
+    const anneeSet = new Set();
+    DB.dossiers.forEach(d => {
+      if (d.date) anneeSet.add(new Date(d.date).getFullYear().toString());
+      else if (d.mois) { const p = d.mois.split(' '); if (p[1]) anneeSet.add(p[1]); }
+    });
+    selAnneeDash.innerHTML = '<option value="">Toutes les années</option>' +
+      [...anneeSet].sort((a,b) => b-a).map(y => '<option value="'+y+'">'+y+'</option>').join('');
+  }
+
   // Filtres agences
   ['filter-agence-dash','filter-agence-dos'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     while (sel.options.length > 1) sel.remove(1);
-    AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+    getAgencesActives().forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
   });
 
   // Select mois saisie (s-mois) — mois courant sélectionné par défaut
@@ -3374,10 +3436,54 @@ function getDossiers(filters = {}) {
   return list;
 }
 
+function clearDashFilters() {
+  document.getElementById('filter-annee-dash').value = '';
+  document.getElementById('filter-mois').innerHTML = '<option value="">Tous les mois</option>';
+  document.getElementById('filter-agence-dash').value = '';
+  refreshDashboard();
+}
+
+function onAnneeDashChange() {
+  const annee = document.getElementById('filter-annee-dash')?.value || '';
+  const moisEl = document.getElementById('filter-mois');
+  if (!moisEl) return;
+  moisEl.innerHTML = '<option value="">Tous les mois</option>';
+  if (annee) {
+    const moisNomsFull = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const moisSet = new Set();
+    DB.dossiers.forEach(d => {
+      if (d.date) {
+        const dt = new Date(d.date);
+        if (dt.getFullYear().toString() === annee) moisSet.add(dateToMoisStr(d.date));
+      } else if (d.mois && d.mois.endsWith(annee)) moisSet.add(d.mois);
+    });
+    const ordre = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    [...moisSet].sort((a,b) => {
+      const [ma,ya] = a.split(' '); const [mb,yb] = b.split(' ');
+      if (ya !== yb) return parseInt(ya)-parseInt(yb);
+      return ordre.indexOf(ma)-ordre.indexOf(mb);
+    }).forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; moisEl.appendChild(o); });
+  }
+  refreshDashboard();
+}
+
 function refreshDashboard() {
+  const annee = document.getElementById('filter-annee-dash')?.value || '';
   const mois = document.getElementById('filter-mois').value;
   const agence = document.getElementById('filter-agence-dash').value;
-  const list = getDossiers({ mois, agence });
+  let list = getDossiers({ mois, agence });
+  // Filtre par année si sélectionnée sans mois précis
+  if (annee && !mois) {
+    list = list.filter(d => {
+      if (d.date) return new Date(d.date).getFullYear().toString() === annee;
+      if (d.mois) return d.mois.endsWith(annee);
+      return false;
+    });
+  }
+  // Restriction rôle agence : uniquement ses dossiers
+  if (currentUser.role === 'agence' || currentUser.role === 'gratuit') {
+    list = list.filter(d => d.agence === currentUser.agence);
+  }
   const signed = list.filter(d => isNet(d));
 
   const totalTTC = signed.reduce((s, d) => s + (d.ttc || 0), 0);
@@ -4263,6 +4369,11 @@ async function saveDossier() {
     refreshMyDossiers();
     refreshDashboard();
     refreshRanking();
+    // Rôle gratuit : redirection vers classement après saisie
+    if (currentUser.role === 'gratuit') {
+      showPage('ranking', document.getElementById('nav-ranking'));
+      showToast('Dossier enregistré ✓', 'success');
+    }
   } catch(e) {
     showLoading(false);
     showToast('Erreur lors de l\'enregistrement', 'error');
@@ -4506,7 +4617,7 @@ function refreshDossiers() {
     if (dosAsigner.length > 0) parts.push('<span style="color:#0369a1">' + countAffaires(dosAsigner) + ' à signer</span>');
     totalBar.innerHTML = parts.join('<span style="color:var(--border)"> | </span>');
   }
-  const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin';
+  const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin'; // gratuit = jamais
   const isGerantView = currentUser.role === 'agence' && (DB.negociateurs || []).some(n => n.agence === currentUser.agence && n.statut_emploi === 'gérant' && n.nom.toLowerCase() === currentUser.nom.toLowerCase());
   const canEditEffectif = canEdit && !isGerantView;
   if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier trouvé</td></tr>'; return; }
@@ -4536,6 +4647,7 @@ function refreshDossiers() {
 let pendingDeleteId = null;
 
 function openDelete(id) {
+  if (currentUser.role === 'gratuit') return;
   pendingDeleteId = id;
   document.getElementById('modal-delete').classList.add('open');
   document.getElementById('confirm-delete-btn').onclick = async () => {
@@ -4574,6 +4686,7 @@ function openDelete(id) {
 }
 
 function openEdit(id) {
+  if (currentUser.role === 'gratuit') return;
   const d = DB.dossiers.find(d => d.id === id);
   if (!d) return;
 
@@ -4885,8 +4998,8 @@ function renderUsersList() {
     container.innerHTML = '<p style="color:var(--text-muted);font-size:14px">Aucun utilisateur.</p>';
     return;
   }
-  const roleLabel = { admin: 'Administrateur', saisie: 'Saisie', agence: 'Agence' };
-  const roleBadge = { admin: 'status-signed', saisie: 'status-pending', agence: 'status-report' };
+  const roleLabel = { admin: 'Administrateur', saisie: 'Saisie', agence: 'Agence', gratuit: 'Gratuit' };
+  const roleBadge = { admin: 'status-signed', saisie: 'status-pending', agence: 'status-report', gratuit: 'status-annule' };
   container.innerHTML = '<table style="width:100%"><thead><tr>' +
     '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--text-muted);text-transform:uppercase">Identifiant</th>' +
     '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--text-muted);text-transform:uppercase">Nom</th>' +
@@ -4911,7 +5024,7 @@ function renderUsersList() {
 
 function onUserRoleChange() {
   const role = document.getElementById('user-role').value;
-  document.getElementById('user-agence-group').style.display = role === 'agence' ? 'block' : 'none';
+  document.getElementById('user-agence-group').style.display = (role === 'agence' || role === 'gratuit') ? 'block' : 'none';
 }
 
 function openAddUser() {
@@ -4959,7 +5072,7 @@ async function saveUser() {
   const password = document.getElementById('user-password').value.trim();
   const email = document.getElementById('user-email').value.trim();
   const role = document.getElementById('user-role').value;
-  const agence = role === 'agence' ? document.getElementById('user-agence').value : null;
+  const agence = (role === 'agence' || role === 'gratuit') ? document.getElementById('user-agence').value : null;
 
   if (!newId || !nom || !password) { showToast('Identifiant, nom et mot de passe sont requis', 'error'); return; }
 
@@ -5061,7 +5174,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.12</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.4.13</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -5407,7 +5520,7 @@ function switchEncTab(tab) {
 function getEncFiltre(prefix) {
   const annee = document.getElementById(prefix + '-annee')?.value || '';
   const moisIdx = document.getElementById(prefix + '-mois')?.value;
-  const agence = currentUser.role === 'agence' ? currentUser.agence : (document.getElementById(prefix + '-agence')?.value || '');
+  const agence = (currentUser.role === 'agence' || currentUser.role === 'gratuit') ? currentUser.agence : (document.getElementById(prefix + '-agence')?.value || '');
   return { annee, moisIdx: moisIdx !== '' && moisIdx !== undefined ? parseInt(moisIdx) : null, agence };
 }
 
@@ -6696,7 +6809,7 @@ function openAddNegociateur() {
   // Reset barème aux valeurs par défaut
   const baremeDefaults = [['neg-bareme-t1-max',7500],['neg-bareme-t1-taux',12],['neg-bareme-t2-max',15000],['neg-bareme-t2-taux',14],['neg-bareme-t3-max',25000],['neg-bareme-t3-taux',16],['neg-bareme-t4-taux',18]];
   baremeDefaults.forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.value = val; });
-  const isAgenceRole = currentUser.role === 'agence';
+  const isAgenceRole = currentUser.role === 'agence' || currentUser.role === 'gratuit';
   const selAg = document.getElementById('neg-agence');
   const selAgPrec = document.getElementById('neg-agence-precedente');
   if (isAgenceRole) {
