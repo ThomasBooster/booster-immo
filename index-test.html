@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.24-debug</title>
+<title>⚠️ SCORIM TEST v1.5.24</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -800,7 +800,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.24-debug</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.24</div>
     </div>
   </div>
 </div>
@@ -917,7 +917,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.24-debug</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.24</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5217,7 +5217,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.24-debug</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.24</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -14944,7 +14944,16 @@ async function sspRefresh() {
   sspRender();
 }
 
-function sspRender() {
+async function sspRender() {
+  // Toujours recharger depuis Supabase pour avoir l'état à jour
+  try {
+    const [raw, vals] = await Promise.all([
+      sbFetch('dossiers_draft', { order: 'ordre.asc,created_at.asc' }),
+      sbFetch('draft_validations')
+    ]);
+    DB.drafts = (raw||[]).map(d=>({...d,data:d.data?(typeof d.data==='string'?JSON.parse(d.data):d.data):{}}));
+    DB.draftValidations = vals || [];
+  } catch(e) { console.warn('sspRender reload:', e); }
   // Laurie/Benoît : seulement les drafts en_attente (pas les intercabinets en attente de validation agences)
   const pending = DB.drafts.filter(d => d.statut === 'en_attente');
   const subtitle = document.getElementById('ssp-subtitle');
@@ -15789,23 +15798,15 @@ async function ndSubmit(){
 
     // ── Mode édition SSP (Laurie/Benoît modifie un draft existant) ──────────
     if(sspModeEdition && ndDraftId){
-      console.log('[SSP EDIT] Mode édition, ndDraftId='+ndDraftId+', sspModeEdition='+sspModeEdition);
-      console.log('[SSP EDIT] ndS.statutDraft='+ndS.statutDraft);
       // Préserver le statut existant — ne pas changer en_attente
       const draftExist = (DB.drafts||[]).find(d=>d.id==ndDraftId);
-      console.log('[SSP EDIT] draft existant statut='+draftExist?.statut+' statut_redaction='+draftExist?.statut_redaction);
       ndS.statutDraft = draftExist?.statut || 'en_attente';
       await ndSaveDraft();
-      console.log('[SSP EDIT] Après sauvegarde — vérification DB.drafts:');
-      const raw = await sbFetch('dossiers_draft', { order: 'ordre.asc,created_at.asc' });
-      console.log('[SSP EDIT] Drafts en base:', raw.map(d=>({id:d.id,statut:d.statut,statut_redaction:d.statut_redaction})));
-      DB.drafts = (raw||[]).map(d=>({...d,data:d.data?(typeof d.data==='string'?JSON.parse(d.data):d.data):{}}));
       showLoading(false);
       sspModeEdition = false;
       showToast('Modifications enregistrées ✓', 'success');
       const navSSP = document.getElementById('nav-ssp-dashboard');
       showPage('ssp-dashboard', navSSP);
-      sspUpdateBadge();
       return;
     }
 
