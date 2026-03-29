@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.20</title>
+<title>⚠️ SCORIM TEST v1.5.21</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -800,7 +800,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.20</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.21</div>
     </div>
   </div>
 </div>
@@ -917,7 +917,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.20</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.21</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5217,7 +5217,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.20</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.21</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15433,7 +15433,7 @@ function sspInitDragDrop(list, pending) {
 }
 
 function sspUpdateBadge() {
-  const pending = (DB.drafts || []).filter(d => d.statut !== 'valide');
+  const pending = (DB.drafts || []).filter(d => d.statut === 'en_attente');
   const badge = document.getElementById('ssp-badge');
   if (!badge) return;
   if (pending.length > 0) { badge.textContent = pending.length; badge.style.display = 'inline-block'; }
@@ -15737,10 +15737,10 @@ function ndSaveFields(){
   if(s===8){
     ndS.agences.forEach((ag,ai)=>{
       const sel=document.getElementById('nd-ag-sel-'+ai); if(sel) ag.nom=sel.value;
-      // pct déjà mis à jour via oninput
+      const pctEl=document.getElementById('nd-ag-pct-'+ai); if(pctEl) ag.pct=parseFloat(pctEl.value)||0;
       ag.negs.forEach((neg,ni)=>{
         const ns=document.getElementById('nd-neg-'+ai+'-'+ni); if(ns) neg.nom=ns.value;
-        // pct déjà mis à jour via oninput
+        const np=document.getElementById('nd-neg-pct-'+ai+'-'+ni); if(np) neg.pct=parseFloat(np.value)||0;
         const found=(DB.negociateurs||[]).find(n=>n.nom===neg.nom); neg.negId=found?found.id:null;
       });
     });
@@ -15777,11 +15777,6 @@ async function ndSaveDraft(){
 
 // ── Soumission → draft uniquement ────────────────────────────────────────────
 async function ndSubmit(){
-  // Forcer la sauvegarde de l'étape 8 si on vient de l'étape 9
-  const prevStep = ndStep;
-  if(prevStep === 9){
-    ndStep = 8; ndSaveFields(); ndStep = prevStep;
-  }
   showLoading(true);
   try{
     const isIC=ndS.nbAgences>1;
@@ -15825,15 +15820,21 @@ async function ndSubmit(){
     }
 
     showLoading(false);
+    const wasEditing = sspModeEdition;
     sspModeEdition = false;
     showToast(isIC?'Dossier envoyé ✓ — Validation en attente des autres agences.':'Dossier envoyé ✓ — En attente de validation SSP (Laurie / Benoît).','success');
 
     // Redirection
-    if(currentUser.role==='gratuit'||currentUser.role==='agence'){
-      const navIC = document.getElementById('nav-ic-validation');
+    if(wasEditing && currentUser.role === 'saisie'){
+      // Laurie/Benoît : rester sur le dashboard SSP après modification
+      const navSSP = document.getElementById('nav-ssp-dashboard');
+      showPage('ssp-dashboard', navSSP);
+      sspUpdateBadge();
+    } else if(currentUser.role==='gratuit'||currentUser.role==='agence'){
+      const navIC = document.getElementById('nav-ic-validation') || document.getElementById('nav-ic-validation-gratuit');
       showPage('ic-validation', navIC);
-    }else{
-      showPage('dashboard',null);
+    } else {
+      showPage('dashboard', null);
     }
   }catch(e){
     showLoading(false);
