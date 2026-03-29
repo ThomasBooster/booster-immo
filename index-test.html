@@ -15139,7 +15139,7 @@ async function sspValider() {
       ht: htNet,
       ttc_total: ttc,
       ht_total: htNet,
-      pct: isIC ? Math.round(100 / agList.length) : 100,
+      pct: isIC ? (agList[0]?.pct || Math.round(100 / agList.length)) : 100,
       nb_agences_groupe: agList.length,
       has_apporteur: !!nd.apporteur,
       apporteur_nom: nd.apporteur ? (nd.apporteurNom || '') : '',
@@ -15178,7 +15178,7 @@ async function sspValider() {
       await sbUpdate('dossiers', 'id=eq.' + dossierId, { group_id: groupId });
       for (let i = 1; i < agList.length; i++) {
         const agPart = agList[i];
-        const partPayload = { ...payload, agence: agPart.nom, pct: Math.round(100 / agList.length), group_id: groupId };
+        const partPayload = { ...payload, agence: agPart.nom, pct: agPart.pct || Math.round(100 / agList.length), group_id: groupId };
         const partIns = await sbInsert('dossiers', partPayload);
         if (partIns && partIns[0]) {
           // Négociateurs de cette agence
