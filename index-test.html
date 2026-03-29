@@ -15782,31 +15782,37 @@ async function ndSubmit(){
     await ndSaveDraft();
 
     if(isIC && ndDraftId){
-      // Créer une ligne draft_validations par agence participante
       const agencesSaisie = ndS.agences.slice(0, ndS.nbAgences);
       const agenceInitiale = currentUser.agence || agencesSaisie[0]?.nom || '';
-      const validRows = agencesSaisie.map(ag => ({
-        draft_id: ndDraftId,
-        agence: ag.nom,
-        statut: ag.nom === agenceInitiale ? 'valide' : 'en_attente',
-        commentaire: null
-      }));
-      await sbInsert('draft_validations', validRows);
-      DB.draftValidations = [...(DB.draftValidations||[]), ...validRows];
-
-      // Emails aux responsables des autres agences
+      // Vérifier si des lignes draft_validations existent déjà (renvoi après refus)
+      const existingVals = (DB.draftValidations||[]).filter(v => v.draft_id==ndDraftId);
+      if(existingVals.length === 0){
+        // Première soumission : créer les lignes
+        const validRows = agencesSaisie.map(ag => ({
+          draft_id: ndDraftId,
+          agence: ag.nom,
+          statut: ag.nom === agenceInitiale ? 'valide' : 'en_attente',
+          commentaire: null
+        }));
+        await sbInsert('draft_validations', validRows);
+        DB.draftValidations = [...(DB.draftValidations||[]), ...validRows];
+      }
+      // Toujours envoyer les emails aux agences dont la validation est en_attente
       const autresAgences = agencesSaisie.filter(ag => ag.nom !== agenceInitiale);
       for(const ag of autresAgences){
-        const emails = getResponsablesForIC(ag.nom);
-        if(!emails.length) continue;
-        await sendEmail('intercabinet_validation', emails, {
-          agence: ag.nom,
-          agenceInitiale,
-          vendeur: ndS.vendeurNom || '—',
-          acquereur: ndS.acquereurNom || '—',
-          saisePar: currentUser.nom,
-          lien: 'https://ventes.booster-immobilier.com'
-        });
+        const valExist = (DB.draftValidations||[]).find(v=>v.draft_id==ndDraftId&&v.agence===ag.nom);
+        if(valExist && valExist.statut==='en_attente'){
+          const emails = getResponsablesForIC(ag.nom);
+          if(!emails.length) continue;
+          await sendEmail('intercabinet_validation', emails, {
+            agence: ag.nom,
+            agenceInitiale,
+            vendeur: ndS.vendeurNom || '—',
+            acquereur: ndS.acquereurNom || '—',
+            saisePar: currentUser.nom,
+            lien: 'https://ventes.booster-immobilier.com'
+          });
+        }
       }
     }
 
