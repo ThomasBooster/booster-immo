@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.6.1</title>
+<title>⚠️ SCORIM TEST v1.6.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -704,8 +704,10 @@
   body.role-gratuit #nav-feedback-section { display: none !important; }
   body.role-gratuit #nav-ranking { display: flex !important; }
   body.role-gratuit #nav-nouveau-dossier { display: flex !important; }
+  body.role-gratuit #nav-ic-validation-gratuit { display: flex !important; }
   body.role-gratuit #nav-ranking,
   body.role-gratuit #nav-nouveau-dossier { visibility: visible !important; }
+  body.role-gratuit #nav-ic-validation { display: none !important; }
   body.role-gratuit #sidebar-role { display: none !important; }
   body.role-gratuit .sidebar-version { display: none !important; }
 
@@ -802,7 +804,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.6.1</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.6.2</div>
     </div>
   </div>
 </div>
@@ -840,6 +842,10 @@
           </div>
           <div class="nav-item" id="nav-nouveau-dossier" style="display:none" onclick="showPage('nouveau-dossier', this)">
             <span class="nav-icon">✏️</span> Nouveau dossier
+          </div>
+          <div class="nav-item" id="nav-ic-validation-gratuit" style="display:none" onclick="showPage('ic-validation', this)">
+            <span class="nav-icon">🔀</span> Dossiers en attente
+            <span id="ic-badge-gratuit" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
           </div></div>
           <div class="nav-item" onclick="showPage('negociateurs-classement', this)">
             <span class="nav-icon">🥇</span> Classement Négociateurs
@@ -913,7 +919,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.6.1</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.6.2</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5217,7 +5223,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.6.1</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.6.2</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -14810,7 +14816,17 @@ function icUpdateBadge() {
     const nd=d.data||{};
     return (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).includes(myAgence);
   }).length;
-  if (navIC) navIC.style.display = total>0 ? 'flex' : 'none';
+  if (navIC && currentUser.role !== 'gratuit') navIC.style.display = total>0 ? 'flex' : 'none';
+  // Badge pour le rôle gratuit (nav séparé)
+  const badgeGratuit = document.getElementById('ic-badge-gratuit');
+  const navICGratuit = document.getElementById('nav-ic-validation-gratuit');
+  if (badgeGratuit) {
+    if (count>0) { badgeGratuit.textContent=count; badgeGratuit.style.display='inline-block'; }
+    else { badgeGratuit.style.display='none'; }
+  }
+  if (navICGratuit && currentUser.role==='gratuit') {
+    navICGratuit.style.display = total>0 ? 'flex' : 'none';
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
