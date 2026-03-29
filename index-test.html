@@ -14747,6 +14747,7 @@ function icOuvrirDossier(draftId, canEdit) {
 
 async function icModifierEtRenvoyer() {
   // Passer le draft en en_attente_ic et réinitialiser les validations
+  sspModeEdition = true;
   if (!ndDraftId) return;
   const banner = document.getElementById('nd-ssp-banner');
   if (banner) banner.remove();
@@ -14933,6 +14934,7 @@ function icUpdateBadge() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 let sspDragSrc = null;
+let sspModeEdition = false; // true quand Laurie modifie un draft existant depuis le dashboard SSP
 
 async function sspRefresh() {
   try {
@@ -15317,6 +15319,7 @@ function sspOuvrirDossier(draftId) {
 }
 
 function sspPasserEnEdition() {
+  sspModeEdition = true;
   const banner = document.getElementById('nd-ssp-banner');
   if (banner) banner.remove();
   const prev = document.getElementById('nd-prev');
@@ -15439,7 +15442,7 @@ function sspUpdateBadge() {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 function ndInit(){
-  ndStep=1; ndDraftId=null;
+  ndStep=1; ndDraftId=null; sspModeEdition=false;
   const agDef=currentUser.agence||'';
   Object.assign(ndS,{
     vendeurNom:'',vendeurUsage:'rp',
@@ -15603,7 +15606,7 @@ function ndGo(dir){
   ndSaveFields();
   if(dir===1&&!ndValidate()) return;
   if(dir===1) ndSaveDraft().catch(()=>{});
-  if(dir===1&&ndStep===ND_TOTAL){ ndShowConfettis(); ndShowPopupConfirm(); return; }
+  if(dir===1&&ndStep===ND_TOTAL){ if(!sspModeEdition){ ndShowConfettis(); ndShowPopupConfirm(); } else { await ndSubmit(); } return; }
   ndStep=Math.max(1,Math.min(ND_TOTAL,ndStep+dir));
   ndRender();
   window.scrollTo(0,0);
@@ -15774,6 +15777,11 @@ async function ndSaveDraft(){
 
 // ── Soumission → draft uniquement ────────────────────────────────────────────
 async function ndSubmit(){
+  // Forcer la sauvegarde de l'étape 8 si on vient de l'étape 9
+  const prevStep = ndStep;
+  if(prevStep === 9){
+    ndStep = 8; ndSaveFields(); ndStep = prevStep;
+  }
   showLoading(true);
   try{
     const isIC=ndS.nbAgences>1;
@@ -15817,6 +15825,7 @@ async function ndSubmit(){
     }
 
     showLoading(false);
+    sspModeEdition = false;
     showToast(isIC?'Dossier envoyé ✓ — Validation en attente des autres agences.':'Dossier envoyé ✓ — En attente de validation SSP (Laurie / Benoît).','success');
 
     // Redirection
