@@ -14647,16 +14647,16 @@ function icRender() {
 
   // Bloc 1 : à valider par moi (ma ligne = en_attente)
   const aValider = icDrafts.filter(d => {
-    const val = (DB.draftValidations||[]).find(v => v.draft_id===d.id && v.agence===myAgence);
+    const val = (DB.draftValidations||[]).find(v => v.draft_id==d.id && v.agence===myAgence);
     return val && val.statut==='en_attente';
   });
 
   // Bloc 2 : j'ai validé (ou j'ai soumis), en attente des autres agences
   const enAttente = icDrafts.filter(d => {
-    const val = (DB.draftValidations||[]).find(v => v.draft_id===d.id && v.agence===myAgence);
+    const val = (DB.draftValidations||[]).find(v => v.draft_id==d.id && v.agence===myAgence);
     if (!val || val.statut==='refuse') return false;
     // J'ai validé ma partie, mais pas toutes les autres
-    const allVals = (DB.draftValidations||[]).filter(v=>v.draft_id===d.id);
+    const allVals = (DB.draftValidations||[]).filter(v=>v.draft_id==d.id);
     const allOk = allVals.length>0 && allVals.every(v=>v.statut==='valide');
     return val.statut==='valide' && !allOk;
   });
@@ -14687,7 +14687,7 @@ function icRender() {
     html += refuses.map(d => {
       const nd = d.data||{};
       const agences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).filter(Boolean);
-      const vals = (DB.draftValidations||[]).filter(v=>v.draft_id===d.id);
+      const vals = (DB.draftValidations||[]).filter(v=>v.draft_id==d.id);
       const refus = vals.find(v=>v.statut==='refuse');
       const motif = refus?.commentaire || '—';
       const agenceRefus = refus?.agence || '—';
@@ -14735,8 +14735,8 @@ function icOuvrirDossier(draftId, canEdit) {
          </div>`
       : `<button onclick="sspRetourIC()" style="font-size:12px;padding:6px 14px;border:1px solid #d97706;border-radius:8px;background:white;color:#d97706;cursor:pointer">← Retour</button>`;
     const label = canEdit
-      ? '🔄 Dossier refusé — <strong>${nd.vendeurNom||"?"} → ${nd.acquereurNom||"?"}</strong> — modifiez et renvoyez'
-      : '👁 Consultation — <strong>${nd.vendeurNom||"?"} → ${nd.acquereurNom||"?"}</strong> <span style="font-size:11px;opacity:.7">(lecture seule)</span>';
+      ? `🔄 Dossier refusé — <strong>${nd.vendeurNom||'?'} → ${nd.acquereurNom||'?'}</strong> — modifiez et renvoyez`
+      : `👁 Consultation — <strong>${nd.vendeurNom||'?'} → ${nd.acquereurNom||'?'}</strong> <span style="font-size:11px;opacity:.7">(lecture seule)</span>`;
     banner.innerHTML = `<div style="font-size:13px;color:#92400e;font-weight:500">${label}</div>${btns}`;
     const prev = document.getElementById('nd-prev');
     const next = document.getElementById('nd-next');
@@ -14764,7 +14764,7 @@ async function icModifierEtRenvoyer() {
     if (d) d.statut = 'en_attente_ic';
     // Remettre toutes les lignes de validation en_attente sauf l'agence initiale
     const myAgence = currentUser.agence || '';
-    const vals = (DB.draftValidations||[]).filter(v=>v.draft_id===ndDraftId);
+    const vals = (DB.draftValidations||[]).filter(v=>v.draft_id==ndDraftId);
     for (const v of vals) {
       if (v.agence !== myAgence) {
         await sbUpdate('draft_validations',
@@ -14793,7 +14793,7 @@ function icCard(d, myAgence, canAct) {
   const ageTxt = submittedAt===0 ? "aujourd'hui" : submittedAt!=null ? 'il y a '+submittedAt+' j' : '—';
 
   // Statuts des autres agences
-  const vals = (DB.draftValidations||[]).filter(v=>v.draft_id===d.id);
+  const vals = (DB.draftValidations||[]).filter(v=>v.draft_id==d.id);
   const statutsHtml = agences.map(ag => {
     const v = vals.find(x=>x.agence===ag);
     const s = v ? v.statut : 'en_attente';
@@ -14836,11 +14836,11 @@ async function icValider(draftId) {
   try {
     // Update ma ligne de validation
     await sbUpdate('draft_validations', `draft_id=eq.${draftId}&agence=eq.${encodeURIComponent(myAgence)}`, { statut: 'valide', updated_at: new Date().toISOString() });
-    const idx = (DB.draftValidations||[]).findIndex(v=>v.draft_id===draftId&&v.agence===myAgence);
+    const idx = (DB.draftValidations||[]).findIndex(v=>v.draft_id==draftId&&v.agence===myAgence);
     if (idx>=0) DB.draftValidations[idx].statut = 'valide';
 
     // Vérifier si toutes les agences ont validé
-    const allVals = (DB.draftValidations||[]).filter(v=>v.draft_id===draftId);
+    const allVals = (DB.draftValidations||[]).filter(v=>v.draft_id==draftId);
     const allOk = allVals.length>0 && allVals.every(v=>v.statut==='valide');
     if (allOk) {
       // Passer le draft en en_attente → visible chez Laurie/Benoît
@@ -14866,7 +14866,7 @@ async function icRefuser(draftId) {
   try {
     // Update ma ligne
     await sbUpdate('draft_validations', `draft_id=eq.${draftId}&agence=eq.${encodeURIComponent(myAgence)}`, { statut: 'refuse', commentaire, updated_at: new Date().toISOString() });
-    const idx = (DB.draftValidations||[]).findIndex(v=>v.draft_id===draftId&&v.agence===myAgence);
+    const idx = (DB.draftValidations||[]).findIndex(v=>v.draft_id==draftId&&v.agence===myAgence);
     if (idx>=0) { DB.draftValidations[idx].statut='refuse'; DB.draftValidations[idx].commentaire=commentaire; }
 
     // Passer le draft en "refuse" → disparaît de toutes les listes
