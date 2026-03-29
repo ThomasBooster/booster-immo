@@ -14651,10 +14651,14 @@ function icRender() {
     return val && val.statut==='en_attente';
   });
 
-  // Bloc 2 : j'ai validé, en attente des autres
+  // Bloc 2 : j'ai validé (ou j'ai soumis), en attente des autres agences
   const enAttente = icDrafts.filter(d => {
     const val = (DB.draftValidations||[]).find(v => v.draft_id===d.id && v.agence===myAgence);
-    return val && val.statut==='valide';
+    if (!val || val.statut==='refuse') return false;
+    // J'ai validé ma partie, mais pas toutes les autres
+    const allVals = (DB.draftValidations||[]).filter(v=>v.draft_id===d.id);
+    const allOk = allVals.length>0 && allVals.every(v=>v.statut==='valide');
+    return val.statut==='valide' && !allOk;
   });
 
   const subtitle = document.getElementById('ic-subtitle');
@@ -14672,9 +14676,69 @@ function icRender() {
     html += enAttente.map(d => icCard(d, myAgence, false)).join('');
   }
 
+  // Bloc 3 : dossiers refusés dont je suis l'agence initiale
+  const refuses = (DB.drafts||[]).filter(d => {
+    if (d.statut !== 'refuse') return false;
+    return d.agence === myAgence;
+  });
+
+  if (refuses.length > 0) {
+    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#E24B4A;margin:${(aValider.length+enAttente.length)>0?'24px':0} 0 10px;padding-bottom:6px;border-bottom:2px solid #E24B4A">✗ Refusés — action requise (${refuses.length})</div>`;
+    html += refuses.map(d => {
+      const nd = d.data||{};
+      const agences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).filter(Boolean);
+      const vals = (DB.draftValidations||[]).filter(v=>v.draft_id===d.id);
+      const refus = vals.find(v=>v.statut==='refuse');
+      const motif = refus?.commentaire || '—';
+      const agenceRefus = refus?.agence || '—';
+      return `<div style="background:#FFF5F5;border:1px solid #E24B4A;border-radius:12px;padding:14px 18px;margin-bottom:10px">
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:6px">${nd.vendeurNom||'—'} → ${nd.acquereurNom||'—'}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">🏠 ${agences.join(' / ')}</div>
+        <div style="font-size:13px;color:#E24B4A;margin-bottom:10px">✗ Refusé par <strong>${agenceRefus}</strong> — <em>${motif}</em></div>
+        <button onclick="icOuvrirDossier(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">📂 Voir le dossier</button>
+      </div>`;
+    }).join('');
+  }
+
   if (!html) html = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);font-size:14px">✅ Aucun dossier intercabinet en cours.</div>';
 
   list.innerHTML = html;
+}
+
+function icOuvrirDossier(draftId) {
+  const d = DB.drafts.find(x => x.id === draftId);
+  if (!d) { showToast('Dossier introuvable', 'error'); return; }
+  const nd = d.data || {};
+  sspLoadDraftIntoNdS(nd);
+  ndDraftId = d.id;
+  ndStep = 9;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-nouveau-dossier').classList.add('active');
+  const navIC = document.getElementById('nav-ic-validation') || document.getElementById('nav-ic-validation-gratuit');
+  if (navIC) navIC.classList.add('active');
+  document.getElementById('topbar-title').textContent = 'Nouveau dossier';
+  ndRender();
+  setTimeout(() => {
+    let banner = document.getElementById('nd-ssp-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'nd-ssp-banner';
+      const sc = document.getElementById('nd-sc');
+      if (sc) sc.parentElement.insertBefore(banner, sc);
+    }
+    banner.style.cssText = 'background:#fef3c7;border:1px solid #d97706;border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
+    banner.innerHTML = `<div style="font-size:13px;color:#92400e;font-weight:500">👁 Consultation — <strong>${nd.vendeurNom||'?'} → ${nd.acquereurNom||'?'}</strong> <span style="font-size:11px;opacity:.7">(lecture seule)</span></div><button onclick="sspRetourIC()" style="font-size:12px;padding:6px 14px;border:1px solid #d97706;border-radius:8px;background:white;color:#d97706;cursor:pointer">← Retour</button>`;
+    const prev = document.getElementById('nd-prev');
+    const next = document.getElementById('nd-next');
+    if (prev) prev.style.display = 'none';
+    if (next) next.style.display = 'none';
+  }, 50);
+}
+
+function sspRetourIC() {
+  const navIC = document.getElementById('nav-ic-validation') || document.getElementById('nav-ic-validation-gratuit');
+  showPage('ic-validation', navIC);
 }
 
 function icCard(d, myAgence, canAct) {
@@ -14720,7 +14784,7 @@ function icCard(d, myAgence, canAct) {
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">${statutsHtml}</div>
       </div>
-      <button onclick="sspOuvrirDossier(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer;flex-shrink:0">📂 Voir</button>
+      <button onclick="icOuvrirDossier(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer;flex-shrink:0">📂 Voir</button>
     </div>
     ${actHtml}
   </div>`;
