@@ -696,20 +696,14 @@
   }
   .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
   .tr-clickable:hover { background: var(--color-background-secondary, #f8fafc) !important; transition: background .1s; }
-  /* Mode gratuit : masquer tout sauf classement + nouveau dossier */
+  /* Mode gratuit : masquer tout sauf les 3 items autorisés */
+  #nav-gratuit-wrapper { display: none; }
   body.role-gratuit .nav-section { display: none !important; }
   body.role-gratuit .nav-section-title { display: none !important; }
-  body.role-gratuit #nav-saisie-section { display: none !important; }
-  body.role-gratuit #nav-rh-section { display: none !important; }
-  body.role-gratuit #nav-feedback-section { display: none !important; }
+  body.role-gratuit #nav-gratuit-wrapper { display: block !important; }
   body.role-gratuit #nav-ranking { display: flex !important; }
   body.role-gratuit #nav-nouveau-dossier { display: flex !important; }
   body.role-gratuit #nav-ic-validation-gratuit { display: flex !important; }
-  body.role-gratuit #nav-gratuit-wrapper { display: block !important; }
-  body.role-gratuit #nav-ranking { display: flex !important; visibility: visible !important; }
-  body.role-gratuit #nav-nouveau-dossier { display: flex !important; visibility: visible !important; }
-  body.role-gratuit #nav-ic-validation-gratuit { display: flex !important; visibility: visible !important; }
-  body.role-gratuit #nav-ic-validation { display: none !important; }
   body.role-gratuit #sidebar-role { display: none !important; }
   body.role-gratuit .sidebar-version { display: none !important; }
 
@@ -839,18 +833,20 @@
             <span class="nav-icon">🔀</span> Intercabinets
             <span id="ic-badge" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
           </div>
-          <div id="nav-gratuit-wrapper" style="display:none"><div class="nav-item" id="nav-ranking" onclick="showPage('ranking', this)">
-            <span class="nav-icon">🏆</span> Classement agences
-          </div>
-          <div class="nav-item" id="nav-nouveau-dossier" style="display:none" onclick="showPage('nouveau-dossier', this)">
-            <span class="nav-icon">✏️</span> Nouveau dossier
-          </div>
-          <div class="nav-item" id="nav-ic-validation-gratuit" style="display:none" onclick="showPage('ic-validation', this)">
-            <span class="nav-icon">🔀</span> Dossiers en attente
-            <span id="ic-badge-gratuit" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
-          </div></div>
           <div class="nav-item" onclick="showPage('negociateurs-classement', this)">
             <span class="nav-icon">🥇</span> Classement Négociateurs
+          </div>
+        </div>
+        <div id="nav-gratuit-wrapper">
+          <div class="nav-item" id="nav-ranking" onclick="showPage('ranking', this)">
+            <span class="nav-icon">🏆</span> Classement agences
+          </div>
+          <div class="nav-item" id="nav-nouveau-dossier" onclick="showPage('nouveau-dossier', this)">
+            <span class="nav-icon">✏️</span> Nouveau dossier
+          </div>
+          <div class="nav-item" id="nav-ic-validation-gratuit" onclick="showPage('ic-validation', this)">
+            <span class="nav-icon">🔀</span> Dossiers en attente
+            <span id="ic-badge-gratuit" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
           </div>
         </div>
         <div class="nav-section">
@@ -3310,11 +3306,7 @@ async function initApp() {
   } else if (currentUser.role === 'gratuit') {
     // Rôle gratuit : classe CSS sur body, pas de manipulation DOM directe
     document.body.classList.add('role-gratuit');
-    const wrapperEl = document.getElementById('nav-gratuit-wrapper');
-    if (wrapperEl) wrapperEl.style.display = 'block';
-    const nvDosEl = document.getElementById('nav-nouveau-dossier');
-    if (nvDosEl) nvDosEl.style.display = 'flex';
-    // Rediriger vers classement agences par défaut
+    // Le CSS s'occupe d'afficher les bons items — pas besoin de JS
     showPage('ranking', document.getElementById('nav-ranking'));
   } else {
     document.getElementById('nav-rapport').style.display = 'none';
