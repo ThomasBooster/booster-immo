@@ -15602,7 +15602,7 @@ function ndPriceBox(id,val){ return`<div style="padding:9px 12px;background:var(
 function ndSct(txt){ return`<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text);background:var(--bg-secondary,#f8fafc);padding:6px 10px;border-radius:6px;margin:14px 0 8px;border-left:3px solid var(--primary)">${txt}</div>`; }
 
 // ── Navigation ───────────────────────────────────────────────────────────────
-function ndGo(dir){
+async function ndGo(dir){
   ndSaveFields();
   if(dir===1&&!ndValidate()) return;
   if(dir===1) ndSaveDraft().catch(()=>{});
