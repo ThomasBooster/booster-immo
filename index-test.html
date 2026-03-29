@@ -14695,7 +14695,7 @@ function icRender() {
         <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:6px">${nd.vendeurNom||'—'} → ${nd.acquereurNom||'—'}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">🏠 ${agences.join(' / ')}</div>
         <div style="font-size:13px;color:#E24B4A;margin-bottom:10px">✗ Refusé par <strong>${agenceRefus}</strong> — <em>${motif}</em></div>
-        <button onclick="icOuvrirDossier(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">📂 Voir le dossier</button>
+        <button onclick="icOuvrirDossier(${d.id}, true)" style="font-size:12px;padding:5px 12px;border:none;border-radius:8px;background:#d97706;color:white;cursor:pointer;font-weight:600">✏️ Modifier et renvoyer</button>
       </div>`;
     }).join('');
   }
@@ -14705,7 +14705,7 @@ function icRender() {
   list.innerHTML = html;
 }
 
-function icOuvrirDossier(draftId) {
+function icOuvrirDossier(draftId, canEdit) {
   const d = DB.drafts.find(x => x.id === draftId);
   if (!d) { showToast('Dossier introuvable', 'error'); return; }
   const nd = d.data || {};
@@ -14728,12 +14728,53 @@ function icOuvrirDossier(draftId) {
       if (sc) sc.parentElement.insertBefore(banner, sc);
     }
     banner.style.cssText = 'background:#fef3c7;border:1px solid #d97706;border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
-    banner.innerHTML = `<div style="font-size:13px;color:#92400e;font-weight:500">👁 Consultation — <strong>${nd.vendeurNom||'?'} → ${nd.acquereurNom||'?'}</strong> <span style="font-size:11px;opacity:.7">(lecture seule)</span></div><button onclick="sspRetourIC()" style="font-size:12px;padding:6px 14px;border:1px solid #d97706;border-radius:8px;background:white;color:#d97706;cursor:pointer">← Retour</button>`;
+    const btns = canEdit
+      ? `<div style="display:flex;gap:8px">
+           <button onclick="icModifierEtRenvoyer()" style="font-size:12px;padding:6px 14px;border:none;border-radius:8px;background:#d97706;color:white;cursor:pointer;font-weight:600">✏️ Modifier et renvoyer</button>
+           <button onclick="sspRetourIC()" style="font-size:12px;padding:6px 14px;border:1px solid #d97706;border-radius:8px;background:white;color:#d97706;cursor:pointer">← Retour</button>
+         </div>`
+      : `<button onclick="sspRetourIC()" style="font-size:12px;padding:6px 14px;border:1px solid #d97706;border-radius:8px;background:white;color:#d97706;cursor:pointer">← Retour</button>`;
+    const label = canEdit
+      ? '🔄 Dossier refusé — <strong>${nd.vendeurNom||"?"} → ${nd.acquereurNom||"?"}</strong> — modifiez et renvoyez'
+      : '👁 Consultation — <strong>${nd.vendeurNom||"?"} → ${nd.acquereurNom||"?"}</strong> <span style="font-size:11px;opacity:.7">(lecture seule)</span>';
+    banner.innerHTML = `<div style="font-size:13px;color:#92400e;font-weight:500">${label}</div>${btns}`;
     const prev = document.getElementById('nd-prev');
     const next = document.getElementById('nd-next');
     if (prev) prev.style.display = 'none';
     if (next) next.style.display = 'none';
   }, 50);
+}
+
+async function icModifierEtRenvoyer() {
+  // Passer le draft en en_attente_ic et réinitialiser les validations
+  if (!ndDraftId) return;
+  const banner = document.getElementById('nd-ssp-banner');
+  if (banner) banner.remove();
+  const prev = document.getElementById('nd-prev');
+  const next = document.getElementById('nd-next');
+  if (prev) prev.style.display = '';
+  if (next) next.style.display = '';
+  ndStep = 1;
+  ndRender();
+  // Remettre le statut en_attente_ic et réinitialiser les lignes de validation refusées
+  ndS.statutDraft = 'en_attente_ic';
+  try {
+    await sbUpdate('dossiers_draft', 'id=eq.'+ndDraftId, { statut: 'en_attente_ic' });
+    const d = DB.drafts.find(x=>x.id===ndDraftId);
+    if (d) d.statut = 'en_attente_ic';
+    // Remettre toutes les lignes de validation en_attente sauf l'agence initiale
+    const myAgence = currentUser.agence || '';
+    const vals = (DB.draftValidations||[]).filter(v=>v.draft_id===ndDraftId);
+    for (const v of vals) {
+      if (v.agence !== myAgence) {
+        await sbUpdate('draft_validations',
+          `draft_id=eq.${ndDraftId}&agence=eq.${encodeURIComponent(v.agence)}`,
+          { statut: 'en_attente', commentaire: null });
+        v.statut = 'en_attente'; v.commentaire = null;
+      }
+    }
+    showToast('Dossier remis en attente de validation — modifiez-le puis renvoyez.', 'success');
+  } catch(e) { showToast('Erreur : '+e.message, 'error'); }
 }
 
 function sspRetourIC() {
