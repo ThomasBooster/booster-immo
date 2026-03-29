@@ -15656,7 +15656,7 @@ async function ndSaveDraft(){
   // Calculer la complétude et l'injecter dans ndS avant serialisation
   const pct = ndCalcCompletude();
   ndS._completude = pct;
-  const payload={agence:currentUser.agence||'',saisi_par:currentUser.nom,saisi_role:currentUser.role,etape_courante:ndStep,statut_redaction:'a_rediger',data:JSON.stringify(ndS)};
+  const payload={agence:currentUser.agence||'',saisi_par:currentUser.nom,saisi_role:currentUser.role,etape_courante:ndStep,statut_redaction:'a_rediger',statut:ndS.statutDraft||'en_attente',data:JSON.stringify(ndS)};
   try{
     if(ndDraftId){
       await sbUpdate('dossiers_draft','id=eq.'+ndDraftId,{...payload,updated_at:new Date().toISOString()});
