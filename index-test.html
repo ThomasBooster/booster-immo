@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.6.0</title>
+<title>⚠️ SCORIM TEST v1.6.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -781,6 +781,9 @@
         <button onclick="quickLogin('thomasg','thomas123')" style="padding:14px;font-size:14px;border:2px solid #2D455A;background:white;color:#2D455A;border-radius:10px;cursor:pointer;font-weight:700;font-family:inherit">
           👤 Gérant Saint-Agne
         </button>
+        <button onclick="quickLogin('minimes','min123')" style="padding:14px;font-size:14px;border:2px solid #2D455A;background:white;color:#2D455A;border-radius:10px;cursor:pointer;font-weight:700;font-family:inherit">
+          🏠 Minimes (gratuit)
+        </button>
       </div>
       <div style="margin-top:20px;border-top:1px solid #e2e8f0;padding-top:16px">
         <details>
@@ -799,7 +802,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.6.0</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.6.1</div>
     </div>
   </div>
 </div>
@@ -910,7 +913,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.6.0</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.6.1</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5214,7 +5217,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.6.0</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.6.1</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
