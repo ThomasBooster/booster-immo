@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.26</title>
+<title>⚠️ SCORIM TEST v1.5.27</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -800,7 +800,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.26</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.27</div>
     </div>
   </div>
 </div>
@@ -917,7 +917,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.26</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.27</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5217,7 +5217,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.26</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.27</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15778,16 +15778,22 @@ async function ndSaveDraft(){
   // Calculer la complétude et l'injecter dans ndS avant serialisation
   const pct = ndCalcCompletude();
   ndS._completude = pct;
-  // En mode édition SSP : conserver le statut_redaction existant, ne pas l'écraser
-  const existingDraft = ndDraftId ? (DB.drafts||[]).find(d=>d.id==ndDraftId) : null;
-  const statutRedaction = sspModeEdition && existingDraft ? (existingDraft.statut_redaction||'a_rediger') : 'a_rediger';
-  const payload={agence:currentUser.agence||'',saisi_par:currentUser.nom,saisi_role:currentUser.role,etape_courante:ndStep,statut_redaction:statutRedaction,statut:ndS.statutDraft||'en_attente',data:JSON.stringify(ndS)};
+  // En mode édition SSP : NE JAMAIS écraser le statut — seulement mettre à jour data
+  if(sspModeEdition && ndDraftId){
+    try{
+      await sbUpdate('dossiers_draft','id=eq.'+ndDraftId,{
+        data: JSON.stringify(ndS),
+        etape_courante: ndStep,
+        updated_at: new Date().toISOString()
+      });
+    }catch(e){ console.warn('Draft save SSP edit:', e); }
+    return;
+  }
+  // Mode normal : payload complet
+  const payload={agence:currentUser.agence||'',saisi_par:currentUser.nom,saisi_role:currentUser.role,etape_courante:ndStep,statut_redaction:'a_rediger',statut:ndS.statutDraft||'en_attente',data:JSON.stringify(ndS)};
   try{
     if(ndDraftId){
       await sbUpdate('dossiers_draft','id=eq.'+ndDraftId,{...payload,updated_at:new Date().toISOString()});
-      // Mettre à jour DB.drafts en mémoire
-      const idx=(DB.drafts||[]).findIndex(d=>d.id==ndDraftId);
-      if(idx>=0) Object.assign(DB.drafts[idx],{...payload,data:ndS});
     }else{
       const res=await sbInsert('dossiers_draft',payload);
       if(res&&res[0]) ndDraftId=res[0].id;
