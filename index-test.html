@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.45</title>
+<title>⚠️ SCORIM TEST v1.5.46</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -807,7 +807,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.45</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.46</div>
     </div>
   </div>
 </div>
@@ -925,7 +925,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.45</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.46</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5234,7 +5234,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.45</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.46</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15757,7 +15757,7 @@ function ndCurrentStepLabel(){
 
 function ndProgress(){
   const labels=['Vendeur','Acquéreur','Le bien','Mandat','Vente','Notaires','Syndic & pièces','Répartition','Récap'];
-  const isEditMode = sspModeEdition || !!ndDraftId;
+  const isEditMode = ndEditMode; // uniquement si le bouton Modifier a été cliqué
   return`<div id="nd-prog" style="display:flex;gap:4px;margin-bottom:24px">${labels.map((l,i)=>{
     const n=i+1, active=n===ndStep;
     // En mode edit : tous les tirets verts sauf l'actif (bleu)
@@ -15788,7 +15788,7 @@ function ndProgEnter(el, n, label, clickable) {
 function ndProgLeave(el, n, active, done) {
   const bar = document.getElementById('nd-bar-'+n);
   const lbl = document.getElementById('nd-lbl-'+n);
-  const isEditMode = sspModeEdition || !!ndDraftId;
+  const isEditMode = ndEditMode; // uniquement si le bouton Modifier a été cliqué
   if (bar) bar.style.height = '5px';
   if (lbl) {
     lbl.textContent = active ? (document.querySelector('[id^="nd-prog"]') ? (lbl.dataset.label||'') : '') : (done||isEditMode ? '✓' : '');
