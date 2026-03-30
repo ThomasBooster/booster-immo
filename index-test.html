@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.40</title>
+<title>⚠️ SCORIM TEST v1.5.41</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -797,7 +797,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.40</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.41</div>
     </div>
   </div>
 </div>
@@ -915,7 +915,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.40</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.41</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5203,7 +5203,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.40</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.41</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -14775,6 +14775,7 @@ function icOuvrirDossier(draftId, canEdit) {
 async function icModifierEtRenvoyer() {
   // Passer le draft en en_attente_ic et réinitialiser les validations
   sspModeEdition = true;
+  ndEditMode = true;
   if (!ndDraftId) return;
   const banner = document.getElementById('nd-ssp-banner');
   if (banner) banner.remove();
@@ -15117,6 +15118,8 @@ function sspGoToDashboardFromNotif() {
 
 let sspDragSrc = null;
 let sspModeEdition = false; // true quand Laurie modifie un draft existant depuis le dashboard SSP
+let ndEditMode = false; // true quand l'utilisateur a cliqué 'Modifier' (navigation libre activée)
+let ndStepSnapshot = null; // snapshot de ndS à l'entrée de chaque étape
 
 async function sspRefresh() {
   try {
@@ -15512,6 +15515,7 @@ function sspOuvrirDossier(draftId) {
 
 function sspPasserEnEdition() {
   sspModeEdition = true;
+  ndEditMode = true;
   const banner = document.getElementById('nd-ssp-banner');
   if (banner) banner.remove();
   const prev = document.getElementById('nd-prev');
@@ -15634,7 +15638,7 @@ function sspUpdateBadge() {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 function ndInit(){
-  ndStep=1; ndDraftId=null; sspModeEdition=false; ndS.statutDraft='brouillon';
+  ndStep=1; ndDraftId=null; sspModeEdition=false; ndEditMode=false; ndStepSnapshot=null; ndS.statutDraft='brouillon';
   const agDef=currentUser.agence||'';
   Object.assign(ndS,{
     vendeurNom:'',vendeurUsage:null,
@@ -15766,30 +15770,25 @@ function ndProgLeave(el, n, active, done) {
 }
 
 function ndGoToStep(n) {
-  // Détecter si des modifications sont en cours sur l'étape actuelle
-  if (ndHasUnsavedChanges()) {
-    showToast('Modifications non enregistrées — cliquez sur Suivant pour les valider avant de changer d\'étape.', 'error');
-    return;
+  if (!ndEditMode) return;
+  // Sauvegarder les champs de l'étape courante avant de bouger
+  ndSaveFields();
+  // Comparer avec le snapshot pour détecter des changements
+  if (ndStepSnapshot !== null) {
+    const current = JSON.stringify(ndS);
+    if (current !== ndStepSnapshot) {
+      showToast("Modifications non enregistrées — cliquez sur Suivant pour les valider.", 'error');
+      return;
+    }
   }
   ndStep = n;
   ndRender();
   window.scrollTo(0, 0);
 }
 
-// Détecte si des valeurs DOM ont changé par rapport à ndS
-function ndHasUnsavedChanges() {
-  const s = ndStep;
-  if (s===1) { const v=document.getElementById('nd-v-nom'); return v && v.value.replace(/\//g,'').toUpperCase()!==ndS.vendeurNom; }
-  if (s===2) { const a=document.getElementById('nd-a-nom'); return a && a.value.replace(/\//g,'').toUpperCase()!==ndS.acquereurNom; }
-  if (s===4) {
-    const md=document.getElementById('nd-mdt'), pinv=document.getElementById('nd-pinv'), pinh=document.getElementById('nd-pinh');
-    return (md&&md.value!==ndS.mandatDate)||(pinv&&parseFloat(pinv.value)!=ndS.prixInitNV)||(pinh&&parseFloat(pinh.value)!=ndS.prixInitHono);
-  }
-  if (s===5) {
-    const pfnv=document.getElementById('nd-pfnv'), pfh=document.getElementById('nd-pfh');
-    return (pfnv&&parseFloat(pfnv.value)!=ndS.prixFinalNV)||(pfh&&parseFloat(pfh.value)!=ndS.prixFinalHono);
-  }
-  return false; // étapes sans inputs simples → pas de détection
+// Prendre un snapshot de ndS à l'entrée d'une étape
+function ndTakeSnapshot() {
+  ndStepSnapshot = JSON.stringify(ndS);
 }
 
 function ndCard(html){ return`<div style="margin-bottom:16px">${html}</div>`; }
@@ -16069,7 +16068,10 @@ async function ndSubmit(){
       await ndSaveDraft();
       showLoading(false);
       sspModeEdition = false;
+    ndEditMode = false;
+    ndStepSnapshot = null;
       showToast('Modifications enregistrées ✓', 'success');
+      ndEditMode = false; ndStepSnapshot = null;
       const navSSP = document.getElementById('nav-ssp-dashboard');
       showPage('ssp-dashboard', navSSP);
       return;
