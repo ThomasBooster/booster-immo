@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.49</title>
+<title>⚠️ SCORIM TEST v1.5.50</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -807,7 +807,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.49</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.50</div>
     </div>
   </div>
 </div>
@@ -925,7 +925,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.49</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.50</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -2775,6 +2775,7 @@
       <div id="edit-diag-montant-row" style="display:none;margin-top:4px">
         <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">Montant diagnostics TTC (€)</label>
         <div class="amount-display" id="edit-diag-montant-display" style="font-size:13px">—</div>
+        <input type="hidden" id="edit-diag-montant-ht" value="0">
       </div>
     </div>
     <!-- Apporteur -->
@@ -4273,14 +4274,17 @@ function calcHT() {
 }
 
 function calcEditHT() {
-  
   const tva = DB.settings.tva / 100;
   const ttc = parseFloat(document.getElementById('edit-ttc').value) || 0;
   const brutHT = ttc > 0 ? ttc / (1 + tva) : 0;
+  const diagHT = parseFloat(document.getElementById('edit-diag-montant-ht')?.value) || 0;
+  const hasRetroBooster = document.getElementById('edit-has-retro-booster')?.checked || false;
+  const retroBoosterHT = hasRetroBooster ? (parseFloat(document.getElementById('edit-retro-booster-ht')?.value) || 0) : 0;
+  const baseApporteur = brutHT - diagHT - retroBoosterHT;
   const hasApporteur = document.getElementById('edit-has-apporteur')?.checked;
   const apportPct = hasApporteur ? (parseFloat(document.getElementById('edit-apporteur-pct')?.value) || 0) : 0;
-  const apportHT = brutHT * apportPct / 100;
-  const netHT = brutHT - apportHT;
+  const apportHT = baseApporteur * apportPct / 100;
+  const netHT = baseApporteur - apportHT;
   document.getElementById('edit-ht-display').textContent = brutHT > 0 ? fmtEuro(netHT) : '—';
   const montEl = document.getElementById('edit-apporteur-montant');
   if (montEl) montEl.textContent = apportHT > 0 ? fmtEuro(apportHT) : '—';
@@ -4779,17 +4783,22 @@ function openEdit(id) {
   // Montant diagnostics depuis le draft lié
   const diagRow = document.getElementById('edit-diag-montant-row');
   const diagDisplay = document.getElementById('edit-diag-montant-display');
+  const diagHiddenEl = document.getElementById('edit-diag-montant-ht');
   if (d.diag && d.draftId) {
     const linkedDraft = (DB.drafts || []).find(x => x.id == d.draftId);
     const diagMt = linkedDraft?.data?.diagMontant;
     if (diagMt) {
       diagRow.style.display = 'block';
       diagDisplay.textContent = fmtEuro(diagMt);
+      const tva = DB.settings.tva / 100;
+      if (diagHiddenEl) diagHiddenEl.value = +(diagMt / (1 + tva)).toFixed(2);
     } else {
       diagRow.style.display = 'none';
+      if (diagHiddenEl) diagHiddenEl.value = 0;
     }
   } else {
     diagRow.style.display = 'none';
+    if (diagHiddenEl) diagHiddenEl.value = 0;
   }
   const editRetroEl = document.getElementById('edit-has-retro-booster');
   if (editRetroEl) {
@@ -4886,11 +4895,12 @@ async function confirmEdit() {
     }
   }
   const apporteurPct = hasApporteur ? (parseFloat(document.getElementById('edit-apporteur-pct').value) || 0) : 0;
-  const apportHTTotal = +(brutHTTotal * apporteurPct / 100).toFixed(2);
-  const netHTTotal = +(brutHTTotal - apportHTTotal).toFixed(2);
-
+  const diagHTTotal = parseFloat(document.getElementById('edit-diag-montant-ht')?.value) || 0;
   const hasRetroBooster = document.getElementById('edit-has-retro-booster')?.checked || false;
   const retroBoosterHT = hasRetroBooster ? (parseFloat(document.getElementById('edit-retro-booster-ht')?.value) || 0) : 0;
+  const baseApportHTTotal = brutHTTotal - diagHTTotal - retroBoosterHT;
+  const apportHTTotal = +(baseApportHTTotal * apporteurPct / 100).toFixed(2);
+  const netHTTotal = +(baseApportHTTotal - apportHTTotal).toFixed(2);
   const champsCommuns = {
     client: document.getElementById('edit-client').value.trim().toUpperCase(),
     statut: document.getElementById('edit-statut').value,
@@ -5256,7 +5266,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.49</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.50</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
