@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.39</title>
+<title>⚠️ SCORIM TEST v1.5.40</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -797,7 +797,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.39</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.40</div>
     </div>
   </div>
 </div>
@@ -915,7 +915,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.39</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.40</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5203,7 +5203,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.39</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.40</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15768,7 +15768,7 @@ function ndProgLeave(el, n, active, done) {
 function ndGoToStep(n) {
   // Détecter si des modifications sont en cours sur l'étape actuelle
   if (ndHasUnsavedChanges()) {
-    showToast('Modifications non enregistrées — cliquez sur "Suivant" pour les valider avant de changer d'étape.', 'error');
+    showToast('Modifications non enregistrées — cliquez sur Suivant pour les valider avant de changer d\'étape.', 'error');
     return;
   }
   ndStep = n;
@@ -16604,9 +16604,10 @@ function ndS8(){
       ${ndStepHdr(8,'Répartition du CA',true)}
       <div style="background:#E1F5EE;border-radius:10px;padding:12px 14px;margin-bottom:14px">
         <div style="color:#0F6E56;font-weight:500;font-size:13px;margin-bottom:8px">Base de répartition</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;color:#0F6E56">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr ${ndS.horsSecteur?'1fr':''};gap:8px;font-size:12px;color:#0F6E56">
           <div><div style="opacity:.7">Honoraires TTC</div><div style="font-weight:500">${ndFmt(ndS.prixFinalHono)}</div></div>
           <div><div style="opacity:.7">- Diagnostics</div><div style="font-weight:500">- ${ndFmt(ndS.diagMontant)}</div></div>
+          ${ndS.horsSecteur===true?`<div><div style="opacity:.7">- Hors secteur</div><div style="font-weight:500">- ${ndFmt(ndHorsSecteurTTC())}</div></div>`:''}
           <div><div style="opacity:.7">- Apporteur</div><div style="font-weight:500">- ${ndFmt(ndS.apporteurMt)}</div></div>
         </div>
         <div style="border-top:1px solid #9FE1CB;margin-top:8px;padding-top:8px;font-weight:600;font-size:15px;color:#085041">= ${ndFmt(base)}${ndFmtHT(base)}</div>
@@ -16685,6 +16686,7 @@ function ndS9(){
     ${sec("La vente")}
     ${g2(ri("Net vendeur final",ndFmt(ndS.prixFinalNV)+ndFmtHT(ndS.prixFinalNV)),ri("Honoraires TTC finals",ndFmt(ndS.prixFinalHono)+ndFmtHT(ndS.prixFinalHono)))}
     ${g2(ri("Prix affiché final",ndFmt(ndS.prixFinalNV+ndS.prixFinalHono)),ndS.diag===true?ri("Diagnostics agence","- "+ndFmt(ndS.diagMontant)):ri("Diagnostics","À charge vendeur"))}
+    ${ndS.horsSecteur===true?ri("Redevance Booster (hors secteur)","- "+ndFmt(ndHorsSecteurTTC())+ndFmtHT(ndHorsSecteurTTC())):""}
     ${ndS.apporteur===true?g2(ri("Apporteur",ndS.apporteurNom+" — "+ndS.apporteurPct+"%"),ri("Montant rétrocession",ndFmt(ndS.apporteurMt)+ndFmtHT(ndS.apporteurMt))):""}
     ${ri("Base répartition CA",ndFmt(b)+ndFmtHT(b))}
     ${sec("Notaires")}
