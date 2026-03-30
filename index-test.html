@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.50</title>
+<title>⚠️ SCORIM TEST v1.5.51</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -807,7 +807,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.50</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.51</div>
     </div>
   </div>
 </div>
@@ -925,7 +925,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.50</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.51</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -1347,7 +1347,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>Affaire</th><th>Agence</th><th>Brut TTC</th><th>Apporteur</th><th>Apport HT</th><th>Net HT</th><th>Statut</th><th>Date SSP</th><th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Saisi par</th><th>Actions</th>
+                  <th>Affaire</th><th>Agence</th><th>Brut TTC</th><th>Apporteur</th><th>Net HT</th><th>Statut</th><th>Date SSP</th><th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Saisi par</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody id="dos-tbody"></tbody>
@@ -3224,6 +3224,7 @@ async function doLogin() {
 
 function doLogout() {
   stopSSPPolling();
+  stopICPolling();
   currentUser = null;
   DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [], dossierRent: [], societes: [], agences: [], gerants: [], drafts: [], draftValidations: [] };
   document.getElementById('auth-screen').style.display = 'flex';
@@ -3362,6 +3363,8 @@ async function initApp() {
 
   // Badge IC pour tous
   icUpdateBadge();
+  // Polling IC temps réel pour les agences
+  startICPolling();
 
   // Landing page selon rôle
   if (currentUser.role === 'saisie') {
@@ -3469,6 +3472,11 @@ function populateFilters() {
 // PAGES
 // =====================
 function showPage(name, navEl) {
+  // Bloquer la navigation si un draft est en cours (sauf retour vers nouveau-dossier)
+  if (name !== 'nouveau-dossier' && ndDraftId && !sspModeEdition) {
+    showToast('Terminez ou annulez la saisie en cours avant de naviguer.', 'error');
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
@@ -4681,14 +4689,13 @@ function refreshDossiers() {
   }
   const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin';
   const canEditEffectif = canEdit;
-  if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier trouvé</td></tr>'; return; }
+  if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier trouvé</td></tr>'; return; }
   tbody.innerHTML = list.map(d => `
     <tr class="${canEditEffectif ? 'tr-clickable' : ''}" style="${canEditEffectif ? 'cursor:pointer' : ''}" ${canEditEffectif ? `onclick="openEdit(${d.id})"` : ''}>
       <td><strong>${d.client}</strong>${d.groupId ? ` <span style="font-size:10px;color:var(--text-muted)">#G${d.groupId}</span>` : ''}</td>
       <td>${agenceBadge(d)}</td>
       <td style="font-size:12px">${d.ttc ? fmtEuro(d.ttc) : '—'}</td>
       <td style="font-size:11px;color:#92400e">${d.hasApporteur ? `<div style="font-weight:600">${d.apporteurNom}</div><div>${fmtEuro(d.apportHT||0)}</div>` : '—'}</td>
-      <td style="font-size:11px;color:#92400e">${d.apportHT > 0 ? fmtEuro(d.apportHT) : '—'}</td>
       <td style="font-weight:600;color:var(--primary)">${d.ht ? fmtEuro(d.ht) : '—'}</td>
       <td>${statusBadge(d.statut)}</td>
       <td style="font-size:12px">${d.date ? fmtDate(d.date) : '—'}</td>
@@ -5266,7 +5273,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.50</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.51</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15093,6 +15100,36 @@ function startSSPPolling() {
   sspPollingInterval = setInterval(sspPollNewDrafts, 20000);
 }
 
+// Polling IC badge pour les rôles agence/gratuit/gerant
+let icPollingInterval = null;
+function startICPolling() {
+  const role = currentUser?.role;
+  if (role !== 'agence' && role !== 'gratuit' && role !== 'gerant') return;
+  icPollingInterval = setInterval(async () => {
+    try {
+      const [raw, vals] = await Promise.all([
+        sbFetch('dossiers_draft', { filter: 'statut=eq.en_attente_ic' }),
+        sbFetch('draft_validations')
+      ]);
+      const parsed = (raw||[]).map(d => ({ ...d, data: d.data ? (typeof d.data==='string' ? JSON.parse(d.data) : d.data) : {} }));
+      // Mettre à jour DB.drafts (IC uniquement)
+      parsed.forEach(d => {
+        const idx = (DB.drafts||[]).findIndex(x => x.id === d.id);
+        if (idx >= 0) DB.drafts[idx] = d; else (DB.drafts = DB.drafts||[]).push(d);
+      });
+      DB.draftValidations = vals || [];
+      icUpdateBadge();
+      // Rafraîchir la page IC si ouverte
+      const page = document.querySelector('.page.active');
+      if (page && page.id === 'page-ic-validation') icRender();
+    } catch(e) { console.warn('IC polling:', e); }
+  }, 20000);
+}
+
+function stopICPolling() {
+  if (icPollingInterval) { clearInterval(icPollingInterval); icPollingInterval = null; }
+}
+
 function stopSSPPolling() {
   if (sspPollingInterval) { clearInterval(sspPollingInterval); sspPollingInterval = null; }
   sspDraftsVus.clear();
@@ -15203,7 +15240,16 @@ async function sspRender() {
     DB.draftValidations = vals || [];
   } catch(e) { console.warn('sspRender reload:', e); }
   // Laurie/Benoît : seulement les drafts en_attente (pas les intercabinets en attente de validation agences)
-  const pending = DB.drafts.filter(d => d.statut === 'en_attente');
+  // Rôle agence/gerant/gratuit : uniquement les drafts de leur agence
+  let pending = DB.drafts.filter(d => d.statut === 'en_attente');
+  if (currentUser.role !== 'admin' && currentUser.role !== 'saisie') {
+    const myAgence = currentUser.agence;
+    pending = pending.filter(d => {
+      const nd = d.data || {};
+      const agences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom);
+      return d.agence === myAgence || agences.includes(myAgence);
+    });
+  }
   const subtitle = document.getElementById('ssp-subtitle');
   if (subtitle) subtitle.textContent = pending.length === 0 ? 'Aucun dossier en attente' : pending.length + ' dossier' + (pending.length > 1 ? 's' : '') + ' en attente';
 
@@ -15315,6 +15361,7 @@ function sspCard(d, idx) {
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+          ${(currentUser.role==='saisie'||currentUser.role==='admin') ? `
           <select onchange="sspSetStatut(${d.id}, this.value)"
             style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">
             <option value="a_rediger" ${statut==='a_rediger'?'selected':''}>À rédiger</option>
@@ -15322,6 +15369,7 @@ function sspCard(d, idx) {
             <option value="redige"    ${statut==='redige'   ?'selected':''}>Rédigé</option>
           </select>
           ${statut === 'redige' ? `<button onclick="sspConfirmValider(${d.id})" style="font-size:12px;padding:5px 12px;border:none;border-radius:8px;background:var(--primary);color:white;cursor:pointer;font-weight:600">✓ Valider →</button>` : ''}
+          ` : sspStatutBadge(statut)}
         </div>
       </div>
     </div>
@@ -15710,6 +15758,27 @@ function sspUpdateBadge() {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 function ndInit(){
+  // Vérifier s'il y a des brouillons de cet utilisateur à reprendre
+  const myBrouillons = (DB.drafts||[]).filter(d =>
+    d.statut === 'brouillon' &&
+    (d.saisi_par === currentUser.nom || d.saisi_role === currentUser.role)
+  );
+  if (myBrouillons.length > 0) {
+    const last = myBrouillons[myBrouillons.length - 1];
+    const nd = last.data || {};
+    const vendeur = nd.vendeurNom || '—';
+    const etape = last.etape_courante || 1;
+    const date = last.created_at ? new Date(last.created_at).toLocaleDateString('fr-FR') : '—';
+    if (confirm(`Un brouillon non terminé a été trouvé :\n\nVendeur : ${vendeur}\nÉtape : ${etape}/9\nDébuté le : ${date}\n\nVoulez-vous reprendre ce brouillon ?`)) {
+      ndDraftId = last.id;
+      ndStep = etape || 1;
+      sspModeEdition = false;
+      ndEditMode = false;
+      Object.assign(ndS, nd);
+      ndRender();
+      return;
+    }
+  }
   ndStep=1; ndDraftId=null; sspModeEdition=false; ndEditMode=false; ndStepSnapshot=null; ndS.statutDraft='brouillon';
   const agDef=currentUser.agence||'';
   Object.assign(ndS,{
@@ -15741,6 +15810,13 @@ function ndInit(){
 }
 
 // ── Rendu ────────────────────────────────────────────────────────────────────
+function ndAbandonner() {
+  if (!confirm('Abandonner la saisie ? Le brouillon sera conservé et récupérable.')) return;
+  ndDraftId = null;
+  sspModeEdition = false;
+  showPage('dashboard', document.getElementById('nav-dashboard'));
+}
+
 function ndRender(){
   const c=document.getElementById('nd-container');
   if(!c) return;
@@ -15752,6 +15828,7 @@ function ndRender(){
       <button onclick="ndGo(1)" id="nd-next" style="padding:10px 28px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:var(--primary);color:white;flex:1">
         ${ndStep===ND_TOTAL?(ndEditMode?'Valider les modifications →':'Envoyer le dossier →'):'Suivant →'}
       </button>
+      ${!ndEditMode ? `<button onclick="ndAbandonner()" style="padding:10px 16px;border:1px solid #fca5a5;border-radius:8px;font-size:13px;cursor:pointer;background:#fff5f5;color:#dc2626">✕ Abandonner</button>` : ''}
     </div>`;
   ndUpdateTopbar();
   ndBindEvents();
@@ -16696,7 +16773,7 @@ function ndS8(){
   const renderAgence=(ag,ai)=>{
     const agMt=base*(parseFloat(ag.pct)||0)/100;
     // Inclure les collabs normaux ET les cerise de l'agence concernée
-    const negsDispo=(DB.negociateurs||[]).filter(n=>n.actif&&(!ag.nom||n.agence===ag.nom));
+    const negsDispo=(DB.negociateurs||[]).filter(n=>n.actif&&(!ag.nom||n.agence===ag.nom)&&!n.nom.startsWith('🍒'));
     return`<div style="flex:1;min-width:220px;border:1px solid var(--border);border-radius:10px;padding:1rem;background:var(--bg)">
       <div style="margin-bottom:12px">
         <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px">Agence ${ai+1}</div>
