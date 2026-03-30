@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.47</title>
+<title>⚠️ SCORIM TEST v1.5.48</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -807,7 +807,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.47</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.48</div>
     </div>
   </div>
 </div>
@@ -925,7 +925,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.47</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.48</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5234,7 +5234,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.47</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.48</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -14848,7 +14848,7 @@ function icCard(d, myAgence, canAct) {
   const acquereur = nd.acquereurNom || '—';
   const agences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).filter(Boolean);
   const agenceInitiale = d.agence || agences[0] || '—';
-  const submittedAt = d.created_at ? Math.floor((Date.now()-new Date(d.created_at))/86400000) : null;
+  const submittedAt = d.created_at ? (() => { const s=new Date(d.created_at),t=new Date(); return Math.round((new Date(t.getFullYear(),t.getMonth(),t.getDate())-new Date(s.getFullYear(),s.getMonth(),s.getDate()))/86400000); })() : null;
   const ageCol = submittedAt>10 ? '#E24B4A' : 'var(--text-muted)';
   const ageTxt = submittedAt===0 ? "aujourd'hui" : submittedAt!=null ? 'il y a '+submittedAt+' j' : '—';
 
@@ -15244,8 +15244,15 @@ function sspCard(d, idx) {
   const statut = d.statut_redaction || 'a_rediger';
   const isIC = (nd.nbAgences || 1) > 1;
 
-  // Âge de soumission du dossier
-  const ageSubmit = d.created_at ? Math.floor((Date.now() - new Date(d.created_at)) / 86400000) : null;
+  // Âge de soumission du dossier (comparaison par date calendaire)
+  let ageSubmit = null;
+  if (d.created_at) {
+    const submitted = new Date(d.created_at);
+    const today = new Date();
+    const submittedDay = new Date(submitted.getFullYear(), submitted.getMonth(), submitted.getDate());
+    const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    ageSubmit = Math.round((todayDay - submittedDay) / 86400000);
+  }
   const ageSubmitTxt = ageSubmit != null ? (ageSubmit === 0 ? "aujourd'hui" : 'il y a ' + ageSubmit + ' jour' + (ageSubmit > 1 ? 's' : '')) : '—';
   const ageSubmitCol = ageSubmit != null && ageSubmit > 10 ? '#E24B4A' : 'var(--text-muted)';
 
@@ -15346,13 +15353,14 @@ async function sspValider() {
     const agList = (nd.agences || []).slice(0, nd.nbAgences || 1);
     const isIC = agList.length > 1;
     const agence = agList[0]?.nom || d.agence || '';
-    const ttc = (nd.prixFinalNV || 0) + (nd.prixFinalHono || 0);
+    const ttc = nd.prixFinalHono || 0;
     const tva = DB.settings.tva || 20;
-    const ht = Math.round((nd.prixFinalHono || 0) / (1 + tva / 100) * 100) / 100;
+    const ht = Math.round(ttc / (1 + tva / 100) * 100) / 100;
     const diagHT = Math.round((nd.diagMontant || 0) / (1 + tva / 100) * 100) / 100;
+    const retroBoosterHT = nd.horsSecteur ? Math.round(1500 / (1 + tva / 100) * 100) / 100 : 0;
     const apportHT = nd.apporteur ? Math.round((nd.apporteurMt || 0) / (1 + tva / 100) * 100) / 100 : 0;
     const brut_ht = ht;
-    const htNet = ht - diagHT - apportHT;
+    const htNet = ht - diagHT - retroBoosterHT - apportHT;
 
     const payload = {
       client: (nd.vendeurNom || '') + (nd.acquereurNom ? ' / ' + nd.acquereurNom : ''),
@@ -15376,7 +15384,7 @@ async function sspValider() {
       retro_booster_ht: nd.horsSecteur ? 1500 : 0,
       statut: 'À SIGNER',
       diag: !!nd.diag,
-      mois: '',
+      mois: d.created_at ? dateToMoisStr(d.created_at) : '',
       remarque: nd.condPart && nd.condPartText ? nd.condPartText : '',
       saisi: d.saisi_par || currentUser.nom,
       travaux: !!nd.travaux,
