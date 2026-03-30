@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.43</title>
+<title>⚠️ SCORIM TEST v1.5.44</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -530,6 +530,16 @@
   #toast.show { transform: translateY(0); opacity: 1; }
   #toast.success { background: #065f46; }
   #toast.error { background: #991b1b; }
+  #toast.error.show { animation: toastShake 0.4s ease; }
+  @keyframes toastShake {
+    0%,100% { transform: translateX(0); }
+    15%      { transform: translateX(-8px); }
+    30%      { transform: translateX(8px); }
+    45%      { transform: translateX(-6px); }
+    60%      { transform: translateX(6px); }
+    75%      { transform: translateX(-3px); }
+    90%      { transform: translateX(3px); }
+  }
 
   /* Modal */
   .modal-overlay {
@@ -797,7 +807,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.43</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.44</div>
     </div>
   </div>
 </div>
@@ -915,7 +925,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.43</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.44</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5224,7 +5234,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.43</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.44</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15760,8 +15770,8 @@ function ndProgress(){
       <div id="nd-bar-${n}" style="height:5px;border-radius:3px;background:${col};margin-bottom:4px;transition:height .1s;cursor:${clickable?'pointer':'default'}"
         onclick="${clickable?`ndGoToStep(${n})`:''}"
       ></div>
-      <div id="nd-lbl-${n}" style="font-size:9px;color:${active?'var(--primary)':'#1D9E75'};min-height:12px">
-        ${active?l:isEditMode||n<ndStep?'✓':''}
+      <div id="nd-lbl-${n}" style="font-size:9px;color:${active?'var(--primary)':isDone?'#1D9E75':'var(--border)'};min-height:12px">
+        ${active?l:isDone?'✓':''}
       </div>
     </div>`;
   }).join('')}</div>`;
@@ -15820,21 +15830,21 @@ function ndStepHdr(n,lbl,req){
 }
 function ndRadiosUsage(key,opts){
   // Comme ndRadios mais force bienLoue/bienEstLoue=false si RP ou RS
-  return`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${opts.map(([v,l])=>`
+  return`<div data-radio-key="${key}" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${opts.map(([v,l])=>`
     <button onclick="ndS['${key}']='${v}';if('${v}'==='rp'||'${v}'==='rs'){ndS.bienLoue=false;ndS.bienEstLoue=false;}ndRenderStep()" style="padding:7px 14px;border:1px solid ${ndS[key]===v?'var(--primary)':'var(--border)'};border-radius:8px;font-size:13px;cursor:pointer;background:${ndS[key]===v?'#E6F1FB':'var(--bg)'};color:${ndS[key]===v?'var(--primary)':'var(--text)'}">
       ${l}
     </button>`).join('')}</div>`;
 }
 
 function ndRadios(key,opts){
-  return`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${opts.map(([v,l])=>`
+  return`<div data-radio-key="${key}" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${opts.map(([v,l])=>`
     <button onclick="ndS['${key}']='${v}';ndRenderStep()" style="padding:7px 14px;border:1px solid ${ndS[key]===v?'var(--primary)':'var(--border)'};border-radius:8px;font-size:13px;cursor:pointer;background:${ndS[key]===v?'#E6F1FB':'var(--bg)'};color:${ndS[key]===v?'var(--primary)':'var(--text)'}">
       ${l}
     </button>`).join('')}</div>`;
 }
 function ndToggle(key,label){
   const v=ndS[key];
-  return`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+  return`<div data-toggle-key="${key}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
     <span style="font-size:14px">${label}</span>
     <div style="display:flex;gap:6px">
       <button onclick="ndSetBool('${key}',true)" style="padding:5px 14px;border:1px solid ${v===true?'#1D9E75':'var(--border)'};border-radius:6px;font-size:13px;cursor:pointer;background:${v===true?'#E1F5EE':'var(--bg)'};color:${v===true?'#0F6E56':'var(--text-muted)'}">Oui</button>
@@ -15886,55 +15896,119 @@ async function ndGo(dir){
 }
 
 // ── Validation ───────────────────────────────────────────────────────────────
+
+// ── Highlight champs oubliés ─────────────────────────────────────────────────
+function ndHighlight(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.border = '2px solid #E24B4A';
+  el.style.boxShadow = '0 0 0 3px rgba(226,75,74,.15)';
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => { el.style.border = ''; el.style.boxShadow = ''; }, 3000);
+}
+function ndHighlightToggle(key) {
+  // Highlight le container du toggle oui/non
+  const els = document.querySelectorAll(`[data-toggle-key="${key}"]`);
+  if (els.length) {
+    els.forEach(el => {
+      el.style.outline = '2px solid #E24B4A';
+      el.style.borderRadius = '10px';
+      setTimeout(() => { el.style.outline = ''; }, 3000);
+    });
+    els[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  // Fallback : chercher via le label
+  const containers = document.querySelectorAll('.nd-toggle-wrap');
+  containers.forEach(c => {
+    if (c.dataset.key === key) {
+      c.style.outline = '2px solid #E24B4A';
+      setTimeout(() => { c.style.outline = ''; }, 3000);
+    }
+  });
+}
+function ndHighlightRadios(key) {
+  // Highlight le groupe de boutons radio ndRadios
+  const grp = document.querySelector(`[data-radio-key="${key}"]`);
+  if (grp) {
+    grp.style.outline = '2px solid #E24B4A';
+    grp.style.borderRadius = '10px';
+    grp.style.padding = '4px';
+    grp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => { grp.style.outline = ''; grp.style.padding = ''; }, 3000);
+  }
+}
+
 function ndValidate(){
   const s=ndStep;
   if(s===1){
     if(!ndS.vendeurNom.trim()){
       const e=document.getElementById('nd-err-v');
       if(e){e.textContent='Obligatoire.';e.style.display='block';}
+      ndHighlight('nd-v-nom');
       return false;
     }
-    if(!ndS.vendeurUsage){showToast('Précisez le type de vente du vendeur.','error'); return false;}
+    if(!ndS.vendeurUsage){
+      showToast('Précisez le type de vente du vendeur.','error');
+      ndHighlightRadios('vendeurUsage');
+      return false;
+    }
   }
   if(s===2){
     if(!ndS.acquereurNom.trim()){
       const e=document.getElementById('nd-err-a');
       if(e){e.textContent='Obligatoire.';e.style.display='block';}
+      ndHighlight('nd-a-nom');
       return false;
     }
-    if(!ndS.acquereurUsage){showToast("Précisez le type d'achat de l'acquéreur.",'error'); return false;}
+    if(!ndS.acquereurUsage){
+      showToast("Précisez le type d'achat de l'acquéreur.",'error');
+      ndHighlightRadios('acquereurUsage');
+      return false;
+    }
   }
   if(s===3){
     if(ndS.travaux===null||ndS.mobilier===null||ndS.piscine===null||ndS.fumee===null){
-      showToast('Répondez à toutes les questions.','error'); return false;
+      showToast('Répondez à toutes les questions.','error');
+      if(ndS.travaux===null) ndHighlightToggle('travaux');
+      else if(ndS.mobilier===null) ndHighlightToggle('mobilier');
+      else if(ndS.piscine===null) ndHighlightToggle('piscine');
+      else if(ndS.fumee===null) ndHighlightToggle('fumee');
+      return false;
     }
     if(ndS.mobilier===true){
       const anyChecked=Object.values(ndS.mobilierItems||{}).some(v=>v);
       const anyText=(ndS.mobilierAutreCuisine||'').trim()||(ndS.mobilierAutreSdb||'').trim()||(ndS.mobilierAutreDivers||'').trim();
-      if(!anyChecked&&!anyText){showToast('Précisez le mobilier laissé (cochez des cases ou renseignez les champs libres).','error'); return false;}
+      if(!anyChecked&&!anyText){
+        showToast('Précisez le mobilier laissé (cochez des cases ou renseignez les champs libres).','error');
+        ndHighlight('nd-mob-ac');
+        return false;
+      }
     }
   }
   if(s===4){
-    if(!ndS.mandatDate||!ndS.prixInitNV||!ndS.prixInitHono){
-      showToast('Date, net vendeur et honoraires sont obligatoires.','error'); return false;
-    }
-    if(!ndS.chargeHono){showToast('Précisez qui prend en charge les honoraires.','error'); return false;}
-    if(!ndS.mandatType){showToast('Précisez le type de mandat (simple ou exclusif).','error'); return false;}
+    if(!ndS.mandatDate){ showToast('La date du mandat est obligatoire.','error'); ndHighlight('nd-mdt'); return false; }
+    if(!ndS.prixInitNV){ showToast('Le net vendeur initial est obligatoire.','error'); ndHighlight('nd-pinv'); return false; }
+    if(!ndS.prixInitHono){ showToast('Les honoraires initiaux sont obligatoires.','error'); ndHighlight('nd-pinh'); return false; }
+    if(!ndS.chargeHono){ showToast('Précisez qui prend en charge les honoraires.','error'); ndHighlightRadios('chargeHono'); return false; }
+    if(!ndS.mandatType){ showToast('Précisez le type de mandat (simple ou exclusif).','error'); ndHighlightRadios('mandatType'); return false; }
   }
   if(s===5){
-    if(!ndS.prixFinalNV||!ndS.prixFinalHono){
-      showToast('Net vendeur et honoraires finals sont obligatoires.','error'); return false;
-    }
-    if(ndS.apporteur===null){showToast('Indiquez s\'il y a un apporteur.','error'); return false;}
-    if(ndS.diag===null){showToast('Indiquez la prise en charge des diagnostics.','error'); return false;}
-    if(ndS.horsSecteur===null){showToast('Indiquez si le bien est hors secteur couvert.','error'); return false;}
+    if(!ndS.prixFinalNV){ showToast('Le net vendeur final est obligatoire.','error'); ndHighlight('nd-pfnv'); return false; }
+    if(!ndS.prixFinalHono){ showToast('Les honoraires finals sont obligatoires.','error'); ndHighlight('nd-pfh'); return false; }
+    if(ndS.apporteur===null){ showToast('Indiquez s\'il y a un apporteur.','error'); ndHighlightToggle('apporteur'); return false; }
+    if(ndS.diag===null){ showToast('Indiquez la prise en charge des diagnostics.','error'); ndHighlightToggle('diag'); return false; }
+    if(ndS.horsSecteur===null){ showToast('Indiquez si le bien est hors secteur couvert.','error'); ndHighlightToggle('horsSecteur'); return false; }
   }
   if(s===7){
-    if(ndS.copro===null||ndS.bienLoue===null||ndS.bienEstLoue===null||ndS.acquVend===null){
-      showToast('Répondez à toutes les questions.','error'); return false;
-    }
+    if(ndS.copro===null){ showToast('Répondez à toutes les questions.','error'); ndHighlightToggle('copro'); return false; }
+    if(ndS.bienLoue===null){ showToast('Répondez à toutes les questions.','error'); ndHighlightToggle('bienLoue'); return false; }
+    if(ndS.bienEstLoue===null){ showToast('Répondez à toutes les questions.','error'); ndHighlightToggle('bienEstLoue'); return false; }
+    if(ndS.acquVend===null){ showToast('Répondez à toutes les questions.','error'); ndHighlightToggle('acquVend'); return false; }
     if(ndS.copro===true&&!ndS.syndicNom.trim()){
-      showToast('Le syndic est obligatoire pour un lot de copropriété.','error'); return false;
+      showToast('Le syndic est obligatoire pour un lot de copropriété.','error');
+      ndHighlight('nd-syndic');
+      return false;
     }
   }
   if(s===8){
