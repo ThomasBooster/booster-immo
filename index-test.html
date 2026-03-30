@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.41</title>
+<title>⚠️ SCORIM TEST v1.5.42</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -797,7 +797,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.41</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.42</div>
     </div>
   </div>
 </div>
@@ -915,7 +915,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.41</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.42</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -2793,6 +2793,17 @@
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:12px">👤 Négociateurs</div>
       <div id="edit-negociateurs-container"></div>
+    </div>
+    <!-- Rétrocession Booster -->
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:#fff7ed;border-radius:8px;border:1px solid #fed7aa">
+        <input type="checkbox" id="edit-has-retro-booster" onchange="toggleRetroBooster('edit')" style="width:16px;height:16px;accent-color:#d97706">
+        <span style="font-size:13px;font-weight:600;color:#c2410c">Vente hors secteur réseau <span style="font-weight:400;color:var(--text-muted)">(rétrocession Booster)</span></span>
+      </label>
+      <div id="edit-retro-booster-fields" style="display:none;margin-top:8px">
+        <label style="font-size:12px;color:var(--text-muted)">Montant HT (€)</label>
+        <input type="number" id="edit-retro-booster-ht" placeholder="ex: 1500" min="0" step="0.01" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;margin-top:4px">
+      </div>
     </div>
     <!-- Rentreurs -->
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
@@ -4748,6 +4759,13 @@ function openEdit(id) {
   document.getElementById('edit-mois').value = d.mois;
   document.getElementById('edit-remarque').value = d.remarque || '';
   document.getElementById('edit-diag').checked = d.diag || false;
+  const editRetroEl = document.getElementById('edit-has-retro-booster');
+  if (editRetroEl) {
+    editRetroEl.checked = d.hasRetroBooster || false;
+    toggleRetroBooster('edit');
+    const retroHtEl = document.getElementById('edit-retro-booster-ht');
+    if (retroHtEl) retroHtEl.value = d.retroBoosterHT || '';
+  }
   const hasApporteur = d.hasApporteur || false;
   document.getElementById('edit-has-apporteur').checked = hasApporteur;
   document.getElementById('edit-apporteur-fields').style.display = hasApporteur ? 'block' : 'none';
@@ -4839,6 +4857,8 @@ async function confirmEdit() {
   const apportHTTotal = +(brutHTTotal * apporteurPct / 100).toFixed(2);
   const netHTTotal = +(brutHTTotal - apportHTTotal).toFixed(2);
 
+  const hasRetroBooster = document.getElementById('edit-has-retro-booster')?.checked || false;
+  const retroBoosterHT = hasRetroBooster ? (parseFloat(document.getElementById('edit-retro-booster-ht')?.value) || 0) : 0;
   const champsCommuns = {
     client: document.getElementById('edit-client').value.trim().toUpperCase(),
     statut: document.getElementById('edit-statut').value,
@@ -4849,6 +4869,7 @@ async function confirmEdit() {
     remarque: document.getElementById('edit-remarque').value,
     diag: document.getElementById('edit-diag').checked,
     mandatExclusif: document.getElementById('edit-mandat-exclusif')?.checked || false,
+    hasRetroBooster, retroBoosterHT,
     hasApporteur, apporteurNom, apporteurPct,
     ttcTotal, htTotal: netHTTotal
   };
@@ -5203,7 +5224,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.41</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.42</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15359,6 +15380,7 @@ async function sspValider() {
       bien_loue: !!nd.bienLoue,
       acquereur_vend: !!nd.acquVend,
       conditions_particulieres: nd.condPartText || '',
+      mandat_exclusif: nd.mandatType === 'exclusif',
       draft_id: d.id
     };
 
