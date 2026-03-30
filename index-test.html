@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.48</title>
+<title>⚠️ SCORIM TEST v1.5.49</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -807,7 +807,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.48</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.49</div>
     </div>
   </div>
 </div>
@@ -925,7 +925,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.48</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.49</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -2767,9 +2767,15 @@
       </div>
     </div>
     <!-- Diagnostics -->
-    <div style="margin:12px 0;padding:12px 14px;background:var(--bg);border-radius:10px;display:flex;align-items:center;gap:10px">
-      <input type="checkbox" id="edit-diag" style="width:16px;height:16px;accent-color:var(--primary)">
-      <label for="edit-diag" style="font-size:13px;font-weight:600;cursor:pointer;text-transform:none;letter-spacing:0">🔍 Prise en charge agence des diagnostics</label>
+    <div style="margin:12px 0;padding:12px 14px;background:var(--bg);border-radius:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <input type="checkbox" id="edit-diag" style="width:16px;height:16px;accent-color:var(--primary)">
+        <label for="edit-diag" style="font-size:13px;font-weight:600;cursor:pointer;text-transform:none;letter-spacing:0">🔍 Prise en charge agence des diagnostics</label>
+      </div>
+      <div id="edit-diag-montant-row" style="display:none;margin-top:4px">
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">Montant diagnostics TTC (€)</label>
+        <div class="amount-display" id="edit-diag-montant-display" style="font-size:13px">—</div>
+      </div>
     </div>
     <!-- Apporteur -->
     <div style="padding:14px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:4px">
@@ -3077,7 +3083,8 @@ function rowToDossier(r) {
     diag: r.diag || false,
     mois: r.mois || '',
     remarque: r.remarque || '',
-    saisi: r.saisi || ''
+    saisi: r.saisi || '',
+    draftId: r.draft_id || null
   };
 }
 
@@ -4769,6 +4776,21 @@ function openEdit(id) {
   document.getElementById('edit-mois').value = d.mois;
   document.getElementById('edit-remarque').value = d.remarque || '';
   document.getElementById('edit-diag').checked = d.diag || false;
+  // Montant diagnostics depuis le draft lié
+  const diagRow = document.getElementById('edit-diag-montant-row');
+  const diagDisplay = document.getElementById('edit-diag-montant-display');
+  if (d.diag && d.draftId) {
+    const linkedDraft = (DB.drafts || []).find(x => x.id == d.draftId);
+    const diagMt = linkedDraft?.data?.diagMontant;
+    if (diagMt) {
+      diagRow.style.display = 'block';
+      diagDisplay.textContent = fmtEuro(diagMt);
+    } else {
+      diagRow.style.display = 'none';
+    }
+  } else {
+    diagRow.style.display = 'none';
+  }
   const editRetroEl = document.getElementById('edit-has-retro-booster');
   if (editRetroEl) {
     editRetroEl.checked = d.hasRetroBooster || false;
@@ -5234,7 +5256,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.48</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.49</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
