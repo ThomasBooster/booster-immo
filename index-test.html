@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.37</title>
+<title>⚠️ SCORIM TEST v1.5.38</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -797,7 +797,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.37</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.38</div>
     </div>
   </div>
 </div>
@@ -915,7 +915,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.37</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.38</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5203,7 +5203,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.37</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.38</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15724,18 +15724,20 @@ function ndProgress(){
   return`<div id="nd-prog" style="display:flex;gap:4px;margin-bottom:20px">${labels.map((l,i)=>{
     const n=i+1,done=n<ndStep,active=n===ndStep;
     const col=done?'#1D9E75':active?'var(--primary)':'var(--border)';
-    // Cliquable si étape déjà complétée (done) — avec tooltip du nom de l'étape
-    const clickable=done;
-    return`<div style="flex:1;text-align:center;${clickable?'cursor:pointer':''}" 
-      title="${l}"
-      onclick="${clickable?`ndGoToStep(${n})`:''}">
-      <div style="height:5px;border-radius:3px;background:${col};margin-bottom:4px;transition:background .2s;${clickable?'box-shadow:0 0 0 0 '+col:''}" 
-        onmouseover="${clickable?`this.style.height='7px'`:''}"
-        onmouseout="${clickable?`this.style.height='5px'`:''}"
+    // En mode modification : toutes les étapes cliquables
+    // En saisie initiale : seulement les étapes déjà faites
+    const canNav = sspModeEdition || !!ndDraftId;
+    const clickable = done || (canNav && n !== ndStep);
+    return`<div style="flex:1;text-align:center;${clickable?'cursor:pointer':''};position:relative" class="nd-prog-step" data-label="${l}" data-step="${n}">
+      <div style="height:5px;border-radius:3px;background:${col};margin-bottom:4px;transition:all .15s"
+        onmouseover="this.parentElement.querySelector('.nd-prog-lbl').style.display='block'"
+        onmouseout="this.parentElement.querySelector('.nd-prog-lbl').style.display='none'"
+        onclick="${clickable?`ndGoToStep(${n})`:''}"
       ></div>
       <div style="font-size:9px;color:${done?'#1D9E75':active?'var(--primary)':'var(--text-muted)'}">
         ${active?l:done?'✓':''}
       </div>
+      <div class="nd-prog-lbl" style="display:none;position:absolute;top:100%;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:10px;padding:3px 8px;border-radius:6px;white-space:nowrap;z-index:100;margin-top:4px;pointer-events:none">${l}</div>
     </div>`;
   }).join('')}</div>`;
 }
@@ -16367,7 +16369,7 @@ function ndS5(){
         <div style="flex:1;min-width:220px">${ndToggle('horsSecteur','Bien vendu hors secteur couvert ?')}</div>
         ${ndS.horsSecteur===true?`<div style="flex:1;min-width:180px">
           <div style="padding:8px 12px;background:#FCEBEB;border-radius:8px;font-size:13px;color:#A32D2D;font-weight:500">
-            − ${ndFmt(ndHorsSecteurTTC())}${ndFmtHT(ND_HORS_SECTEUR_HT)} déduits du CA
+            − ${ndFmt(ndHorsSecteurTTC())}${ndFmtHT(ndHorsSecteurTTC())} déduits du CA
           </div>
         </div>`:''}
       </div>
@@ -17211,25 +17213,13 @@ function ndBindEvents(){
     if(ndStep===5){const el=document.getElementById('nd-pfnv');if(el){el.focus();el.select();}}
   },50);
 
-  // Champs libres mobilier : Entrée → saut de ligne (liste à puces simulée)
-  ['nd-mob-ac','nd-mob-as','nd-mob-ad'].forEach(id=>{
-    const el=document.getElementById(id); if(!el) return;
+  // Champs libres mobilier : Entrée → nouvelle ligne (sans puce)
+  document.querySelectorAll('#nd-mob-ac,#nd-mob-as,#nd-mob-ad,[id^="nd-mob-ac-"],[id^="nd-mob-as-"]').forEach(el=>{
     el.addEventListener('keydown', e=>{
       if(e.key==='Enter'){ e.preventDefault();
         const pos=el.selectionStart;
-        el.value=el.value.slice(0,pos)+'\n• '+el.value.slice(pos);
-        el.setSelectionRange(pos+3,pos+3);
-      }
-    });
-    // Si déjà du contenu sans puces, on ne touche pas
-  });
-  // Extras cuisine/sdb
-  document.querySelectorAll('[id^="nd-mob-ac-"],[id^="nd-mob-as-"]').forEach(el=>{
-    el.addEventListener('keydown', e=>{
-      if(e.key==='Enter'){ e.preventDefault();
-        const pos=el.selectionStart;
-        el.value=el.value.slice(0,pos)+'\n• '+el.value.slice(pos);
-        el.setSelectionRange(pos+3,pos+3);
+        el.value=el.value.slice(0,pos)+'\n'+el.value.slice(pos);
+        el.setSelectionRange(pos+1,pos+1);
       }
     });
   });
