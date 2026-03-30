@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.28</title>
+<title>⚠️ SCORIM TEST v1.5.30</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -804,7 +804,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.28</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.30</div>
     </div>
   </div>
 </div>
@@ -921,7 +921,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.28</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.30</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5223,7 +5223,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.28</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.30</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -14954,8 +14954,8 @@ function startSSPPolling() {
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
-  // Initialiser avec les drafts déjà en base (pas d'alerte au login)
-  sbFetch('dossiers_draft', { filter: 'statut=in.(en_attente,en_attente_ic)' })
+  // Initialiser avec les drafts en_attente déjà en base (pas d'alerte au login)
+  sbFetch('dossiers_draft', { filter: 'statut=eq.en_attente' })
     .then(rows => { (rows||[]).forEach(d => sspDraftsVus.add(d.id)); })
     .catch(() => {});
   // Lancer le polling toutes les 20 secondes
@@ -14970,7 +14970,8 @@ function stopSSPPolling() {
 async function sspPollNewDrafts() {
   if (currentUser?.role !== 'saisie') return;
   try {
-    const rows = await sbFetch('dossiers_draft', { filter: 'statut=in.(en_attente,en_attente_ic)' });
+    // Ne surveiller que les drafts prêts pour Laurie/Benoît (statut en_attente uniquement)
+    const rows = await sbFetch('dossiers_draft', { filter: 'statut=eq.en_attente' });
     const nouveaux = (rows||[]).filter(d => !sspDraftsVus.has(d.id));
     if (nouveaux.length === 0) return;
     // Ajouter les nouveaux à l'ensemble des connus
@@ -15033,8 +15034,7 @@ function sspShowNouveauDossierAlert(nouveaux) {
     </div>
     <button onclick="document.getElementById('ssp-notif-popup').style.display='none'" style="background:none;border:none;color:white;cursor:pointer;font-size:18px;opacity:.7;padding:0;flex-shrink:0">×</button>`;
 
-  // Auto-fermeture après 8 secondes
-  setTimeout(() => { if (popup) popup.style.display = 'none'; }, 8000);
+  // Pas d'auto-fermeture — la popup reste jusqu'à ce que Laurie/Benoît la ferme manuellement
 }
 
 function sspGoToDashboardFromNotif() {
