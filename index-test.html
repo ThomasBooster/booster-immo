@@ -831,14 +831,14 @@
             <span class="nav-icon">📁</span> Tous les dossiers
           </div>
           <div class="nav-item nav-item-role" id="nav-ic-validation" onclick="showPage('ic-validation', this)">
-            <span class="nav-icon">🔀</span> Intercabinets
-            <span id="ic-badge" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
+            <span class="nav-icon">🔀</span> Validation dossiers intercabinet
+            <span id="ic-badge" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:50%;font-size:10px;font-weight:700;padding:0;min-width:18px;height:18px;line-height:18px;text-align:center"></span>
           </div>
           <div class="nav-item nav-item-role" id="nav-nouveau-dossier" onclick="showPage('nouveau-dossier', this)">
             <span class="nav-icon">✏️</span> Nouveau dossier
           </div>
           <div class="nav-item nav-item-role" id="nav-dossiers-redaction" onclick="showPage('ssp-dashboard', this)">
-            <span class="nav-icon">📋</span> Dossiers en rédaction
+            <span class="nav-icon">🗂️</span> Banette juridique
             <span id="ssp-badge" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
           </div>
         </div>
@@ -3211,7 +3211,7 @@ function setupNav(role) {
     'nav-dashboard':              ['admin','saisie','agence','gerant'],
     'nav-dossiers-link':          ['admin','saisie','agence','gerant'],
     'nav-ic-validation':          ['admin','agence','gratuit','gerant'],
-    'nav-nouveau-dossier':        ['admin','saisie','agence','gratuit','gerant'],
+    'nav-nouveau-dossier':        ['admin','agence','gratuit','gerant'],
     'nav-dossiers-redaction':     ['admin','saisie','agence','gerant'],
     'nav-stats':                  ['admin','saisie','agence','gerant'],
     'nav-ranking':                ['admin','saisie','agence','gratuit','gerant'],
@@ -3445,7 +3445,7 @@ function showPage(name, navEl) {
   document.getElementById('page-' + name).classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP','nouveau-dossier':'Nouveau dossier', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', 'fiche-agence':'Fiche agence', 'fiche-societe':'Fiche société', 'stats':'Statistiques', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF', feedback:'Feedback', 'ssp-dashboard':'Dossiers en attente', 'ic-validation':'Intercabinets' };
+  const titles = { dashboard:'Vue d\'ensemble', ranking:'Classement des agences', 'negociateurs-classement':'Classement des négociateurs', saisie:'Saisie SSP','nouveau-dossier':'Nouveau dossier', dossiers:'Tous les dossiers', apporteurs:'Apporteurs d\'affaires', negociateurs:'Négociateurs', 'fiche-collab':'Fiche collaborateur', 'fiche-agence':'Fiche agence', 'fiche-societe':'Fiche société', 'stats':'Statistiques', encaissements:'Encaissements', performances:'Analyse des performances', chatbot:'Assistant IA', params:'Paramètres', rapport:'Rapport PDF', feedback:'Feedback', 'ssp-dashboard':'Banette juridique', 'ic-validation':'Validation dossiers intercabinet' };
   document.getElementById('topbar-title').textContent = titles[name] || name;
 
   if (name === 'dashboard') refreshDashboard();
@@ -14939,7 +14939,7 @@ function icUpdateBadge() {
     const val = (DB.draftValidations||[]).find(v=>v.draft_id===d.id&&v.agence===myAgence);
     return val && val.statut==='en_attente';
   }).length;
-  if (count>0) { badge.textContent=count; badge.style.display='inline-block'; }
+  if (count>0) { badge.textContent=count; badge.style.display='inline-flex'; badge.style.alignItems='center'; badge.style.justifyContent='center'; }
   else { badge.style.display='none'; }
   // Afficher/masquer le nav selon s'il y a des IC
   const total = (DB.drafts||[]).filter(d=>{
@@ -14947,17 +14947,7 @@ function icUpdateBadge() {
     const nd=d.data||{};
     return (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).includes(myAgence);
   }).length;
-  if (navIC && currentUser.role !== 'gratuit') navIC.style.display = total>0 ? 'flex' : 'none';
-  // Badge pour le rôle gratuit (nav séparé)
-  const badgeGratuit = document.getElementById('ic-badge-gratuit');
-  const navICGratuit = document.getElementById('nav-ic-validation-gratuit');
-  if (badgeGratuit) {
-    if (count>0) { badgeGratuit.textContent=count; badgeGratuit.style.display='inline-block'; }
-    else { badgeGratuit.style.display='none'; }
-  }
-  if (navICGratuit && currentUser.role==='gratuit') {
-    navICGratuit.style.display = total>0 ? 'flex' : 'none';
-  }
+  if (navIC) navIC.style.display = total>0 ? 'flex' : 'none';
 }
 
 
