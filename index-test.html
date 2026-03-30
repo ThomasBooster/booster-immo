@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.35</title>
+<title>⚠️ SCORIM TEST v1.5.37</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -797,7 +797,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.35</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.37</div>
     </div>
   </div>
 </div>
@@ -915,7 +915,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.35</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.37</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5203,7 +5203,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.35</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.37</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -14590,8 +14590,8 @@ let ndStep = 1;
 let ndDraftId = null;
 
 const ndS = {
-  vendeurNom:'', vendeurUsage:'rp',
-  acquereurNom:'', acquereurUsage:'rp',
+  vendeurNom:'', vendeurUsage:null,
+  acquereurNom:'', acquereurUsage:null,
   travaux:null, travauxDetail:'',
   mobilier:null, mobilierItems:{},
   mobilierAutreCuisine:'', mobilierAutreSdb:'', mobilierAutreDivers:'',
@@ -14602,6 +14602,7 @@ const ndS = {
   prixFinalNV:0, prixFinalHono:0,
   apporteur:null, apporteurNom:'', apporteurPct:0, apporteurMt:0,
   diag:null, diagMontant:0,
+  horsSecteur:null,
   notaireV:'', notaireVId:null, notaireA:'', notaireAId:null,
   copro:null, syndicNom:'', syndicId:null, syndicLogin:'', syndicMdp:'',
   syndic2:null, syndic2Nom:'', syndic2Id:null, syndic2Login:'', syndic2Mdp:'',
@@ -15337,8 +15338,8 @@ async function sspValider() {
       apporteur_nom: nd.apporteur ? (nd.apporteurNom || '') : '',
       apporteur_pct: nd.apporteur ? (nd.apporteurPct || 0) : 0,
       apport_ht: apportHT,
-      has_retro_booster: false,
-      retro_booster_ht: 0,
+      has_retro_booster: !!nd.horsSecteur,
+      retro_booster_ht: nd.horsSecteur ? 1500 : 0,
       statut: 'À SIGNER',
       diag: !!nd.diag,
       mois: '',
@@ -15420,9 +15421,9 @@ function sspTelechargerPDF(draftId) {
 
 function sspLoadDraftIntoNdS(nd) {
   ndS.vendeurNom = nd.vendeurNom || '';
-  ndS.vendeurUsage = nd.vendeurUsage || 'rp';
+  ndS.vendeurUsage = nd.vendeurUsage || null;
   ndS.acquereurNom = nd.acquereurNom || '';
-  ndS.acquereurUsage = nd.acquereurUsage || 'rp';
+  ndS.acquereurUsage = nd.acquereurUsage || null;
   ndS.travaux = nd.travaux !== undefined ? nd.travaux : null;
   ndS.travauxDetail = nd.travauxDetail || '';
   ndS.mobilier = nd.mobilier !== undefined ? nd.mobilier : null;
@@ -15447,6 +15448,7 @@ function sspLoadDraftIntoNdS(nd) {
   ndS.apporteurMt = nd.apporteurMt || 0;
   ndS.diag = nd.diag !== undefined ? nd.diag : null;
   ndS.diagMontant = nd.diagMontant || 0;
+  ndS.horsSecteur = nd.horsSecteur !== undefined ? nd.horsSecteur : null;
   ndS.notaireV = nd.notaireV || '';
   ndS.notaireVId = nd.notaireVId || null;
   ndS.notaireA = nd.notaireA || '';
@@ -15635,8 +15637,8 @@ function ndInit(){
   ndStep=1; ndDraftId=null; sspModeEdition=false; ndS.statutDraft='brouillon';
   const agDef=currentUser.agence||'';
   Object.assign(ndS,{
-    vendeurNom:'',vendeurUsage:'rp',
-    acquereurNom:'',acquereurUsage:'rp',
+    vendeurNom:'',vendeurUsage:null,
+    acquereurNom:'',acquereurUsage:null,
     travaux:null,travauxDetail:'',
     mobilier:null,mobilierItems:{},
     mobilierAutreCuisine:'',mobilierAutreSdb:'',mobilierAutreDivers:'',
@@ -15647,6 +15649,7 @@ function ndInit(){
     prixFinalNV:0,prixFinalHono:0,
     apporteur:null,apporteurNom:'',apporteurPct:0,apporteurMt:0,
     diag:null,diagMontant:0,
+    horsSecteur:null,
     notaireV:'',notaireVId:null,notaireA:'',notaireAId:null,
     copro:null,syndicNom:'',syndicId:null,syndicLogin:'',syndicMdp:'',
     syndic2:null,syndic2Nom:'',syndic2Id:null,syndic2Login:'',syndic2Mdp:'',
@@ -15721,13 +15724,29 @@ function ndProgress(){
   return`<div id="nd-prog" style="display:flex;gap:4px;margin-bottom:20px">${labels.map((l,i)=>{
     const n=i+1,done=n<ndStep,active=n===ndStep;
     const col=done?'#1D9E75':active?'var(--primary)':'var(--border)';
-    return`<div style="flex:1;text-align:center">
-      <div style="height:4px;border-radius:2px;background:${col};margin-bottom:4px"></div>
+    // Cliquable si étape déjà complétée (done) — avec tooltip du nom de l'étape
+    const clickable=done;
+    return`<div style="flex:1;text-align:center;${clickable?'cursor:pointer':''}" 
+      title="${l}"
+      onclick="${clickable?`ndGoToStep(${n})`:''}">
+      <div style="height:5px;border-radius:3px;background:${col};margin-bottom:4px;transition:background .2s;${clickable?'box-shadow:0 0 0 0 '+col:''}" 
+        onmouseover="${clickable?`this.style.height='7px'`:''}"
+        onmouseout="${clickable?`this.style.height='5px'`:''}"
+      ></div>
       <div style="font-size:9px;color:${done?'#1D9E75':active?'var(--primary)':'var(--text-muted)'}">
         ${active?l:done?'✓':''}
       </div>
     </div>`;
   }).join('')}</div>`;
+}
+
+
+function ndGoToStep(n) {
+  if (n >= ndStep) return; // seulement les étapes déjà faites
+  ndSaveFields();
+  ndStep = n;
+  ndRender();
+  window.scrollTo(0, 0);
 }
 
 function ndCard(html){ return`<div style="margin-bottom:16px">${html}</div>`; }
@@ -15811,6 +15830,7 @@ function ndValidate(){
       if(e){e.textContent='Obligatoire.';e.style.display='block';}
       return false;
     }
+    if(!ndS.vendeurUsage){showToast('Précisez le type de vente du vendeur.','error'); return false;}
   }
   if(s===2){
     if(!ndS.acquereurNom.trim()){
@@ -15818,10 +15838,16 @@ function ndValidate(){
       if(e){e.textContent='Obligatoire.';e.style.display='block';}
       return false;
     }
+    if(!ndS.acquereurUsage){showToast("Précisez le type d'achat de l'acquéreur.",'error'); return false;}
   }
   if(s===3){
     if(ndS.travaux===null||ndS.mobilier===null||ndS.piscine===null||ndS.fumee===null){
       showToast('Répondez à toutes les questions.','error'); return false;
+    }
+    if(ndS.mobilier===true){
+      const anyChecked=Object.values(ndS.mobilierItems||{}).some(v=>v);
+      const anyText=(ndS.mobilierAutreCuisine||'').trim()||(ndS.mobilierAutreSdb||'').trim()||(ndS.mobilierAutreDivers||'').trim();
+      if(!anyChecked&&!anyText){showToast('Précisez le mobilier laissé (cochez des cases ou renseignez les champs libres).','error'); return false;}
     }
   }
   if(s===4){
@@ -15835,6 +15861,7 @@ function ndValidate(){
     }
     if(ndS.apporteur===null){showToast('Indiquez s\'il y a un apporteur.','error'); return false;}
     if(ndS.diag===null){showToast('Indiquez la prise en charge des diagnostics.','error'); return false;}
+    if(ndS.horsSecteur===null){showToast('Indiquez si le bien est hors secteur couvert.','error'); return false;}
   }
   if(s===7){
     if(ndS.copro===null||ndS.bienLoue===null||ndS.bienEstLoue===null||ndS.acquVend===null){
@@ -15943,11 +15970,13 @@ function ndSaveFields(){
 }
 
 // ── Calculs ──────────────────────────────────────────────────────────────────
+const ND_HORS_SECTEUR_HT = 1500;
+function ndHorsSecteurTTC(){ return ndS.horsSecteur===true ? Math.round(ND_HORS_SECTEUR_HT*(1+(DB.settings?.tva||20)/100)*100)/100 : 0; }
 function ndCalcAp(){
-  const base=ndS.prixFinalHono-ndS.diagMontant;
+  const base=ndS.prixFinalHono-ndS.diagMontant-ndHorsSecteurTTC();
   ndS.apporteurMt=base*ndS.apporteurPct/100;
 }
-function ndBase(){ return ndS.prixFinalHono-ndS.diagMontant-ndS.apporteurMt; }
+function ndBase(){ return ndS.prixFinalHono-ndS.diagMontant-ndHorsSecteurTTC()-ndS.apporteurMt; }
 
 // ── Draft ────────────────────────────────────────────────────────────────────
 async function ndSaveDraft(){
@@ -16171,8 +16200,8 @@ function ndS3(){
         ${idx>1?supprimerBtn('ndMobSupprimerCuisine',idx):''}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">${chkGroup(ND_MOB_CUISINE,prefix)}</div>
-      <input type="text" id="${autreId}" value="${autreVal}" placeholder="Autre (${label.toLowerCase()})…"
-        style="width:100%;margin-top:8px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit"/>
+      <textarea id="${autreId}" rows="2" placeholder="Autre (${label.toLowerCase()})… (Entrée pour ajouter un élément)"
+        style="width:100%;margin-top:8px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical">${autreVal}</textarea>
     </div>`;
   };
 
@@ -16189,8 +16218,8 @@ function ndS3(){
         ${idx>1?supprimerBtn('ndMobSupprimerSdb',idx):''}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">${chkGroup(ND_MOB_SDB,prefix)}</div>
-      <input type="text" id="${autreId}" value="${autreVal}" placeholder="Autre (${label.toLowerCase()})…"
-        style="width:100%;margin-top:8px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit"/>
+      <textarea id="${autreId}" rows="2" placeholder="Autre (${label.toLowerCase()})… (Entrée pour ajouter un élément)"
+        style="width:100%;margin-top:8px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical">${autreVal}</textarea>
     </div>`;
   };
 
@@ -16210,8 +16239,8 @@ function ndS3(){
           ${toutCocherBtn(ND_MOB_DIVERS,null)}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">${chkGroup(ND_MOB_DIVERS,null)}</div>
-        <input type="text" id="nd-mob-ad" value="${ndS.mobilierAutreDivers}" placeholder="Autre (divers)…"
-          style="width:100%;margin-top:8px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit"/>
+        <textarea id="nd-mob-ad" rows="2" placeholder="Autre (divers)… (Entrée pour ajouter un élément)"
+          style="width:100%;margin-top:8px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical">${ndS.mobilierAutreDivers}</textarea>
       </div>
     </div>`:''}
     ${ndToggle('piscine','Présence d\'une piscine ?')}
@@ -16234,21 +16263,23 @@ function ndMobToutCocher(listKey,prefix){
 }
 
 function ndMobSupprimerCuisine(idx){
-  ndSavePieces();
+  ndSaveFields(); // sauvegarde checkboxes ET textareas avant rebuild
   // Supprimer les items de cette cuisine
   ND_MOB_CUISINE.forEach(i=>{ delete ndS.mobilierItems['C'+idx+'_'+i]; });
   delete ndS.mobilierItems['_autreC_'+idx];
+  // Supprimer aussi la cuisine 1 si idx=1 (pas de préfixe)
+  if(idx===1){ ND_MOB_CUISINE.forEach(i=>{ delete ndS.mobilierItems[i]; }); ndS.mobilierAutreCuisine=''; }
   ndS.nbCuisines=Math.max(1,(ndS.nbCuisines||1)-1);
-  // Réindexer si besoin (simple : juste diminuer le compteur)
   const sc=document.getElementById('nd-sc');
   if(sc) sc.innerHTML=ndBuildStep(ndStep);
   ndBindEvents();
 }
 
 function ndMobSupprimerSdb(idx){
-  ndSavePieces();
+  ndSaveFields();
   ND_MOB_SDB.forEach(i=>{ delete ndS.mobilierItems['S'+idx+'_'+i]; });
   delete ndS.mobilierItems['_autreS_'+idx];
+  if(idx===1){ ND_MOB_SDB.forEach(i=>{ delete ndS.mobilierItems[i]; }); ndS.mobilierAutreSdb=''; }
   ndS.nbSdbs=Math.max(1,(ndS.nbSdbs||1)-1);
   const sc=document.getElementById('nd-sc');
   if(sc) sc.innerHTML=ndBuildStep(ndStep);
@@ -16256,7 +16287,7 @@ function ndMobSupprimerSdb(idx){
 }
 
 function ndMobAjouterCuisine(){
-  ndSavePieces();
+  ndSaveFields();
   ndS.nbCuisines=(ndS.nbCuisines||1)+1;
   const sc=document.getElementById('nd-sc');
   if(sc) sc.innerHTML=ndBuildStep(ndStep);
@@ -16264,7 +16295,7 @@ function ndMobAjouterCuisine(){
 }
 
 function ndMobAjouterSdb(){
-  ndSavePieces();
+  ndSaveFields();
   ndS.nbSdbs=(ndS.nbSdbs||1)+1;
   const sc=document.getElementById('nd-sc');
   if(sc) sc.innerHTML=ndBuildStep(ndStep);
@@ -16330,6 +16361,16 @@ function ndS5(){
         )}
       </div>`:''}
       </div></div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:0">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">${ndToggle('horsSecteur','Bien vendu hors secteur couvert ?')}</div>
+        ${ndS.horsSecteur===true?`<div style="flex:1;min-width:180px">
+          <div style="padding:8px 12px;background:#FCEBEB;border-radius:8px;font-size:13px;color:#A32D2D;font-weight:500">
+            − ${ndFmt(ndHorsSecteurTTC())}${ndFmtHT(ND_HORS_SECTEUR_HT)} déduits du CA
+          </div>
+        </div>`:''}
+      </div>
     </div>`);
 }
 
@@ -16465,12 +16506,13 @@ function ndS7(){
 
 function ndS8(){
   const base=ndBase();
-  const allNegs=(DB.negociateurs||[]).filter(n=>n.actif&&!n.nom.startsWith('🍒'));
+  const allNegs=(DB.negociateurs||[]).filter(n=>n.actif); // inclut les cerise, filtrés par agence dans renderAgence
   const agDef=ndS.agences[0]?.nom||currentUser.agence||'';
 
   const renderAgence=(ag,ai)=>{
     const agMt=base*(parseFloat(ag.pct)||0)/100;
-    const negsDispo=allNegs.filter(n=>!ag.nom||n.agence===ag.nom);
+    // Inclure les collabs normaux ET les cerise de l'agence concernée
+    const negsDispo=(DB.negociateurs||[]).filter(n=>n.actif&&(!ag.nom||n.agence===ag.nom));
     return`<div style="flex:1;min-width:220px;border:1px solid var(--border);border-radius:10px;padding:1rem;background:var(--bg)">
       <div style="margin-bottom:12px">
         <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px">Agence ${ai+1}</div>
@@ -16581,7 +16623,7 @@ function ndS9(){
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <button onclick="ndGenererPDF()" style="padding:8px 16px;border:1px solid var(--primary);border-radius:8px;font-size:13px;cursor:pointer;background:#E6F1FB;color:var(--primary);display:flex;align-items:center;gap:6px">📥 Télécharger PDF</button>
     </div>
-    <div style="margin-bottom:16px;cursor:pointer" id="nd-completude-badge" onclick="ndShowDetailCompletude()" title="Cliquez pour voir le détail">${ndCompletudeBadge(pct)}<div style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:center">Cliquez pour voir le détail</div></div>
+    <div style="margin-bottom:16px;text-align:center" id="nd-completude-badge">${ndCompletudeBadge(pct)}</div>
     <div style="background:#E6F1FB;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#185FA5">
       <strong>Information :</strong> En cliquant sur "Envoyer le dossier", vous transmettez ce dossier
       ${ndS.nbAgences>1?"aux agences participantes pour validation, puis ":""}au service SSP (Laurie / Benoît) qui le validera avant intégration dans les statistiques.
@@ -16695,20 +16737,25 @@ function ndCalcCompletude(){
 }
 
 function ndCompletudeBadge(pct){
-  const col=pct===100?'#1D9E75':pct>=75?'#d97706':pct>=50?'#2563eb':'#E24B4A';
-  const bg=pct===100?'#E1F5EE':pct>=75?'#fef3c7':pct>=50?'#E6F1FB':'#FCEBEB';
-  return`<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:${bg};border-radius:10px;border:1px solid ${col}20">
-    <svg width="36" height="36" viewBox="0 0 36 36">
-      <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" stroke-width="4"/>
-      <circle cx="18" cy="18" r="15" fill="none" stroke="${col}" stroke-width="4"
-        stroke-dasharray="${Math.round(2*Math.PI*15*pct/100)} ${Math.round(2*Math.PI*15*(100-pct)/100)}"
-        stroke-dashoffset="${Math.round(2*Math.PI*15*0.25)}" stroke-linecap="round"/>
-      <text x="18" y="22" text-anchor="middle" font-size="9" font-weight="700" fill="${col}">${pct}%</text>
-    </svg>
-    <div>
-      <div style="font-size:13px;font-weight:600;color:${col}">Dossier complet à ${pct}%</div>
-      <div style="font-size:11px;color:#6b7280">${pct===100?'Tout est renseigné ✓':pct>=75?'Presque complet':pct>=50?'En bonne voie':'Des éléments manquent'}</div>
+  // Couleurs selon les seuils demandés : >95% vert, 90-95% orange, <90% rouge
+  const col=pct>95?'#1D9E75':pct>=90?'#d97706':'#E24B4A';
+  const bg=pct>95?'#E1F5EE':pct>=90?'#fef3c7':'#FCEBEB';
+  const lbl=pct>95?'Presque parfait ✓':pct>=90?'Très bon niveau':'Des éléments manquent';
+  return`<div style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;padding:12px 20px;background:${bg};border-radius:12px;border:1px solid ${col}30;cursor:pointer" onclick="ndShowDetailCompletude()">
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="42" height="42" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" stroke-width="4"/>
+        <circle cx="18" cy="18" r="15" fill="none" stroke="${col}" stroke-width="4"
+          stroke-dasharray="${Math.round(2*Math.PI*15*pct/100)} ${Math.round(2*Math.PI*15*(100-pct)/100)}"
+          stroke-dashoffset="${Math.round(2*Math.PI*15*0.25)}" stroke-linecap="round"/>
+        <text x="18" y="22" text-anchor="middle" font-size="9" font-weight="700" fill="${col}">${pct}%</text>
+      </svg>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:${col}">Dossier complet à ${pct}%</div>
+        <div style="font-size:11px;color:#6b7280">${lbl}</div>
+      </div>
     </div>
+    <div style="font-size:11px;color:${col};opacity:.7">Cliquez pour voir le détail</div>
   </div>`;
 }
 
@@ -17163,6 +17210,29 @@ function ndBindEvents(){
     if(ndStep===4){const el=document.getElementById('nd-pinv');if(el){el.focus();el.select();}}
     if(ndStep===5){const el=document.getElementById('nd-pfnv');if(el){el.focus();el.select();}}
   },50);
+
+  // Champs libres mobilier : Entrée → saut de ligne (liste à puces simulée)
+  ['nd-mob-ac','nd-mob-as','nd-mob-ad'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ e.preventDefault();
+        const pos=el.selectionStart;
+        el.value=el.value.slice(0,pos)+'\n• '+el.value.slice(pos);
+        el.setSelectionRange(pos+3,pos+3);
+      }
+    });
+    // Si déjà du contenu sans puces, on ne touche pas
+  });
+  // Extras cuisine/sdb
+  document.querySelectorAll('[id^="nd-mob-ac-"],[id^="nd-mob-as-"]').forEach(el=>{
+    el.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ e.preventDefault();
+        const pos=el.selectionStart;
+        el.value=el.value.slice(0,pos)+'\n• '+el.value.slice(pos);
+        el.setSelectionRange(pos+3,pos+3);
+      }
+    });
+  });
 
   // Majuscules + interdire /
   ['nd-v-nom','nd-a-nom'].forEach(id=>{
