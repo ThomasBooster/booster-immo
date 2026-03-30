@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.34</title>
+<title>⚠️ SCORIM TEST v1.5.35</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -696,16 +696,9 @@
   }
   .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
   .tr-clickable:hover { background: var(--color-background-secondary, #f8fafc) !important; transition: background .1s; }
-  /* Mode gratuit : masquer tout sauf les 3 items autorisés */
-  #nav-gratuit-wrapper { display: none; }
-  body.role-gratuit .nav-section { display: none !important; }
-  body.role-gratuit .nav-section-title { display: none !important; }
-  body.role-gratuit #nav-gratuit-wrapper { display: block !important; }
-  body.role-gratuit #nav-ranking { display: flex !important; }
-  body.role-gratuit #nav-nouveau-dossier { display: flex !important; }
-  body.role-gratuit #nav-ic-validation-gratuit { display: flex !important; }
-  body.role-gratuit #sidebar-role { display: none !important; }
-  body.role-gratuit .sidebar-version { display: none !important; }
+  /* Nav items masqués par défaut, setupNav() les affiche selon le rôle */
+  .nav-item-role { display: none; }
+  .nav-section-role { display: none; }
 
 
 @keyframes slideInRight {
@@ -804,7 +797,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.34</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.35</div>
     </div>
   </div>
 </div>
@@ -828,88 +821,89 @@
         </svg>
       </div>
       <div class="sidebar-nav">
-        <div class="nav-section">
+        <!-- TABLEAU DE BORD -->
+        <div class="nav-section" id="nav-section-tb">
           <div class="nav-section-title">Tableau de bord</div>
-          <div class="nav-item active" onclick="showPage('dashboard', this)">
+          <div class="nav-item nav-item-role" id="nav-dashboard" onclick="showPage('dashboard', this)">
             <span class="nav-icon">📊</span> Vue d'ensemble
           </div>
-          <div class="nav-item" id="nav-ic-validation" onclick="showPage('ic-validation', this)" style="display:none">
+          <div class="nav-item nav-item-role" id="nav-dossiers-link" onclick="showPage('dossiers', this)">
+            <span class="nav-icon">📁</span> Tous les dossiers
+          </div>
+          <div class="nav-item nav-item-role" id="nav-ic-validation" onclick="showPage('ic-validation', this)">
             <span class="nav-icon">🔀</span> Intercabinets
             <span id="ic-badge" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
           </div>
-          <div class="nav-item" onclick="showPage('negociateurs-classement', this)">
-            <span class="nav-icon">🥇</span> Classement Négociateurs
-          </div>
-        </div>
-        <div id="nav-gratuit-wrapper">
-          <div class="nav-item" id="nav-ranking" onclick="showPage('ranking', this)">
-            <span class="nav-icon">🏆</span> Classement agences
-          </div>
-          <div class="nav-item" id="nav-nouveau-dossier" onclick="showPage('nouveau-dossier', this)">
+          <div class="nav-item nav-item-role" id="nav-nouveau-dossier" onclick="showPage('nouveau-dossier', this)">
             <span class="nav-icon">✏️</span> Nouveau dossier
           </div>
-          <div class="nav-item" id="nav-ic-validation-gratuit" onclick="showPage('ic-validation', this)">
-            <span class="nav-icon">🔀</span> Dossiers en attente
-            <span id="ic-badge-gratuit" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
+          <div class="nav-item nav-item-role" id="nav-dossiers-redaction" onclick="showPage('ssp-dashboard', this)">
+            <span class="nav-icon">📋</span> Dossiers en rédaction
+            <span id="ssp-badge" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
           </div>
         </div>
-        <div class="nav-section">
-          <div class="nav-section-title">Analyse & Insights</div>
-          <div class="nav-item" onclick="showPage('stats', this)">
+        <!-- ANALYSE & INSIGHTS -->
+        <div class="nav-section nav-section-role" id="nav-section-ai">
+          <div class="nav-section-title">Analyse &amp; Insights</div>
+          <div class="nav-item nav-item-role" id="nav-stats" onclick="showPage('stats', this)">
             <span class="nav-icon">📊</span> Statistiques
           </div>
-          <div class="nav-item" onclick="showPage('encaissements', this)">
+          <div class="nav-item nav-item-role" id="nav-ranking" onclick="showPage('ranking', this)">
+            <span class="nav-icon">🏆</span> Classement agences
+          </div>
+          <div class="nav-item nav-item-role" id="nav-negociateurs-classement" onclick="showPage('negociateurs-classement', this)">
+            <span class="nav-icon">🥇</span> Classement négociateurs
+          </div>
+        </div>
+        <!-- GESTION -->
+        <div class="nav-section nav-section-role" id="nav-section-gestion">
+          <div class="nav-section-title">Gestion</div>
+          <div class="nav-item nav-item-role" id="nav-encaissements" onclick="showPage('encaissements', this)">
             <span class="nav-icon">💰</span> Encaissements
           </div>
-          <div class="nav-item" onclick="showPage('performances', this)">
+          <div class="nav-item nav-item-role" id="nav-performances" onclick="showPage('performances', this)">
             <span class="nav-icon">📈</span> Performances
           </div>
-          <div class="nav-item" onclick="showPage('chatbot', this)">
+          <div class="nav-item nav-item-role" id="nav-apporteurs" onclick="showPage('apporteurs', this)">
+            <span class="nav-icon">🤝</span> Apporteurs
+          </div>
+          <div class="nav-item nav-item-role" id="nav-chatbot" onclick="showPage('chatbot', this)">
             <span class="nav-icon">💬</span> Assistant IA
           </div>
         </div>
-        <div class="nav-section" id="nav-saisie-section" style="display:none">
-          <div class="nav-section-title">Gestion</div>
-          <div class="nav-item" id="nav-ssp-dashboard" onclick="showPage('ssp-dashboard', this)">
-            <span class="nav-icon">📋</span> Dossiers en attente
-            <span id="ssp-badge" style="display:none;margin-left:auto;background:#ef4444;color:white;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
-          </div>
-          <div class="nav-item" onclick="showPage('nouveau-dossier', this)">
-            <span class="nav-icon">✏️</span> Nouveau dossier
-          </div>
-          <div class="nav-item" onclick="showPage('saisie', this)">
-            <span class="nav-icon">⚙️</span> Saisie SSP (admin)
-          </div>
-          <div class="nav-item" onclick="showPage('dossiers', this)">
-            <span class="nav-icon">📁</span> Tous les dossiers
-          </div>
-          <div class="nav-item" onclick="showPage('apporteurs', this)">
-            <span class="nav-icon">🤝</span> Apporteurs
-          </div>
-        </div>
-        <div class="nav-section" id="nav-rh-section" style="display:none">
+        <!-- RH -->
+        <div class="nav-section nav-section-role" id="nav-section-rh">
           <div class="nav-section-title">RH</div>
-          <div class="nav-item" onclick="showPage('negociateurs', this)">
+          <div class="nav-item nav-item-role" id="nav-equipe" onclick="showPage('negociateurs', this)">
             <span class="nav-icon">👥</span> Équipe
           </div>
-          <div class="nav-item" id="nav-remunerations" onclick="showPage('remunerations', this)" style="display:none">
+          <div class="nav-item nav-item-role" id="nav-remunerations" onclick="showPage('remunerations', this)">
             <span class="nav-icon">💶</span> Rémunérations
           </div>
         </div>
-        <div class="nav-section" id="nav-feedback-section">
+        <!-- AIDE -->
+        <div class="nav-section nav-section-role" id="nav-section-aide">
           <div class="nav-section-title">Aide</div>
-          <div class="nav-item" id="nav-feedback" onclick="showPage('feedback', this)">
+          <div class="nav-item nav-item-role" id="nav-feedback" onclick="showPage('feedback', this)" style="position:relative">
             <span class="nav-icon">💬</span> Feedback
-          </div>
-        </div>
-        <div class="nav-section">
-          <div class="nav-section-title">Compte</div>
-          <div class="nav-item" id="nav-params" onclick="showPage('params', this)" style="position:relative">
-            <span class="nav-icon">⚙️</span> Paramètres
             <span id="feedback-badge" style="display:none;position:absolute;top:6px;right:8px;width:9px;height:9px;background:#ef4444;border-radius:50%;animation:pulse-badge 1.2s infinite"></span>
           </div>
-          <div class="nav-item" id="nav-rapport" onclick="showPage('rapport', this)">
+        </div>
+        <!-- COMPTE -->
+        <div class="nav-section nav-section-role" id="nav-section-compte">
+          <div class="nav-section-title">Compte</div>
+          <div class="nav-item nav-item-role" id="nav-params" onclick="showPage('params', this)" style="position:relative">
+            <span class="nav-icon">⚙️</span> Paramètres
+          </div>
+          <div class="nav-item nav-item-role" id="nav-rapport" onclick="showPage('rapport', this)">
             <span class="nav-icon">📄</span> Rapport PDF
+          </div>
+        </div>
+        <!-- ADMIN ONLY -->
+        <div class="nav-section nav-section-role" id="nav-section-saisie-admin">
+          <div class="nav-section-title">Administration SSP</div>
+          <div class="nav-item nav-item-role" id="nav-saisie-admin" onclick="showPage('saisie', this)">
+            <span class="nav-icon">⚙️</span> Saisie SSP (admin)
           </div>
         </div>
       </div>
@@ -921,7 +915,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.34</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.35</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -2652,6 +2646,7 @@
         <select id="user-role" onchange="onUserRoleChange()">
           <option value="saisie">Saisie</option>
           <option value="agence">Agence</option>
+          <option value="gerant">Gérant</option>
           <option value="gratuit">Gratuit</option>
           <option value="admin">Admin</option>
         </select>
@@ -3199,7 +3194,6 @@ async function doLogin() {
 }
 
 function doLogout() {
-  document.body.classList.remove('role-gratuit');
   stopSSPPolling();
   currentUser = null;
   DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [], dossierRent: [], societes: [], agences: [], gerants: [], drafts: [], draftValidations: [] };
@@ -3210,20 +3204,90 @@ function doLogout() {
   document.getElementById('auth-error').style.display = 'none';
 }
 
+function setupNav(role) {
+  // Définition des items visibles par rôle
+  // Format : { id_item: [roles_autorisés] }
+  const NAV_ITEMS = {
+    'nav-dashboard':              ['admin','saisie','agence','gerant'],
+    'nav-dossiers-link':          ['admin','saisie','agence','gerant'],
+    'nav-ic-validation':          ['admin','agence','gratuit','gerant'],
+    'nav-nouveau-dossier':        ['admin','saisie','agence','gratuit','gerant'],
+    'nav-dossiers-redaction':     ['admin','saisie','agence','gerant'],
+    'nav-stats':                  ['admin','saisie','agence','gerant'],
+    'nav-ranking':                ['admin','saisie','agence','gratuit','gerant'],
+    'nav-negociateurs-classement':['admin','saisie','agence','gerant'],
+    'nav-encaissements':          ['admin','saisie','agence','gerant'],
+    'nav-performances':           ['admin','agence','gerant'],
+    'nav-apporteurs':             ['admin','saisie','agence','gerant'],
+    'nav-chatbot':                ['admin','agence','gerant'],
+    'nav-equipe':                 ['admin','saisie','agence','gerant'],
+    'nav-remunerations':          ['admin','gerant'],
+    'nav-feedback':               ['admin','saisie','agence','gerant'],
+    'nav-params':                 ['admin','saisie','agence','gerant'],
+    'nav-rapport':                ['admin','saisie','agence','gerant'],
+    'nav-saisie-admin':           ['admin','saisie'],
+  };
+
+  // Sections visibles par rôle
+  const NAV_SECTIONS = {
+    'nav-section-tb':           ['admin','saisie','agence','gratuit','gerant'],
+    'nav-section-ai':           ['admin','saisie','agence','gratuit','gerant'],
+    'nav-section-gestion':      ['admin','saisie','agence','gerant'],
+    'nav-section-rh':           ['admin','saisie','agence','gerant'],
+    'nav-section-aide':         ['admin','saisie','agence','gerant'],
+    'nav-section-compte':       ['admin','saisie','agence','gerant'],
+    'nav-section-saisie-admin': ['admin','saisie'],
+  };
+
+  // Appliquer visibilité items
+  Object.entries(NAV_ITEMS).forEach(([id, roles]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = roles.includes(role) ? 'flex' : 'none';
+  });
+
+  // Appliquer visibilité sections
+  Object.entries(NAV_SECTIONS).forEach(([id, roles]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = roles.includes(role) ? 'block' : 'none';
+  });
+
+  // Masquer version et label rôle pour gratuit
+  const sidebarRole = document.getElementById('sidebar-role');
+  const sidebarVersion = document.querySelector('.sidebar-version');
+  if (role === 'gratuit') {
+    if (sidebarRole) sidebarRole.style.display = 'none';
+    if (sidebarVersion) sidebarVersion.style.display = 'none';
+  } else {
+    if (sidebarRole) sidebarRole.style.display = '';
+    if (sidebarVersion) sidebarVersion.style.display = '';
+  }
+
+  // Sections Params : admin uniquement pour les blocs de config
+  if (role === 'admin') {
+    const pa = document.getElementById('params-admin-section');
+    const pr = document.getElementById('params-reseau-section');
+    const pm = document.getElementById('params-mail-section');
+    if (pa) pa.style.display = 'block';
+    if (pr) pr.style.display = 'block';
+    if (pm) pm.style.display = 'block';
+    renderMailToggles();
+    renderUsersList();
+  }
+}
+
 async function initApp() {
   await loadDB();
 
   // Sidebar
   document.getElementById('sidebar-avatar').textContent = currentUser.nom.charAt(0).toUpperCase();
   document.getElementById('sidebar-username').textContent = currentUser.nom;
-  document.getElementById('sidebar-role').textContent = currentUser.role === 'admin' ? 'Administrateur' : currentUser.role === 'saisie' ? 'Saisie' : currentUser.role === 'gratuit' ? '' : 'Agence';
-
+  const roleLabels = { admin: 'Administrateur', saisie: 'Saisie', agence: 'Agence', gratuit: '', gerant: 'Gérant' };
+  document.getElementById('sidebar-role').textContent = roleLabels[currentUser.role] || currentUser.role;
 
   // Navigation selon rôle
-  const saisieSection = document.getElementById('nav-saisie-section');
-  if (currentUser.role === 'saisie' || currentUser.role === 'admin') {
-    saisieSection.style.display = 'block';
-  }
+  setupNav(currentUser.role);
 
   // Mois courant
   const now = new Date();
@@ -3245,87 +3309,18 @@ async function initApp() {
     onAnneeDashChange();
     if (_moisEl) _moisEl.value = _curMoisLabel;
   }
-  // Pré-filtrer sur l'agence de l'utilisateur si rôle agence
+  // Pré-filtrer sur l'agence de l'utilisateur si rôle agence (une seule agence)
   if (_agenceEl && currentUser.role === 'agence') {
     _agenceEl.value = currentUser.agence;
     _agenceEl.style.display = 'none';
+  } else if (_agenceEl && currentUser.role === 'gerant') {
+    _agenceEl.style.display = ''; // gérant voit le filtre agence (plusieurs agences possibles)
   } else if (_agenceEl) {
     _agenceEl.style.display = '';
   }
 
   loadProfile();
   document.getElementById('tva-display-val').textContent = DB.settings.tva + '%';
-
-  if (currentUser.role === 'admin') {
-    document.getElementById('nav-rapport').style.display = 'flex';
-    document.getElementById('nav-params').style.display = 'flex';
-    document.getElementById('nav-feedback').style.display = 'flex';
-    document.getElementById('params-admin-section').style.display = 'block';
-    document.getElementById('params-reseau-section').style.display = 'block';
-    document.getElementById('params-mail-section').style.display = 'block';
-    renderMailToggles();
-    document.getElementById('nav-saisie-section').style.display = 'block';
-    document.getElementById('nav-rh-section').style.display = 'block';
-    document.getElementById('nav-remunerations').style.display = 'flex';
-    renderUsersList();
-  } else if (currentUser.role === 'agence') {
-    document.getElementById('nav-rapport').style.display = 'none';
-    document.getElementById('nav-params').style.display = 'none';
-    document.getElementById('nav-feedback').style.display = 'flex';
-    document.getElementById('nav-saisie-section').style.display = 'none';
-    document.getElementById('nav-rh-section').style.display = 'block';
-    // Gérants : accès à Tous les dossiers + Apporteurs (lecture seule)
-    const isGerantMenu = (DB.negociateurs || []).some(n =>
-      n.agence === currentUser.agence &&
-      n.statut_emploi === 'gérant' &&
-      n.nom.toLowerCase() === currentUser.nom.toLowerCase()
-    );
-    if (isGerantMenu) {
-      document.getElementById('nav-saisie-section').style.display = 'block';
-      // Masquer Saisie SSP et Dossiers en attente pour les gérants (réservé au rôle saisie)
-      document.querySelectorAll('#nav-saisie-section .nav-item').forEach(el => {
-        if (el.getAttribute('onclick')?.includes("'saisie'")) el.style.display = 'none';
-        if (el.getAttribute('onclick')?.includes("'ssp-dashboard'")) el.style.display = 'none';
-      });
-    }
-    // Rémunérations visible uniquement pour les gérants
-    // Un gérant est un négociateur avec statut_emploi='gérant' sur la même agence
-    // On cherche par nom ET par agence, avec fallback si DB pas encore chargé
-    const checkGerant = () => {
-      const negs = DB.negociateurs || [];
-      return negs.some(n =>
-        n.agence === currentUser.agence &&
-        n.statut_emploi === 'gérant' &&
-        (n.nom.toLowerCase() === currentUser.nom.toLowerCase() || n.email === currentUser.email)
-      );
-    };
-    const isGerant = checkGerant();
-    document.getElementById('nav-remunerations').style.display = isGerant ? 'flex' : 'none';
-    // Retry après chargement complet si pas trouvé
-    if (!isGerant) {
-      setTimeout(() => {
-        const isGerantRetry = checkGerant();
-        const el = document.getElementById('nav-remunerations');
-        if (el) el.style.display = isGerantRetry ? 'flex' : 'none';
-      }, 1500);
-    }
-  } else if (currentUser.role === 'gratuit') {
-    // Rôle gratuit : classe CSS sur body, pas de manipulation DOM directe
-    document.body.classList.add('role-gratuit');
-    // Le CSS s'occupe d'afficher les bons items — pas besoin de JS
-    showPage('ranking', document.getElementById('nav-ranking'));
-  } else {
-    document.getElementById('nav-rapport').style.display = 'none';
-    document.getElementById('nav-params').style.display = 'flex';
-    document.getElementById('nav-feedback').style.display = 'flex';
-    // Rôle saisie : accès à l'équipe mais pas aux rémunérations
-    if (currentUser.role === 'saisie') {
-      document.getElementById('nav-rh-section').style.display = 'block';
-      document.getElementById('nav-remunerations').style.display = 'none';
-    } else {
-      document.getElementById('nav-rh-section').style.display = 'none';
-    }
-  }
 
   refreshDashboard();
   refreshRanking();
@@ -3336,24 +3331,21 @@ async function initApp() {
   renderRepartition();
   populateApporteurSelects();
 
-  // Afficher nav Intercabinets pour tous les rôles sauf saisie (ils ont leur propre liste)
-  const navIC = document.getElementById('nav-ic-validation');
-  if (navIC) navIC.style.display = currentUser.role !== 'saisie' ? 'flex' : 'none';
+  // Badge IC pour tous
+  icUpdateBadge();
 
   // Landing page selon rôle
   if (currentUser.role === 'saisie') {
-    const navSSP = document.getElementById('nav-ssp-dashboard');
+    const navSSP = document.getElementById('nav-dossiers-redaction');
     showPage('ssp-dashboard', navSSP);
     sspUpdateBadge();
     startSSPPolling();
-    // Popup de bienvenue si des dossiers en attente
     sspShowLoginAlert();
-  } else if (currentUser.role !== 'gratuit') {
-    const navDash = document.querySelector('.nav-item[onclick*="dashboard"]');
-    showPage('dashboard', navDash);
+  } else if (currentUser.role === 'gratuit') {
+    showPage('ranking', document.getElementById('nav-ranking'));
+  } else {
+    showPage('dashboard', document.getElementById('nav-dashboard'));
   }
-  // Mettre à jour le badge IC pour tous
-  icUpdateBadge();
 }
 
 function populateFilters() {
@@ -3532,9 +3524,10 @@ function refreshDashboard() {
       return false;
     });
   }
-  // Restriction rôle agence : uniquement ses dossiers
-  if (currentUser.role === 'agence' || currentUser.role === 'gratuit') {
-    list = list.filter(d => d.agence === currentUser.agence);
+  // Restriction rôle agence/gerant/gratuit : uniquement ses dossiers
+  if (['agence','gratuit','gerant'].includes(currentUser.role)) {
+    const agences = getAgencesUserList();
+    list = list.filter(d => agences.includes(d.agence));
   }
   const signed = list.filter(d => isNet(d));
 
@@ -4528,21 +4521,15 @@ function onAnneeDosChange() {
 }
 
 function initDossiersFiltres() {
-  // Déterminer le scope (gérant = sa société, sinon tout)
-  let agencesFiltrees = AGENCES;
-  if (currentUser.role === 'agence') {
-    const isGerantF = (DB.negociateurs || []).some(n =>
-      n.agence === currentUser.agence && n.statut_emploi === 'gérant' &&
-      n.nom.toLowerCase() === currentUser.nom.toLowerCase()
-    );
-    if (isGerantF) {
-      const agenceObj = (DB.agences || []).find(a => a.nom === currentUser.agence);
-      if (agenceObj) agencesFiltrees = (DB.agences || []).filter(a => a.societe_id === agenceObj.societe_id).map(a => a.nom);
-    }
-  }
+  // Déterminer le scope selon le rôle
+  const agencesFiltrees = getAgencesUserList().length > 0
+    ? (DB.agences || []).filter(a => getAgencesUserList().includes(a.nom)).map(a => a.nom)
+    : (DB.agences || []).map(a => a.nom);
+  const agencesAll = ['admin','saisie'].includes(currentUser.role) ? (DB.agences || []).map(a => a.nom) : agencesFiltrees;
+
   // Négociateurs éligibles
   const negs = (DB.negociateurs || []).filter(n =>
-    agencesFiltrees.includes(n.agence) && n.actif && !n.nom.startsWith('🍒') &&
+    agencesAll.includes(n.agence) && n.actif && !n.nom.startsWith('🍒') &&
     ['négociateur','rentreur','les deux'].includes(n.poste)
   ).sort((a,b) => a.nom.localeCompare(b.nom));
 
@@ -4621,19 +4608,10 @@ function refreshDossiers() {
     const rentId = parseInt(rentFilter);
     list = list.filter(d => (DB.dossierRent || []).some(l => l.dossier_id === d.id && l.negociateur_id === rentId && l.ca_rentree > 0));
   }
-  // Restriction gérant : uniquement dossiers de sa société
-  if (currentUser.role === 'agence') {
-    const isGerantDos = (DB.negociateurs || []).some(n =>
-      n.agence === currentUser.agence && n.statut_emploi === 'gérant' &&
-      n.nom.toLowerCase() === currentUser.nom.toLowerCase()
-    );
-    if (isGerantDos) {
-      const agenceObj = (DB.agences || []).find(a => a.nom === currentUser.agence);
-      if (agenceObj) {
-        const agencesSociete = (DB.agences || []).filter(a => a.societe_id === agenceObj.societe_id).map(a => a.nom);
-        list = list.filter(d => agencesSociete.includes(d.agence));
-      }
-    }
+  // Restriction selon le rôle : agence = sa seule agence, gerant = ses agences, gratuit = son agence
+  if (['agence','gerant','gratuit'].includes(currentUser.role)) {
+    const agences = getAgencesUserList();
+    list = list.filter(d => agences.includes(d.agence));
   }
   const tbody = document.getElementById('dos-tbody');
   // Comptage intelligent : les intercabinets (même groupId) comptent pour 1
@@ -4669,9 +4647,8 @@ function refreshDossiers() {
     if (dosAsigner.length > 0) parts.push('<span style="color:#0369a1">' + countAffaires(dosAsigner) + ' à signer</span>');
     totalBar.innerHTML = parts.join('<span style="color:var(--border)"> | </span>');
   }
-  const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin'; // gratuit = jamais
-  const isGerantView = currentUser.role === 'agence' && (DB.negociateurs || []).some(n => n.agence === currentUser.agence && n.statut_emploi === 'gérant' && n.nom.toLowerCase() === currentUser.nom.toLowerCase());
-  const canEditEffectif = canEdit && !isGerantView;
+  const canEdit = currentUser.role === 'saisie' || currentUser.role === 'admin';
+  const canEditEffectif = canEdit;
   if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:24px">Aucun dossier trouvé</td></tr>'; return; }
   tbody.innerHTML = list.map(d => `
     <tr class="${canEditEffectif ? 'tr-clickable' : ''}" style="${canEditEffectif ? 'cursor:pointer' : ''}" ${canEditEffectif ? `onclick="openEdit(${d.id})"` : ''}>
@@ -5050,8 +5027,8 @@ function renderUsersList() {
     container.innerHTML = '<p style="color:var(--text-muted);font-size:14px">Aucun utilisateur.</p>';
     return;
   }
-  const roleLabel = { admin: 'Administrateur', saisie: 'Saisie', agence: 'Agence', gratuit: 'Gratuit' };
-  const roleBadge = { admin: 'status-signed', saisie: 'status-pending', agence: 'status-report', gratuit: 'status-annule' };
+  const roleLabel = { admin: 'Administrateur', saisie: 'Saisie', agence: 'Agence', gratuit: 'Gratuit', gerant: 'Gérant' };
+  const roleBadge = { admin: 'status-signed', saisie: 'status-pending', agence: 'status-report', gratuit: 'status-annule', gerant: 'status-report' };
   container.innerHTML = '<table style="width:100%"><thead><tr>' +
     '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--text-muted);text-transform:uppercase">Identifiant</th>' +
     '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--text-muted);text-transform:uppercase">Nom</th>' +
@@ -5076,7 +5053,7 @@ function renderUsersList() {
 
 function onUserRoleChange() {
   const role = document.getElementById('user-role').value;
-  document.getElementById('user-agence-group').style.display = (role === 'agence' || role === 'gratuit') ? 'block' : 'none';
+  document.getElementById('user-agence-group').style.display = (role === 'agence' || role === 'gratuit' || role === 'gerant') ? 'block' : 'none';
 }
 
 function openAddUser() {
@@ -5124,7 +5101,7 @@ async function saveUser() {
   const password = document.getElementById('user-password').value.trim();
   const email = document.getElementById('user-email').value.trim();
   const role = document.getElementById('user-role').value;
-  const agence = (role === 'agence' || role === 'gratuit') ? document.getElementById('user-agence').value : null;
+  const agence = (role === 'agence' || role === 'gratuit' || role === 'gerant') ? document.getElementById('user-agence').value : null;
 
   if (!newId || !nom || !password) { showToast('Identifiant, nom et mot de passe sont requis', 'error'); return; }
 
@@ -5226,7 +5203,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.34</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.35</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -5546,7 +5523,9 @@ function initEncaissements() {
   checkAlerteCCIGlobale();
   checkAlerteRCSGlobale();
   if (currentUser.role === 'agence') {
-      sel.style.display = 'none'; // Agence voit que ses chiffres
+      sel.style.display = 'none';
+    } else if (currentUser.role === 'gerant') {
+      getAgencesUserList().forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
     } else {
       AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
     }
@@ -5572,7 +5551,7 @@ function switchEncTab(tab) {
 function getEncFiltre(prefix) {
   const annee = document.getElementById(prefix + '-annee')?.value || '';
   const moisIdx = document.getElementById(prefix + '-mois')?.value;
-  const agence = (currentUser.role === 'agence' || currentUser.role === 'gratuit') ? currentUser.agence : (document.getElementById(prefix + '-agence')?.value || '');
+  const agence = currentUser.role === 'agence' ? currentUser.agence : (document.getElementById(prefix + '-agence')?.value || '');
   return { annee, moisIdx: moisIdx !== '' && moisIdx !== undefined ? parseInt(moisIdx) : null, agence };
 }
 
@@ -5851,8 +5830,8 @@ function openFicheCollab(negId, fromPage) {
   const n = DB.negociateurs.find(x => x.id === negId);
   if (!n) return;
 
-  // Vérif droits : agence ne peut voir que ses collabs
-  if (currentUser.role === 'agence' && n.agence !== currentUser.agence) return;
+  // Vérif droits : agence/gerant ne peuvent voir que leurs collabs
+  if (['agence','gerant'].includes(currentUser.role) && !getAgencesUserList().includes(n.agence)) return;
 
   document.getElementById('fiche-collab-titre').textContent = n.nom;
   document.getElementById('fiche-collab-sous-titre').textContent = n.agence + ' · ' + (n.poste || 'négociateur') + ' · ' + (n.statut_emploi || '');
@@ -6868,6 +6847,10 @@ function openAddNegociateur() {
     // Verrouille l'agence sur la sienne
     selAg.innerHTML = '<option value="' + currentUser.agence + '">' + currentUser.agence + '</option>';
     selAg.disabled = true;
+  } else if (currentUser.role === 'gerant') {
+    const agences = getAgencesUserList();
+    selAg.innerHTML = agences.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+    selAg.disabled = agences.length <= 1;
   } else {
     selAg.disabled = false;
     selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '">' + a + '</option>').join('');
@@ -6887,9 +6870,9 @@ function openEditNegociateur(id) {
   const n = DB.negociateurs.find(n => n.id === id);
   if (!n) return;
 
-  // Rôle agence : bloque si pas son collab
-  if (currentUser.role === 'agence' && n.agence !== currentUser.agence) {
-    showToast('Accès refusé — ce collaborateur n\'est pas dans votre agence', 'error');
+  // Rôle agence/gerant : bloque si pas son collab
+  if (['agence','gerant'].includes(currentUser.role) && !getAgencesUserList().includes(n.agence)) {
+    showToast('Accès refusé — ce collaborateur n\'est pas dans votre périmètre', 'error');
     return;
   }
 
@@ -6925,10 +6908,11 @@ function openEditNegociateur(id) {
   const selAg = document.getElementById('neg-agence');
   const selAgPrec = document.getElementById('neg-agence-precedente');
 
-  if (currentUser.role === 'agence') {
-    // Responsable : agence verrouillée sur la sienne
-    selAg.innerHTML = '<option value="' + n.agence + '">' + n.agence + '</option>';
-    selAg.disabled = true;
+  if (['agence','gerant'].includes(currentUser.role)) {
+    // Responsable/gérant : agences limitées à son périmètre
+    const agences = getAgencesUserList();
+    selAg.innerHTML = agences.map(a => '<option value="' + a + '"' + (a === n.agence ? ' selected' : '') + '>' + a + '</option>').join('');
+    selAg.disabled = agences.length <= 1;
   } else {
     selAg.disabled = false;
     selAg.innerHTML = '<option value="">— Sélectionner —</option>' + AGENCES.map(a => '<option value="' + a + '"' + (a === n.agence ? ' selected' : '') + '>' + a + '</option>').join('');
@@ -8715,24 +8699,37 @@ function canSeeAllAgences() {
 }
 function getSocietesAccessibles() {
   if (['admin','saisie'].includes(currentUser.role)) return DB.societes || [];
-  // Responsable/agence : sociétés dont fait partie son agence
+  // agence & gerant : sociétés dont fait partie leur agence
   const agenceUser = (DB.agences || []).find(a => a.nom === currentUser.agence);
   if (!agenceUser) return [];
   return (DB.societes || []).filter(s => s.id === agenceUser.societe_id);
 }
 function getAgencesAccessibles() {
   if (['admin','saisie'].includes(currentUser.role)) return DB.agences || [];
-  // Responsable/agence : toutes les agences de sa société
-  const agenceUser = (DB.agences || []).find(a => a.nom === currentUser.agence);
-  if (!agenceUser) return (DB.agences || []).filter(a => a.nom === currentUser.agence);
-  return (DB.agences || []).filter(a => a.societe_id === agenceUser.societe_id);
+  // agence : uniquement son agence
+  if (currentUser.role === 'agence') {
+    return (DB.agences || []).filter(a => a.nom === currentUser.agence);
+  }
+  // gerant : toutes les agences de sa société
+  if (currentUser.role === 'gerant') {
+    const agenceUser = (DB.agences || []).find(a => a.nom === currentUser.agence);
+    if (!agenceUser) return (DB.agences || []).filter(a => a.nom === currentUser.agence);
+    return (DB.agences || []).filter(a => a.societe_id === agenceUser.societe_id);
+  }
+  return (DB.agences || []).filter(a => a.nom === currentUser.agence);
+}
+// Retourne la liste des noms d'agences accessibles pour le user courant
+function getAgencesUserList() {
+  if (['admin','saisie'].includes(currentUser.role)) return (DB.agences || []).map(a => a.nom);
+  if (currentUser.role === 'gerant') return getAgencesAccessibles().map(a => a.nom);
+  return currentUser.agence ? [currentUser.agence] : [];
 }
 function getNegoAccessibles() {
   if (['admin','saisie'].includes(currentUser.role)) {
     return (DB.negociateurs || []).filter(n => n.actif !== false && !n.nom.startsWith('🍒'));
   }
-  // Responsable/agence : uniquement ses collabs
-  return (DB.negociateurs || []).filter(n => n.actif !== false && !n.nom.startsWith('🍒') && n.agence === currentUser.agence);
+  const agences = getAgencesUserList();
+  return (DB.negociateurs || []).filter(n => n.actif !== false && !n.nom.startsWith('🍒') && agences.includes(n.agence));
 }
 
 // Ouvre la page Statistiques avec le bon niveau/sélection
@@ -10072,21 +10069,39 @@ async function sendEmail(type, to, data) {
 
 // Récupérer les emails des destinataires selon leur rôle et agence
 function getEmailsForAgence(agenceNom) {
-  // Tous : admin + saisie + responsable agence
+  // Tous : admin + saisie + responsable agence + gérants ayant cette agence dans leur périmètre
   return (DB.users || [])
-    .filter(u => u.email && (
-      u.role === 'admin' ||
-      u.role === 'saisie' ||
-      (u.role === 'agence' && u.agence === agenceNom)
-    ))
+    .filter(u => {
+      if (!u.email) return false;
+      if (u.role === 'admin' || u.role === 'saisie') return true;
+      if (u.role === 'agence' && u.agence === agenceNom) return true;
+      if (u.role === 'gerant') {
+        // Gérant reçoit si agenceNom est dans son périmètre (sa société)
+        const agObj = (DB.agences || []).find(a => a.nom === u.agence);
+        if (!agObj) return false;
+        const agences = (DB.agences || []).filter(a => a.societe_id === agObj.societe_id).map(a => a.nom);
+        return agences.includes(agenceNom);
+      }
+      return false;
+    })
     .map(u => u.email)
     .filter(Boolean);
 }
 
 function getResponsablesAgence(agenceNom) {
-  // Responsables d'agence uniquement (role === 'agence')
+  // Responsables d'agence + gérants concernés
   return (DB.users || [])
-    .filter(u => u.email && u.role === 'agence' && u.agence === agenceNom)
+    .filter(u => {
+      if (!u.email) return false;
+      if (u.role === 'agence' && u.agence === agenceNom) return true;
+      if (u.role === 'gerant') {
+        const agObj = (DB.agences || []).find(a => a.nom === u.agence);
+        if (!agObj) return false;
+        const agences = (DB.agences || []).filter(a => a.societe_id === agObj.societe_id).map(a => a.nom);
+        return agences.includes(agenceNom);
+      }
+      return false;
+    })
     .map(u => u.email)
     .filter(Boolean);
 }
@@ -10824,14 +10839,21 @@ function getMailAgences(mailKey) {
 // Filtre les emails selon les agences configurées pour ce type de mail
 function getEmailsForMailType(mailKey, agenceNom) {
   const agences = getMailAgences(mailKey);
-  if (agences.length === 0) return []; // Aucune agence configurée = pas d'envoi
-  if (agenceNom && !agences.includes(agenceNom)) return []; // Agence exclue
+  if (agences.length === 0) return [];
+  if (agenceNom && !agences.includes(agenceNom)) return [];
   return (DB.users || [])
-    .filter(u => u.email && (
-      u.role === 'admin' ||
-      u.role === 'saisie' ||
-      (u.role === 'agence' && agences.includes(u.agence))
-    ))
+    .filter(u => {
+      if (!u.email) return false;
+      if (u.role === 'admin' || u.role === 'saisie') return true;
+      if (u.role === 'agence' && agences.includes(u.agence)) return true;
+      if (u.role === 'gerant') {
+        const agObj = (DB.agences || []).find(a => a.nom === u.agence);
+        if (!agObj) return false;
+        const agencesGerant = (DB.agences || []).filter(a => a.societe_id === agObj.societe_id).map(a => a.nom);
+        return agencesGerant.some(a => agences.includes(a));
+      }
+      return false;
+    })
     .map(u => u.email)
     .filter(Boolean);
 }
@@ -12452,10 +12474,7 @@ function recalcRemuTotal() {
   // Bouton "Offrir solde après calcul" — visible si salarié + solde négatif résultant + droits
   const btnApres = document.getElementById('remu-btn-offrir-apres');
   if (btnApres && isSalarie && remuLignes.length > 0) {
-    const userNegBtn = currentUser.role === 'agence'
-      ? DB.negociateurs.find(x => x.agence === currentUser.agence && x.statut_emploi === 'gérant' && x.nom.toLowerCase() === currentUser.nom.toLowerCase())
-      : null;
-    const peutOffrirBtn = currentUser.role === 'admin' || !!userNegBtn;
+    const peutOffrirBtn = currentUser.role === 'admin' || currentUser.role === 'gerant';
     const soldeInitialBtn = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
     const avanceBtn = parseFloat(remuCurrentNeg?.avance_commission) || 0;
     const sousTotalBtn = remuLignes.reduce((s,l)=>s+l.commission,0);
@@ -13281,10 +13300,7 @@ function onSoldeInitialChange() {
   const btnAvant = document.getElementById('remu-btn-offrir-avant');
   if (!btnAvant) return;
   // Vérifier droits
-  const userNeg = currentUser.role === 'agence'
-    ? DB.negociateurs.find(x => x.agence === currentUser.agence && x.statut_emploi === 'gérant' && x.nom === currentUser.nom)
-    : null;
-  const peutOffrir = currentUser.role === 'admin' || !!userNeg;
+  const peutOffrir = currentUser.role === 'admin' || currentUser.role === 'gerant';
   const isSalarie = remuCurrentNeg && ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
   btnAvant.style.display = (isSalarie && peutOffrir && solde < 0) ? 'inline-block' : 'none';
 }
@@ -13496,8 +13512,9 @@ async function loadRemunerationsList() {
     let collabs = DB.negociateurs.filter(n =>
       typesEligibles.includes(n.statut_emploi) && n.actif && !n.nom.startsWith('🍒')
     );
-    if (currentUser.role === 'agence') {
-      collabs = collabs.filter(n => n.agence === currentUser.agence);
+    if (['agence','gerant'].includes(currentUser.role)) {
+      const agences = getAgencesUserList();
+      collabs = collabs.filter(n => agences.includes(n.agence));
     }
 
     if (collabs.length === 0) {
