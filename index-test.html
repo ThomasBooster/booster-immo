@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.42</title>
+<title>⚠️ SCORIM TEST v1.5.43</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -797,7 +797,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.42</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.43</div>
     </div>
   </div>
 </div>
@@ -915,7 +915,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.42</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.43</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5224,7 +5224,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.42</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.43</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -14619,7 +14619,7 @@ const ndS = {
   nbCuisines:1, nbSdbs:1,
   piscine:null, fumee:null,
   mandatDate:'', prixInitNV:0, prixInitHono:0,
-  chargeHono:'vendeur', mandatType:'simple',
+  chargeHono:null, mandatType:null,
   prixFinalNV:0, prixFinalHono:0,
   apporteur:null, apporteurNom:'', apporteurPct:0, apporteurMt:0,
   diag:null, diagMontant:0,
@@ -15463,8 +15463,8 @@ function sspLoadDraftIntoNdS(nd) {
   ndS.mandatDate = nd.mandatDate || '';
   ndS.prixInitNV = nd.prixInitNV || 0;
   ndS.prixInitHono = nd.prixInitHono || 0;
-  ndS.chargeHono = nd.chargeHono || 'vendeur';
-  ndS.mandatType = nd.mandatType || 'simple';
+  ndS.chargeHono = nd.chargeHono || null;
+  ndS.mandatType = nd.mandatType || null;
   ndS.prixFinalNV = nd.prixFinalNV || 0;
   ndS.prixFinalHono = nd.prixFinalHono || 0;
   ndS.apporteur = nd.apporteur !== undefined ? nd.apporteur : null;
@@ -15671,7 +15671,7 @@ function ndInit(){
     nbCuisines:1,nbSdbs:1,
     piscine:null,fumee:null,
     mandatDate:'',prixInitNV:0,prixInitHono:0,
-    chargeHono:'vendeur',mandatType:'simple',
+    chargeHono:null,mandatType:null,
     prixFinalNV:0,prixFinalHono:0,
     apporteur:null,apporteurNom:'',apporteurPct:0,apporteurMt:0,
     diag:null,diagMontant:0,
@@ -15918,6 +15918,8 @@ function ndValidate(){
     if(!ndS.mandatDate||!ndS.prixInitNV||!ndS.prixInitHono){
       showToast('Date, net vendeur et honoraires sont obligatoires.','error'); return false;
     }
+    if(!ndS.chargeHono){showToast('Précisez qui prend en charge les honoraires.','error'); return false;}
+    if(!ndS.mandatType){showToast('Précisez le type de mandat (simple ou exclusif).','error'); return false;}
   }
   if(s===5){
     if(!ndS.prixFinalNV||!ndS.prixFinalHono){
@@ -16433,8 +16435,8 @@ function ndS5(){
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">${ndToggle('horsSecteur','Bien vendu hors secteur couvert ?')}</div>
         ${ndS.horsSecteur===true?`<div style="flex:1;min-width:180px">
-          <div style="padding:8px 12px;background:#FCEBEB;border-radius:8px;font-size:13px;color:#A32D2D;font-weight:500">
-            − ${ndFmt(ndHorsSecteurTTC())}${ndFmtHT(ndHorsSecteurTTC())} déduits du CA
+          <div style="padding:8px 12px;background:#fff7ed;border-radius:8px;font-size:13px;color:#c2410c;font-weight:500">
+            Redevance Booster : −${ndFmt(ndHorsSecteurTTC())}${ndFmtHT(ndHorsSecteurTTC())}
           </div>
         </div>`:''}
       </div>
@@ -16704,9 +16706,9 @@ function ndS9(){
     ${g2(ri("Piscine",bL(ndS.piscine)),ri("Détecteur fumée",bL(ndS.fumee)))}
     ${ndS.travaux===true&&ndS.travauxDetail?ri("Nature des travaux",ndS.travauxDetail):""}
     ${sec("Le mandat")}
-    ${g2(ri("Date",ndS.mandatDate),ri("Type",ndS.mandatType==="exclusif"?"Exclusif":"Simple"))}
+    ${g2(ri("Date",ndS.mandatDate),ri("Type",ndS.mandatType==="exclusif"?"Exclusif":ndS.mandatType==="simple"?"Simple":"—"))}
     ${g2(ri("Net vendeur initial",ndFmt(ndS.prixInitNV)+ndFmtHT(ndS.prixInitNV)),ri("Honoraires TTC initiaux",ndFmt(ndS.prixInitHono)+ndFmtHT(ndS.prixInitHono)))}
-    ${g2(ri("Prix affiché initial",ndFmt(ndS.prixInitNV+ndS.prixInitHono)),ri("Charge honoraires",ndS.chargeHono==="vendeur"?"Vendeur":"Acquéreur"))}
+    ${g2(ri("Prix affiché initial",ndFmt(ndS.prixInitNV+ndS.prixInitHono)),ri("Charge honoraires",ndS.chargeHono==="vendeur"?"Vendeur":ndS.chargeHono==="acquereur"?"Acquéreur":"—"))}
     ${sec("La vente")}
     ${g2(ri("Net vendeur final",ndFmt(ndS.prixFinalNV)+ndFmtHT(ndS.prixFinalNV)),ri("Honoraires TTC finals",ndFmt(ndS.prixFinalHono)+ndFmtHT(ndS.prixFinalHono)))}
     ${g2(ri("Prix affiché final",ndFmt(ndS.prixFinalNV+ndS.prixFinalHono)),ndS.diag===true?ri("Diagnostics agence","- "+ndFmt(ndS.diagMontant)):ri("Diagnostics","À charge vendeur"))}
@@ -17035,11 +17037,11 @@ function ndGenererPDF(){
 
     yL=section('Le mandat',cL,yL);
     yL=field('Date',fmtDate(ndS.mandatDate),cL,yL);
-    yL=field('Type',ndS.mandatType==='exclusif'?'Exclusif':'Simple',cL,yL);
+    yL=field('Type',ndS.mandatType==='exclusif'?'Exclusif':ndS.mandatType==='simple'?'Simple':'---',cL,yL);
     yL=field('Net vendeur initial',pdfFmt(ndS.prixInitNV),cL,yL);
     yL=field('Honoraires TTC',pdfFmt(ndS.prixInitHono),cL,yL);
     yL=field('Prix affiche initial',pdfFmt(ndS.prixInitNV+ndS.prixInitHono),cL,yL);
-    yL=field('Charge honoraires',ndS.chargeHono==='vendeur'?'Vendeur':'Acquereur',cL,yL);
+    yL=field('Charge honoraires',ndS.chargeHono==='vendeur'?'Vendeur':ndS.chargeHono?'Acquereur':'---',cL,yL);
     yL+=2;
 
     yL=section('La vente',cL,yL);
