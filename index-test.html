@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.31</title>
+<title>⚠️ SCORIM TEST v1.5.33</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -804,7 +804,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.31</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.33</div>
     </div>
   </div>
 </div>
@@ -921,7 +921,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.31</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.33</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -3345,6 +3345,8 @@ async function initApp() {
     showPage('ssp-dashboard', navSSP);
     sspUpdateBadge();
     startSSPPolling();
+    // Popup de bienvenue si des dossiers en attente
+    sspShowLoginAlert();
   } else if (currentUser.role !== 'gratuit') {
     const navDash = document.querySelector('.nav-item[onclick*="dashboard"]');
     showPage('dashboard', navDash);
@@ -5223,7 +5225,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.31</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.33</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -14947,6 +14949,62 @@ function icUpdateBadge() {
 
 let sspPollingInterval = null;
 let sspDraftsVus = new Set(); // IDs des drafts déjà connus
+
+
+function sspShowLoginAlert() {
+  // Récupérer la date de dernière connexion de cet utilisateur
+  const lastLoginKey = 'scorim_last_login_' + currentUser.id;
+  const lastLogin = localStorage.getItem(lastLoginKey);
+  const lastLoginDate = lastLogin ? new Date(lastLogin) : null;
+  // Mettre à jour la date de connexion courante
+  localStorage.setItem(lastLoginKey, new Date().toISOString());
+
+  // Ne montrer que les drafts créés APRÈS la dernière connexion
+  const pending = (DB.drafts||[]).filter(d => {
+    if (d.statut !== 'en_attente') return false;
+    if (!lastLoginDate) return false; // première connexion → rien à afficher
+    return new Date(d.created_at) > lastLoginDate;
+  });
+  if (pending.length === 0) return;
+  const n = pending.length;
+
+  let popup = document.getElementById('ssp-login-popup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'ssp-login-popup';
+    document.body.appendChild(popup);
+  }
+  popup.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+  popup.innerHTML = `<div style="background:var(--bg);border-radius:16px;padding:28px 32px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center">
+    <div style="font-size:42px;margin-bottom:12px">📋</div>
+    <div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:var(--primary);margin-bottom:8px">
+      ${n === 1 ? 'Un nouveau dossier vous attend !' : n + ' nouveaux dossiers vous attendent !'}
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.6">
+      ${pending.slice(0,3).map(d => {
+        const nd = d.data||{};
+        const vendeur = nd.vendeurNom||'—';
+        const acquereur = nd.acquereurNom||'—';
+        const agence = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).filter(Boolean).join(' / ') || d.agence||'—';
+        return `<div style="padding:8px 12px;background:var(--bg-secondary,#f8fafc);border-radius:8px;margin-bottom:6px;text-align:left">
+          <strong>${vendeur} → ${acquereur}</strong><br>
+          <span style="font-size:12px">🏠 ${agence}</span>
+        </div>`;
+      }).join('')}
+      ${n > 3 ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px">+ ${n-3} autre${n-3>1?'s':''} dossier${n-3>1?'s':''}</div>` : ''}
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="document.getElementById('ssp-login-popup').style.display='none'" 
+        style="padding:10px 20px;border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;background:var(--bg);color:var(--text)">
+        Plus tard
+      </button>
+      <button onclick="document.getElementById('ssp-login-popup').style.display='none';const n=document.getElementById('nav-ssp-dashboard');showPage('ssp-dashboard',n);" 
+        style="padding:10px 24px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;background:var(--primary);color:white">
+        Voir les dossiers →
+      </button>
+    </div>
+  </div>`;
+}
 
 function startSSPPolling() {
   if (currentUser?.role !== 'saisie') return;
