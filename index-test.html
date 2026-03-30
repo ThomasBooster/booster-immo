@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.27</title>
+<title>⚠️ SCORIM TEST v1.5.28</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -708,6 +708,10 @@
   body.role-gratuit .sidebar-version { display: none !important; }
 
 
+@keyframes slideInRight {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
 /* ── Tooltip custom rémunération ─────────────────────────── */
 #remu-tooltip {
   position: fixed;
@@ -800,7 +804,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.27</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.28</div>
     </div>
   </div>
 </div>
@@ -917,7 +921,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.27</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.28</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -3196,6 +3200,7 @@ async function doLogin() {
 
 function doLogout() {
   document.body.classList.remove('role-gratuit');
+  stopSSPPolling();
   currentUser = null;
   DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [], dossierRent: [], societes: [], agences: [], gerants: [], drafts: [], draftValidations: [] };
   document.getElementById('auth-screen').style.display = 'flex';
@@ -3339,6 +3344,7 @@ async function initApp() {
     const navSSP = document.getElementById('nav-ssp-dashboard');
     showPage('ssp-dashboard', navSSP);
     sspUpdateBadge();
+    startSSPPolling();
   } else if (currentUser.role !== 'gratuit') {
     const navDash = document.querySelector('.nav-item[onclick*="dashboard"]');
     showPage('dashboard', navDash);
@@ -5217,7 +5223,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.27</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.28</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -14932,6 +14938,110 @@ function icUpdateBadge() {
   if (navICGratuit && currentUser.role==='gratuit') {
     navICGratuit.style.display = total>0 ? 'flex' : 'none';
   }
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SSP POLLING — Alertes temps réel pour Laurie/Benoît
+// ══════════════════════════════════════════════════════════════════════════════
+
+let sspPollingInterval = null;
+let sspDraftsVus = new Set(); // IDs des drafts déjà connus
+
+function startSSPPolling() {
+  if (currentUser?.role !== 'saisie') return;
+  // Demander la permission de notifications navigateur
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  // Initialiser avec les drafts déjà en base (pas d'alerte au login)
+  sbFetch('dossiers_draft', { filter: 'statut=in.(en_attente,en_attente_ic)' })
+    .then(rows => { (rows||[]).forEach(d => sspDraftsVus.add(d.id)); })
+    .catch(() => {});
+  // Lancer le polling toutes les 20 secondes
+  sspPollingInterval = setInterval(sspPollNewDrafts, 20000);
+}
+
+function stopSSPPolling() {
+  if (sspPollingInterval) { clearInterval(sspPollingInterval); sspPollingInterval = null; }
+  sspDraftsVus.clear();
+}
+
+async function sspPollNewDrafts() {
+  if (currentUser?.role !== 'saisie') return;
+  try {
+    const rows = await sbFetch('dossiers_draft', { filter: 'statut=in.(en_attente,en_attente_ic)' });
+    const nouveaux = (rows||[]).filter(d => !sspDraftsVus.has(d.id));
+    if (nouveaux.length === 0) return;
+    // Ajouter les nouveaux à l'ensemble des connus
+    nouveaux.forEach(d => sspDraftsVus.add(d.id));
+    // Mettre à jour DB.drafts
+    (rows||[]).forEach(d => {
+      const parsed = { ...d, data: d.data ? (typeof d.data === 'string' ? JSON.parse(d.data) : d.data) : {} };
+      const idx = (DB.drafts||[]).findIndex(x => x.id === d.id);
+      if (idx >= 0) DB.drafts[idx] = parsed; else DB.drafts.push(parsed);
+    });
+    // Afficher l'alerte
+    sspShowNouveauDossierAlert(nouveaux);
+    // Mettre à jour le badge
+    sspUpdateBadge();
+    // Rafraîchir la liste si on est sur le dashboard SSP
+    const page = document.querySelector('.page.active');
+    if (page && page.id === 'page-ssp-dashboard') sspRender();
+  } catch(e) { console.warn('SSP polling:', e); }
+}
+
+function sspShowNouveauDossierAlert(nouveaux) {
+  const n = nouveaux.length;
+  const titre = n === 1 ? 'Nouveau dossier reçu !' : n + ' nouveaux dossiers reçus !';
+  const nd = nouveaux[0]?.data || {};
+  const detail = n === 1
+    ? (nd.vendeurNom ? nd.vendeurNom + ' → ' + (nd.acquereurNom||'?') : 'Dossier en attente')
+    : 'Cliquez pour voir la liste';
+  const isIC = nouveaux.some(d => d.statut === 'en_attente_ic');
+
+  // ── Notification système navigateur ──────────────────────────────────────
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const notif = new Notification('📋 Scorim — ' + titre, {
+      body: detail + (isIC ? ' (intercabinet)' : ''),
+      icon: 'https://ventes.booster-immobilier.com/favicon.ico',
+      tag: 'scorim-ssp-' + Date.now(),
+      requireInteraction: true
+    });
+    notif.onclick = () => {
+      window.focus();
+      const navSSP = document.getElementById('nav-ssp-dashboard');
+      showPage('ssp-dashboard', navSSP);
+      notif.close();
+    };
+  }
+
+  // ── Popup in-app ──────────────────────────────────────────────────────────
+  let popup = document.getElementById('ssp-notif-popup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'ssp-notif-popup';
+    document.body.appendChild(popup);
+  }
+  popup.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;max-width:340px;background:var(--primary);color:white;border-radius:14px;padding:16px 18px;box-shadow:0 8px 32px rgba(0,0,0,.25);display:flex;gap:12px;align-items:flex-start;animation:slideInRight .3s ease';
+  popup.innerHTML = `
+    <div style="font-size:28px;flex-shrink:0">📋</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;margin-bottom:4px">${titre}</div>
+      <div style="font-size:12px;opacity:.85;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${detail}${isIC ? ' · intercabinet' : ''}</div>
+      <button onclick="sspGoToDashboardFromNotif()" style="font-size:12px;padding:6px 14px;border:none;border-radius:8px;background:white;color:var(--primary);cursor:pointer;font-weight:700">Voir les dossiers →</button>
+    </div>
+    <button onclick="document.getElementById('ssp-notif-popup').style.display='none'" style="background:none;border:none;color:white;cursor:pointer;font-size:18px;opacity:.7;padding:0;flex-shrink:0">×</button>`;
+
+  // Auto-fermeture après 8 secondes
+  setTimeout(() => { if (popup) popup.style.display = 'none'; }, 8000);
+}
+
+function sspGoToDashboardFromNotif() {
+  const popup = document.getElementById('ssp-notif-popup');
+  if (popup) popup.style.display = 'none';
+  const navSSP = document.getElementById('nav-ssp-dashboard');
+  showPage('ssp-dashboard', navSSP);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
