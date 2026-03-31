@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.51</title>
+<title>⚠️ SCORIM TEST v1.5.52</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -807,7 +807,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.51</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.52</div>
     </div>
   </div>
 </div>
@@ -925,7 +925,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.51</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.52</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5273,7 +5273,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.51</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.52</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15769,7 +15769,8 @@ function ndInit(){
     const vendeur = nd.vendeurNom || '—';
     const etape = last.etape_courante || 1;
     const date = last.created_at ? new Date(last.created_at).toLocaleDateString('fr-FR') : '—';
-    if (confirm(`Un brouillon non terminé a été trouvé :\n\nVendeur : ${vendeur}\nÉtape : ${etape}/9\nDébuté le : ${date}\n\nVoulez-vous reprendre ce brouillon ?`)) {
+    const choix = confirm(`Un brouillon non terminé a été trouvé :\n\nVendeur : ${vendeur}\nÉtape : ${etape}/9\nDébuté le : ${date}\n\nVoulez-vous reprendre ce brouillon ?\n\n(Cliquez Annuler pour démarrer une nouvelle saisie)`);
+    if (choix) {
       ndDraftId = last.id;
       ndStep = etape || 1;
       sspModeEdition = false;
@@ -15777,6 +15778,14 @@ function ndInit(){
       Object.assign(ndS, nd);
       ndRender();
       return;
+    } else {
+      // Proposer de supprimer le brouillon
+      const suppr = confirm(`Voulez-vous supprimer définitivement ce brouillon ?\n\n(Sinon il sera proposé à nouveau la prochaine fois)`);
+      if (suppr) {
+        sbDelete('dossiers_draft', 'id=eq.' + last.id).catch(() => {});
+        DB.drafts = (DB.drafts||[]).filter(x => x.id !== last.id);
+        showToast('Brouillon supprimé', 'success');
+      }
     }
   }
   ndStep=1; ndDraftId=null; sspModeEdition=false; ndEditMode=false; ndStepSnapshot=null; ndS.statutDraft='brouillon';
@@ -16773,7 +16782,7 @@ function ndS8(){
   const renderAgence=(ag,ai)=>{
     const agMt=base*(parseFloat(ag.pct)||0)/100;
     // Inclure les collabs normaux ET les cerise de l'agence concernée
-    const negsDispo=(DB.negociateurs||[]).filter(n=>n.actif&&(!ag.nom||n.agence===ag.nom)&&!n.nom.startsWith('🍒'));
+    const negsDispo=(DB.negociateurs||[]).filter(n=>n.actif&&(!ag.nom||n.agence===ag.nom));
     return`<div style="flex:1;min-width:220px;border:1px solid var(--border);border-radius:10px;padding:1rem;background:var(--bg)">
       <div style="margin-bottom:12px">
         <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px">Agence ${ai+1}</div>
@@ -16849,21 +16858,7 @@ function ndS8(){
       <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">
         <div>Rentreur</div><div>%</div><div>Montant</div><div></div>
       </div>
-      ${ndS.rentreurs.map((r,i)=>{
-        const rMt=base*(parseFloat(r.pct)||0)/100;
-        return`<div style="display:grid;grid-template-columns:2fr 80px 80px auto;gap:8px;align-items:center;margin-bottom:6px">
-          <div style="position:relative;flex:1">
-            <input type="text" id="nd-rent-${i}" value="${r.nom}" placeholder="Taper pour rechercher…"
-              list="nd-rent-dl-${i}"
-              style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"/>
-            <datalist id="nd-rent-dl-${i}">${allNegs.map(n=>`<option value="${n.nom}">${n.nom} (${n.agence})</option>`).join('')}</datalist>
-          </div>
-          <input id="nd-rentp-${i}" type="number" value="${r.pct||0}" min="0" max="100" step="0.01"
-            style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;text-align:center;font-family:inherit" oninput="ndS.rentreurs[${i}].pct=parseFloat(this.value)||0;ndUpdateCA()"/>
-          <div id="nd-rmt-${i}" style="padding:8px 10px;background:var(--bg-secondary,#f8fafc);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted)">${ndFmt(rMt)}</div>
-          ${i>0?`<button onclick="ndRemRent(${i})" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:#E24B4A;font-size:13px">✕</button>`:'<div></div>'}
-        </div>`;
-      }).join('')}
+      ${(()=>{ const ag1=ndS.agences[0]?.nom||currentUser.agence||''; const rentDispo=(DB.negociateurs||[]).filter(n=>n.actif&&n.agence===ag1&&!n.nom.startsWith('🍒')); return ndS.rentreurs.map((r,i)=>{ const rMt=base*(parseFloat(r.pct)||0)/100; return`<div style="display:grid;grid-template-columns:2fr 80px 80px auto;gap:8px;align-items:center;margin-bottom:6px"><select id="nd-rent-${i}" onchange="ndS.rentreurs[${i}].nom=this.value;const found=(DB.negociateurs||[]).find(n=>n.nom===this.value);ndS.rentreurs[${i}].negId=found?found.id:null;" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"><option value="">— Choisir —</option>${rentDispo.map(n=>`<option value="${n.nom}" ${r.nom===n.nom?'selected':''}>${n.nom}</option>`).join('')}</select><input id="nd-rentp-${i}" type="number" value="${r.pct||0}" min="0" max="100" step="0.01" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;text-align:center;font-family:inherit" oninput="ndS.rentreurs[${i}].pct=parseFloat(this.value)||0;ndUpdateCA()"/><div id="nd-rmt-${i}" style="padding:8px 10px;background:var(--bg-secondary,#f8fafc);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted)">${ndFmt(rMt)}</div>${i>0?`<button onclick="ndRemRent(${i})" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:#E24B4A;font-size:13px">✕</button>`:'<div></div>'}</div>`; }).join(''); })()}
       <button onclick="ndAddRent()" style="width:100%;padding:8px;border:1px dashed var(--border);border-radius:8px;font-size:13px;cursor:pointer;background:transparent;color:var(--text-muted)">+ Ajouter un rentreur</button>
     </div><div style="flex:1;min-width:220px"></div></div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
