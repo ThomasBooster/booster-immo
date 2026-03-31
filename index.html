@@ -1573,7 +1573,7 @@
           <!-- Messages -->
           <div id="chat-messages" style="flex:1;overflow-y:auto;background:white;border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;min-height:300px">
             <div id="chat-welcome" style="text-align:center;color:var(--text-muted);padding:30px 20px">
-              <div style="font-size:40px;margin-bottom:12px">🤖</div>
+              <div style="font-size:40px;margin-bottom:12px">✨</div>
               <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:8px">Bonjour, je suis votre assistant IA !</div>
               <div style="font-size:13px;line-height:1.6">Je connais tous vos dossiers et je peux répondre à vos questions.<br>Exemples : <em>"Quel est le CA de Saint-Cyprien ce mois ?"</em>, <em>"Combien de dossiers sont à signer ?"</em>, <em>"Quelle agence performe le mieux cette année ?"</em></div>
             </div>
@@ -3431,7 +3431,8 @@ function populateFilters() {
   // Filtre mois apporteurs
   const selAA2 = document.getElementById('filter-agence-apporteurs');
   if (selAA2) {
-    selAA2.innerHTML = '<option value="">Toutes les agences</option>' + AGENCES.map(a => `<option value="${a}">${a}</option>`).join('');
+    const agencesApporteurs = ['admin','saisie'].includes(currentUser.role) ? AGENCES : getAgencesUserList();
+    selAA2.innerHTML = '<option value="">Toutes les agences</option>' + agencesApporteurs.map(a => `<option value="${a}">${a}</option>`).join('');
   }
   const selMA = document.getElementById('filter-mois-apporteurs');
   if (selMA) {
@@ -3996,9 +3997,11 @@ function refreshApporteurs() {
   const moisFiltre = moisFiltreRaw; // '' = vue annuelle
 
   // Tous dossiers avec apporteur sur la période (tous statuts sauf ANNULÉ)
+  const agencesAutorisees = ['admin','saisie'].includes(currentUser.role) ? null : getAgencesUserList();
   const dossiersBruts = DB.dossiers.filter(d =>
     d.statut !== 'ANNULÉ' && d.hasApporteur && d.apporteurNom &&
     (!agenceFiltre || d.agence === agenceFiltre) &&
+    (!agencesAutorisees || agencesAutorisees.includes(d.agence)) &&
     (moisFiltre ? (matchMois(d, moisFiltre) || (!d.date && d.mois === moisFiltre)) : (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))))
   );
 
@@ -5219,7 +5222,12 @@ function populateRapportFilters() {
   while (selMois.options.length > 1) selMois.remove(1);
   getMoisList().forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selMois.appendChild(o); });
   while (selAg.options.length > 1) selAg.remove(1);
-  AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; selAg.appendChild(o); });
+  const agencesRapport = ['admin','saisie'].includes(currentUser.role) ? AGENCES : getAgencesUserList();
+  agencesRapport.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; selAg.appendChild(o); });
+  // Pré-sélectionner agence si rôle agence/gerant
+  if (['agence','gerant'].includes(currentUser.role) && agencesRapport.length === 1) {
+    selAg.value = agencesRapport[0];
+  }
 }
 
 function genererRapportPDF() {
@@ -5603,7 +5611,7 @@ function switchEncTab(tab) {
 function getEncFiltre(prefix) {
   const annee = document.getElementById(prefix + '-annee')?.value || '';
   const moisIdx = document.getElementById(prefix + '-mois')?.value;
-  const agence = currentUser.role === 'agence' ? currentUser.agence : (document.getElementById(prefix + '-agence')?.value || '');
+  const agence = (currentUser.role === 'agence' || currentUser.role === 'gerant') ? (document.getElementById(prefix + '-agence')?.value || getAgencesUserList()[0] || '') : (document.getElementById(prefix + '-agence')?.value || '');
   return { annee, moisIdx: moisIdx !== '' && moisIdx !== undefined ? parseInt(moisIdx) : null, agence };
 }
 
