@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.2</title>
+<title>SCORIM v1.5.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -780,7 +780,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.2</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.3</div>
     </div>
   </div>
 </div>
@@ -898,7 +898,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.2</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.3</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -1455,6 +1455,17 @@
             </select>
           </div>
           <div class="stats-grid" id="enc-hist-stats"></div>
+          <!-- Graphique encaissements -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+              <span class="card-title">📊 Évolution des encaissements</span>
+              <div style="display:flex;gap:8px">
+                <button id="enc-graph-courbe" onclick="setEncGraphType('courbe')" style="padding:4px 12px;border:1px solid var(--primary);border-radius:6px;font-size:12px;background:var(--primary);color:white;cursor:pointer">Courbe</button>
+                <button id="enc-graph-histo" onclick="setEncGraphType('histo')" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:white;color:var(--text-muted);cursor:pointer">Histogramme</button>
+              </div>
+            </div>
+            <div style="padding:16px"><canvas id="enc-graph-canvas" height="80"></canvas></div>
+          </div>
           <div class="card">
             <div class="card-header">
               <span class="card-title">📋 Encaissements réels — par date d'acte authentique</span>
@@ -2172,6 +2183,7 @@
         <div class="card" style="margin-bottom:20px">
           <div class="card-header">
             <span class="card-title">📋 10 dernières ventes</span>
+            <span id="fiche-collab-ratio" style="font-size:12px;color:var(--text-muted)"></span>
           </div>
           <div style="overflow-x:auto">
             <table>
@@ -3773,7 +3785,7 @@ function refreshRankingAnnuel() {
   document.getElementById('rank-annuel-tbody').innerHTML = ranked.map((ag, i) => {
     // Détail mois par mois pour cette agence
     const detail = moisDeLannee.map(m => {
-      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag.name);
+      const dosM = getDossiers({}).filter(d => isNet(d) && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag.name);
       const htM = dosM.reduce((s, d) => s + (d.ht || 0), 0);
       return htM > 0 ? `<span style="font-size:11px;background:var(--bg);padding:2px 7px;border-radius:4px;margin:1px">${m.split(' ')[0].substring(0,3)} : ${fmtEuro(htM)}</span>` : '';
     }).filter(Boolean).join(' ');
@@ -3810,13 +3822,13 @@ function refreshRankingAnnuel() {
 
   tbody.innerHTML = AGENCES.map(ag => {
     const cells = moisDeLannee.map(m => {
-      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag);
+      const dosM = getDossiers({}).filter(d => isNet(d) && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag);
       const htM = dosM.reduce((s, d) => s + (d.ht || 0), 0);
       totauxMois[m] += htM;
       return `<td style="text-align:right;padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px">${htM > 0 ? fmtEuro(htM) : '<span style="color:#ccc">—</span>'}</td>`;
     });
     const totalAg = moisDeLannee.reduce((s, m) => {
-      return s + getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag).reduce((ss, d) => ss + (d.ht || 0), 0);
+      return s + getDossiers({}).filter(d => isNet(d) && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag).reduce((ss, d) => ss + (d.ht || 0), 0);
     }, 0);
     return `<tr>
       <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap">${ag}</td>
@@ -5300,7 +5312,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.2</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.3</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -5591,6 +5603,94 @@ async function callClaudeAPI(messages, system) {
 // =====================
 let currentEncTab = 'historique';
 
+function toggleEncGroup(gid, headerRow) {
+  const rows = document.querySelectorAll('.enc-group-row[data-group="' + gid + '"]');
+  const chevron = headerRow.querySelector('.enc-chevron');
+  const isOpen = !rows[0] || rows[0].style.display !== 'none';
+  rows.forEach(r => r.style.display = isOpen ? 'none' : '');
+  if (chevron) chevron.textContent = isOpen ? '▶' : '▼';
+}
+
+let encGraphType = 'courbe';
+let encGraphInstance = null;
+
+function setEncGraphType(type) {
+  encGraphType = type;
+  document.getElementById('enc-graph-courbe').style.background = type === 'courbe' ? 'var(--primary)' : 'white';
+  document.getElementById('enc-graph-courbe').style.color = type === 'courbe' ? 'white' : 'var(--text-muted)';
+  document.getElementById('enc-graph-courbe').style.borderColor = type === 'courbe' ? 'var(--primary)' : 'var(--border)';
+  document.getElementById('enc-graph-histo').style.background = type === 'histo' ? 'var(--primary)' : 'white';
+  document.getElementById('enc-graph-histo').style.color = type === 'histo' ? 'white' : 'var(--text-muted)';
+  document.getElementById('enc-graph-histo').style.borderColor = type === 'histo' ? 'var(--primary)' : 'var(--border)';
+  renderEncGraph();
+}
+
+function renderEncGraph() {
+  const canvas = document.getElementById('enc-graph-canvas');
+  if (!canvas) return;
+  // Charger Chart.js si pas encore chargé
+  if (!window.Chart) {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+    s.onload = renderEncGraph;
+    document.head.appendChild(s);
+    return;
+  }
+  if (encGraphInstance) { encGraphInstance.destroy(); encGraphInstance = null; }
+
+  const filtre = getEncFiltre('enc-hist');
+  const annee = document.getElementById('filter-annee-apporteurs') ? filtre.annee : '';
+  const now = new Date();
+
+  // Données historiques (encaissements réels)
+  const dosEnc = DB.dossiers.filter(d => (d.statut === 'SIGNÉ' || d.statut === 'AA SIGNÉ') && d.dateActe);
+  const dosPrev = DB.dossiers.filter(d => isNet(d) && !d.dateActe && d.dateButoire);
+
+  // Grouper par mois
+  const byMoisEnc = {}, byMoisPrev = {};
+  dosEnc.forEach(d => {
+    const dt = new Date(d.dateActe);
+    const key = MONTH_NAMES[dt.getMonth()] + ' ' + dt.getFullYear();
+    byMoisEnc[key] = (byMoisEnc[key] || 0) + (d.ht || 0);
+  });
+  dosPrev.forEach(d => {
+    const dt = new Date(d.dateButoire);
+    const key = MONTH_NAMES[dt.getMonth()] + ' ' + dt.getFullYear();
+    byMoisPrev[key] = (byMoisPrev[key] || 0) + (d.ht || 0);
+  });
+
+  // Fusionner et trier les mois
+  const allKeys = [...new Set([...Object.keys(byMoisEnc), ...Object.keys(byMoisPrev)])].sort((a, b) => {
+    const [ma, ya] = a.split(' '); const [mb, yb] = b.split(' ');
+    if (ya !== yb) return parseInt(ya) - parseInt(yb);
+    return MONTH_NAMES.indexOf(ma) - MONTH_NAMES.indexOf(mb);
+  });
+
+  const labels = allKeys.map(k => k.split(' ')[0].substring(0, 3) + ' ' + k.split(' ')[1]);
+  const dataEnc = allKeys.map(k => byMoisEnc[k] || 0);
+  const dataPrev = allKeys.map(k => byMoisPrev[k] || 0);
+
+  const type = encGraphType === 'courbe' ? 'line' : 'bar';
+  encGraphInstance = new Chart(canvas, {
+    type,
+    data: {
+      labels,
+      datasets: [
+        { label: 'Encaissements réels (HT)', data: dataEnc, borderColor: '#1d4ed8', backgroundColor: type === 'line' ? 'rgba(29,78,216,0.1)' : 'rgba(29,78,216,0.7)', fill: type === 'line', tension: 0.3, pointRadius: 4 },
+        { label: 'Prévisionnel (HT)', data: dataPrev, borderColor: '#f59e0b', backgroundColor: type === 'line' ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.7)', fill: type === 'line', tension: 0.3, borderDash: type === 'line' ? [5,5] : [], pointRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+      scales: {
+        y: { ticks: { callback: v => fmtEuro(v), font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
 function initEncaissements() {
   // Populate filtres
   const moisList = getMoisList();
@@ -5689,10 +5789,16 @@ function refreshEncHistorique() {
     byMois[key].total += d.ht || 0;
   });
 
-  tbody.innerHTML = Object.values(byMois).map(g =>
-    '<tr style="background:#f0f9ff"><td colspan="4" style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + g.label + '</td><td style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + fmtEuro(g.total) + '</td></tr>' +
-    g.rows.map(d => '<tr><td style="font-size:12px;color:var(--text-muted)">' + d.mois + '</td><td>' + agenceBadge(d) + '</td><td><strong>' + d.client + '</strong></td><td style="font-size:12px">' + fmtDate(d.dateActe) + '</td><td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td></tr>').join('')
-  ).join('');
+  tbody.innerHTML = Object.values(byMois).map(g => {
+    const gid = 'enc-prev-grp-' + g.label.replace(/\s/g, '-');
+    return '<tr style="background:' + (g.isPast ? '#fef2f2' : '#f0fdf4') + ';cursor:pointer" onclick="toggleEncGroup(\'' + gid + '\', this)">' +
+      '<td colspan="5" style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' +
+      '<span style="margin-right:8px" class="enc-chevron">▼</span>' + (g.isPast ? '⚠️ ' : '📅 ') + g.label + (g.isPast ? ' (dépassé)' : '') + '</td>' +
+      '<td style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + fmtEuro(g.total) + '</td></tr>' +
+      g.rows.map(d => '<tr class="enc-group-row" data-group="' + gid + '"><td style="font-size:12px;color:var(--text-muted)">' + d.mois + '</td><td>' + agenceBadge(d) + '</td><td><strong>' + d.client + '</strong></td><td style="font-size:12px;color:' + (new Date(d.dateButoire) < now ? '#dc2626' : 'var(--text-muted)') + '">' + fmtDate(d.dateButoire) + '</td><td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td><td>' + statusBadge(d.statut) + '</td></tr>').join('');
+  }).join('');
+  }).join('');
+  renderEncGraph();
 }
 
 function refreshEncPrevisionnel() {
@@ -5945,8 +6051,11 @@ function goBackFromFiche() {
 async function loadRemuHistorique(neg) {
   const tbody = document.getElementById('fiche-remu-tbody');
   if (!tbody) return;
-  const isSalarie = ['salarié','responsable'].includes(neg.statut_emploi);
-  if (!isSalarie) return;
+  const isEligible = ['salarié','responsable','agent-co','alternant'].includes(neg.statut_emploi);
+  if (!isEligible) return;
+  // Afficher la section
+  const section = document.getElementById('fiche-remu-section');
+  if (section) section.style.display = 'block';
   const moisNoms = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
   try {
     const [validations, remises] = await Promise.all([
@@ -5972,7 +6081,27 @@ async function loadRemuHistorique(neg) {
     tbody.innerHTML = validations.map(v => {
       const commissions = (v.total_commissions || 0) + (v.credit_courtier || 0);
       const prime = v.prime_agence_montant || 0;
-      // Part non récupérable : réduire le solde antérieur
+
+      // Affichage simplifié pour agents-co et alternants
+      if (['agent-co','alternant'].includes(neg.statut_emploi)) {
+        const fixe = neg.statut_emploi === 'alternant' ? (parseFloat(neg.avance_commission) || 0) : 0;
+        const total = commissions + fixe;
+        return '<tr>' +
+          '<td style="font-weight:600">' + (moisNoms[v.mois] || v.mois) + ' ' + v.annee + '</td>' +
+          '<td style="text-align:right;color:var(--primary);font-weight:600">' + fmtEuro(commissions) + '</td>' +
+          '<td style="text-align:right;color:var(--text-muted)">—</td>' +
+          '<td style="text-align:right;color:var(--text-muted)">—</td>' +
+          '<td style="text-align:right;color:var(--text-muted)">' + (fixe > 0 ? fmtEuro(fixe) : '—') + '</td>' +
+          '<td style="text-align:right;font-weight:700;color:#16a34a">' + fmtEuro(total) + '</td>' +
+          '<td style="text-align:right;color:var(--text-muted)">—</td>' +
+          (hasPrime ? '<td style="text-align:right;color:var(--text-muted)">—</td>' : '') +
+          (hasRemises ? '<td style="text-align:right;color:var(--text-muted)">—</td>' : '') +
+          '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:' + (v.mail_envoye ? '#dcfce7' : '#f1f5f9') + ';color:' + (v.mail_envoye ? '#15803d' : '#64748b') + '">' + (v.mail_envoye ? '✓ Mail' : '—') + '</span></td>' +
+          '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d">✓ Validé</span></td>' +
+          '</tr>';
+      }
+
+      // Affichage complet pour salariés et responsables
       const partNonRecupHist = (neg.statut_emploi === 'responsable' && neg.part_non_recup != null)
         ? parseFloat(neg.part_non_recup) / 100 : 0;
       const montantNonRecupHist = Math.round(avance * partNonRecupHist * 100) / 100;
@@ -6034,16 +6163,36 @@ function refreshFicheCollab(n) {
   const aSignerEl = document.getElementById('fiche-collab-asigner');
   if (aSignerEl) aSignerEl.innerHTML = buildASignerCards(dosNegoAll5);
 
-  // 10 dernières ventes
+  // 10 dernières ventes — dédoublonnage IC
+  const seenIds = new Set();
+  const dossiersVentesDedoub = dossiersVentes.filter(d => {
+    const key = d.groupId || d.id;
+    if (seenIds.has(key)) return false;
+    seenIds.add(key);
+    return true;
+  });
   const tbody = document.getElementById('fiche-collab-ventes');
-  const last10 = [...dossiersVentes].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0, 10);
+  const last10 = [...dossiersVentesDedoub].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0, 10);
+  // Fréquence ventes
+  let freqLabel = '';
+  if (dossiersVentesDedoub.length >= 2) {
+    const dates = dossiersVentesDedoub.filter(d => d.date).map(d => new Date(d.date)).sort((a,b)=>a-b);
+    if (dates.length >= 2) {
+      const ecartTotal = (dates[dates.length-1] - dates[0]) / 86400000;
+      const freq = Math.round(ecartTotal / (dates.length - 1));
+      freqLabel = freq > 0 ? ' · 1 vente / ' + freq + 'j en moy.' : '';
+    }
+  }
+  const ratioEl = document.getElementById('fiche-collab-ratio');
+  if (ratioEl) ratioEl.textContent = freqLabel;
   if (last10.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>';
   } else {
     tbody.innerHTML = last10.map(d => {
       const joursSsp = d.date ? Math.floor((now - new Date(d.date)) / 86400000) : '—';
+      const icBadge = d.groupId ? '<span style="font-size:10px;background:#e0e7ff;color:#4338ca;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:4px">IC</span>' : '';
       return '<tr>' +
-        '<td><strong>' + d.client + '</strong></td>' +
+        '<td><strong>' + d.client + '</strong>' + icBadge + '</td>' +
         '<td>' + d.agence + '</td>' +
         '<td>' + fmtDate(d.date) + '</td>' +
         '<td style="font-weight:600;color:' + (joursSsp > 90 ? '#dc2626' : joursSsp > 30 ? '#f59e0b' : '#10b981') + '">' + (joursSsp !== '—' ? joursSsp + 'j' : '—') + '</td>' +
@@ -8437,7 +8586,7 @@ function initNegClassement() {
   [document.getElementById('filter-agence-neg'), document.getElementById('filter-agence-neg-annuel')].forEach(sel => {
     if (!sel) return;
     while (sel.options.length > 1) sel.remove(1);
-    AGENCES.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+    getAgencesActives().forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
   });
 
   refreshNegClassement();
@@ -10107,7 +10256,7 @@ function renderStatsNeg(container, negId) {
     '</div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-neg-chart-glissant" height="70"></canvas></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>' +
-    ((['salarié','responsable'].includes(n.statut_emploi)) ? '<div class="card" id="fiche-remu-section" style="margin-bottom:20px"><div class="card-header"><span class="card-title">💶 Historique des rémunérations</span>' + '</div><div style="overflow-x:auto"><table><thead><tr><th>Période</th><th style="text-align:right">Commissions</th><th style="text-align:right">Solde ant.</th><th style="text-align:right">Débit/Crédit</th><th style="text-align:right">Avance</th><th style="text-align:right">Salaire versé</th><th style="text-align:right">Nouveau solde</th><th style="text-align:right" id="th-prime" style="display:none">Prime agence</th><th style="text-align:right" id="th-remise" style="display:none">Remise</th><th style="text-align:center">Mail</th><th style="text-align:center">Statut</th></tr></thead><tbody id="fiche-remu-tbody"><tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Chargement...</td></tr></tbody></table></div></div>' : '') +
+    ((['salarié','responsable','agent-co','alternant'].includes(n.statut_emploi)) ? '<div class="card" id="fiche-remu-section" style="margin-bottom:20px"><div class="card-header"><span class="card-title">💶 Historique des rémunérations</span>' + '</div><div style="overflow-x:auto"><table><thead><tr><th>Période</th><th style="text-align:right">Commissions</th><th style="text-align:right">Solde ant.</th><th style="text-align:right">Débit/Crédit</th><th style="text-align:right">Avance</th><th style="text-align:right">Salaire versé</th><th style="text-align:right">Nouveau solde</th><th style="text-align:right" id="th-prime" style="display:none">Prime agence</th><th style="text-align:right" id="th-remise" style="display:none">Remise</th><th style="text-align:center">Mail</th><th style="text-align:center">Statut</th></tr></thead><tbody id="fiche-remu-tbody"><tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Chargement...</td></tr></tbody></table></div></div>' : '') +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-neg-delai" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-neg-annul" style="padding:16px"></div></div>' +
     '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-neg-retro" style="padding:16px"></div></div>' +
