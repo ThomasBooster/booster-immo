@@ -3275,6 +3275,8 @@ function setupNav(role) {
   }
 
   // Sections Params : admin uniquement pour les blocs de config
+  const ptva = document.getElementById('params-tva-section');
+  if (ptva) ptva.style.display = role === 'admin' ? 'block' : 'none';
   if (role === 'admin') {
     const pa = document.getElementById('params-admin-section');
     const pr = document.getElementById('params-reseau-section');
