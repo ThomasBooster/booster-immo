@@ -5799,8 +5799,6 @@ function refreshEncHistorique() {
       '<td style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + fmtEuro(g.total) + '</td></tr>' +
       g.rows.map(d => '<tr class="enc-group-row" data-group="' + gid + '"><td style="font-size:12px;color:var(--text-muted)">' + d.mois + '</td><td>' + agenceBadge(d) + '</td><td><strong>' + d.client + '</strong></td><td style="font-size:12px;color:' + (new Date(d.dateButoire) < now ? '#dc2626' : 'var(--text-muted)') + '">' + fmtDate(d.dateButoire) + '</td><td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td><td>' + statusBadge(d.statut) + '</td></tr>').join('');
   }).join('');
-  }).join('');
-  renderEncGraph();
 }
 
 function refreshEncPrevisionnel() {
