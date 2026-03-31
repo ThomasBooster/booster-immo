@@ -3276,11 +3276,16 @@ function setupNav(role) {
 
   // Sections Params : admin uniquement pour les blocs de config
   const ptva = document.getElementById('params-tva-section');
-  if (ptva) ptva.style.display = role === 'admin' ? 'block' : 'none';
+  const pa = document.getElementById('params-admin-section');
+  const pr = document.getElementById('params-reseau-section');
+  const pm = document.getElementById('params-mail-section');
+  // Toujours remettre à none, puis afficher si admin
+  if (ptva) ptva.style.display = 'none';
+  if (pa) pa.style.display = 'none';
+  if (pr) pr.style.display = 'none';
+  if (pm) pm.style.display = 'none';
   if (role === 'admin') {
-    const pa = document.getElementById('params-admin-section');
-    const pr = document.getElementById('params-reseau-section');
-    const pm = document.getElementById('params-mail-section');
+    if (ptva) ptva.style.display = 'block';
     if (pa) pa.style.display = 'block';
     if (pr) pr.style.display = 'block';
     if (pm) pm.style.display = 'block';
