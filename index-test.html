@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.54</title>
+<title>⚠️ SCORIM TEST v1.5.55</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -807,7 +807,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.54</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.55</div>
     </div>
   </div>
 </div>
@@ -925,7 +925,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.54</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.55</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5273,7 +5273,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.54</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.55</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15837,7 +15837,7 @@ function ndRender(){
       <button onclick="ndGo(1)" id="nd-next" style="padding:10px 28px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:var(--primary);color:white;flex:1">
         ${ndStep===ND_TOTAL?(ndEditMode?'Valider les modifications →':'Envoyer le dossier →'):'Suivant →'}
       </button>
-      ${!ndEditMode ? `<button onclick="ndAbandonner()" style="padding:10px 16px;border:1px solid #fca5a5;border-radius:8px;font-size:13px;cursor:pointer;background:#fff5f5;color:#dc2626">✕ Abandonner</button>` : ''}
+      ${(!ndEditMode && !sspModeEdition) ? `<button onclick="ndAbandonner()" style="padding:10px 16px;border:1px solid #fca5a5;border-radius:8px;font-size:13px;cursor:pointer;background:#fff5f5;color:#dc2626">✕ Abandonner</button>` : ''}
     </div>`;
   ndUpdateTopbar();
   ndBindEvents();
