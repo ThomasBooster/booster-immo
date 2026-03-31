@@ -12136,7 +12136,8 @@ let remuMailEnvoye = false;      // suivi envoi mail
 let remuValide = false;          // suivi validation
 
 function openRemunerationModal() {
-  const negId = document.getElementById('neg-edit-id').value;
+  const negEditEl = document.getElementById('neg-edit-id');
+  const negId = (negEditEl && negEditEl.value) ? parseInt(negEditEl.value) : ficheCollabId;
   if (!negId) return;
   remuCurrentNeg = DB.negociateurs.find(n => n.id === parseInt(negId));
   if (!remuCurrentNeg) return;
