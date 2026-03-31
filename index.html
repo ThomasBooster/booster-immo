@@ -4009,7 +4009,7 @@ function refreshApporteurs() {
     d.statut !== 'ANNULÉ' && d.hasApporteur && d.apporteurNom &&
     (!agenceFiltre || d.agence === agenceFiltre) &&
     (!agencesAutorisees || agencesAutorisees.includes(d.agence)) &&
-    (moisFiltre ? (matchMois(d, moisFiltre) || (!d.date && d.mois === moisFiltre)) : (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))))
+    (!moisFiltre && !annee ? true : moisFiltre ? (matchMois(d, moisFiltre) || (!d.date && d.mois === moisFiltre)) : (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))))
   );
 
   // Dédoublonnage : pour les ventes partagées (même groupId), on ne garde qu'une ligne
