@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚠️ SCORIM TEST v1.5.60</title>
+<title>⚠️ SCORIM TEST v1.5.61</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -807,7 +807,7 @@
         </details>
       </div>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.60</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.61</div>
     </div>
   </div>
 </div>
@@ -925,7 +925,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.60</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.61</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -5281,7 +5281,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.60</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.61</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -15624,32 +15624,11 @@ function sspOuvrirDossier(draftId) {
   if (navND) navND.classList.add('active');
   document.getElementById('topbar-title').textContent = 'Nouveau dossier';
   ndRender();
-  let banner = document.getElementById('nd-ssp-banner');
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = 'nd-ssp-banner';
-    const sc = document.getElementById('nd-sc');
-    if (sc) sc.parentElement.insertBefore(banner, sc);
-  }
-  banner.style.cssText = 'background:#fef3c7;border:1px solid #d97706;border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
-  const vendeur = nd.vendeurNom || '?';
-  const acquereur = nd.acquereurNom || '?';
-  banner.innerHTML = '<div style="font-size:13px;color:#92400e;font-weight:500">' + vendeur + ' → ' + acquereur + '</div>'
-    + '<div style="display:flex;gap:8px">'
-    + '<button onclick="sspPasserEnEdition()" style="font-size:12px;padding:6px 14px;border:none;border-radius:8px;background:#d97706;color:white;cursor:pointer;font-weight:600">✏️ Modifier</button>'
-    + '<button onclick="sspRetourDashboard()" style="font-size:12px;padding:6px 14px;border:1px solid #d97706;border-radius:8px;background:white;color:#d97706;cursor:pointer">← Retour</button>'
-    + '</div>';
-  const prev = document.getElementById('nd-prev');
-  const next = document.getElementById('nd-next');
-  if (prev) prev.style.display = 'none';
-  if (next) next.style.display = 'none';
 }
 
 function sspPasserEnEdition() {
   sspModeEdition = true;
   ndEditMode = true;
-  const banner = document.getElementById('nd-ssp-banner');
-  if (banner) banner.remove();
   ndRender();
 }
 
@@ -15836,16 +15815,18 @@ function ndAbandonner() {
 function ndRender(){
   const c=document.getElementById('nd-container');
   if(!c) return;
+  const isConsultation = (ndDraftId && !sspModeEdition && !ndEditMode);
   c.innerHTML=`
+    ${isConsultation ? `<div style="background:#fef3c7;border:1px solid #d97706;border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div style="font-size:13px;color:#92400e;font-weight:500">📋 Consultation</div><div style="display:flex;gap:8px"><button onclick="sspPasserEnEdition()" style="font-size:12px;padding:6px 14px;border:none;border-radius:8px;background:#d97706;color:white;cursor:pointer;font-weight:600">✏️ Modifier</button><button onclick="sspRetourDashboard()" style="font-size:12px;padding:6px 14px;border:1px solid #d97706;border-radius:8px;background:white;color:#d97706;cursor:pointer">← Retour</button></div></div>` : ''}
     ${ndProgress()}
     <div id="nd-sc">${ndBuildStep(ndStep)}</div>
-    <div style="display:flex;gap:12px;margin-top:20px">
+    ${!isConsultation ? `<div style="display:flex;gap:12px;margin-top:20px">
       <button onclick="ndGo(-1)" id="nd-prev" style="padding:10px 20px;border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;background:var(--bg);color:var(--text);${ndStep===1?'visibility:hidden':''}">← Retour</button>
       <button onclick="ndGo(1)" id="nd-next" style="padding:10px 28px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:var(--primary);color:white;flex:1">
         ${ndStep===ND_TOTAL?(ndEditMode?'Valider les modifications →':'Envoyer le dossier →'):'Suivant →'}
       </button>
       ${(!ndEditMode && !sspModeEdition) ? `<button onclick="ndAbandonner()" style="padding:10px 16px;border:1px solid #fca5a5;border-radius:8px;font-size:13px;cursor:pointer;background:#fff5f5;color:#dc2626">✕ Abandonner</button>` : ''}
-    </div>`;
+    </div>` : ''}`;
   ndUpdateTopbar();
   ndBindEvents();
 }
