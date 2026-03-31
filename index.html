@@ -2468,46 +2468,7 @@
         </div>
       </div>
 
-      <!-- APPORTEURS -->
-      <div class="page" id="page-apporteurs">
-        <div class="filters">
-          <select class="filter-select" id="filter-annee-apporteurs" onchange="refreshApporteurs()"></select>
-          <select class="filter-select" id="filter-mois-apporteurs" onchange="refreshApporteurs()">
-            <option value="">— Tous les mois —</option>
-          </select>
-          <select class="filter-select" id="filter-agence-apporteurs" onchange="refreshApporteurs()">
-            <option value="">Toutes les agences</option>
-          </select>
-        </div>
 
-        <!-- Stats globales apporteurs -->
-        <div class="stats-grid" id="apporteurs-stats-grid" style="margin-bottom:20px"></div>
-
-        <!-- Tableau mensuel ou annuel -->
-        <div class="card" style="margin-bottom:20px">
-          <div class="card-header">
-            <span class="card-title" id="apporteurs-table-title">📅 Détail par apporteur</span>
-            <span id="apporteurs-mois-label" style="font-size:12px;color:var(--text-muted)"></span>
-          </div>
-          <div style="overflow-x:auto">
-            <table>
-              <thead id="apporteurs-mensuel-head"></thead>
-              <tbody id="apporteurs-mensuel-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Liste des apporteurs connus -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">📋 Apporteurs enregistrés</span>
-            <button class="btn btn-accent btn-sm" onclick="openAddApporteur()">+ Ajouter</button>
-          </div>
-          <div style="padding:16px">
-            <div id="apporteurs-list"></div>
-          </div>
-        </div>
-      </div>
 
       <!-- Modal ajout apporteur -->
       <div class="modal-overlay" id="modal-add-apporteur" style="z-index:300">
@@ -2598,7 +2559,50 @@
         </div>
       </div>
 
-    </div><!-- /main-content -->
+      </div>
+      </div>
+    
+      <!-- APPORTEURS -->
+      <div class="page" id="page-apporteurs">
+        <div class="filters">
+          <select class="filter-select" id="filter-annee-apporteurs" onchange="refreshApporteurs()"></select>
+          <select class="filter-select" id="filter-mois-apporteurs" onchange="refreshApporteurs()">
+            <option value="">— Tous les mois —</option>
+          </select>
+          <select class="filter-select" id="filter-agence-apporteurs" onchange="refreshApporteurs()">
+            <option value="">Toutes les agences</option>
+          </select>
+        </div>
+
+        <!-- Stats globales apporteurs -->
+        <div class="stats-grid" id="apporteurs-stats-grid" style="margin-bottom:20px"></div>
+
+        <!-- Tableau mensuel ou annuel -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title" id="apporteurs-table-title">📅 Détail par apporteur</span>
+            <span id="apporteurs-mois-label" style="font-size:12px;color:var(--text-muted)"></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead id="apporteurs-mensuel-head"></thead>
+              <tbody id="apporteurs-mensuel-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Liste des apporteurs connus -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 Apporteurs enregistrés</span>
+            <button class="btn btn-accent btn-sm" onclick="openAddApporteur()">+ Ajouter</button>
+          </div>
+          <div style="padding:16px">
+            <div id="apporteurs-list"></div>
+          </div>
+        </div>
+      </div>
+</div><!-- /main-content -->
   </div>
 </div><!-- /app -->
 
@@ -3479,7 +3483,12 @@ function showPage(name, navEl) {
   if (name === 'ranking') { if (currentRankTab === 'mensuel') refreshRanking(); else refreshRankingAnnuel(); }
   if (name === 'saisie') { refreshMyDossiers(); renderRepartition(); populateApporteurSelects(); }
   if (name === 'nouveau-dossier') { ndInit(); }
-  if (name === 'apporteurs') { refreshApporteurs(); }
+  if (name === 'apporteurs') {
+    // Re-peupler les filtres au cas où ils seraient vides
+    const selAA = document.getElementById('filter-annee-apporteurs');
+    if (selAA && selAA.options.length === 0) populateFilters();
+    refreshApporteurs();
+  }
   if (name === 'dossiers') { initDossiersFiltres(); refreshDossiers(); }
   if (name === 'negociateurs') { renderNegociateursList(); }
   if (name === 'remunerations') { initRemunerationPage(); }
@@ -3986,7 +3995,7 @@ function renderApporteursList() {
 // PAGE APPORTEURS — stats
 // =====================
 function refreshApporteurs() {
-  
+  try {
   const anneeEl = document.getElementById('filter-annee-apporteurs');
   const moisEl = document.getElementById('filter-mois-apporteurs');
   const agenceEl = document.getElementById('filter-agence-apporteurs');
@@ -4150,6 +4159,11 @@ function refreshApporteurs() {
   }
 
   renderApporteursList();
+  } catch(e) {
+    console.error('refreshApporteurs error:', e);
+    const statsGrid = document.getElementById('apporteurs-stats-grid');
+    if (statsGrid) statsGrid.innerHTML = '<div style="color:#dc2626;padding:20px">Erreur : ' + e.message + '</div>';
+  }
 }
 
 function renderRepartition() {
