@@ -7176,7 +7176,11 @@ function renderNegociateursList() {
   };
 
   tbody.innerHTML = negs
-    .filter(n => currentUser.role !== 'agence' || n.agence === currentUser.agence)
+    .filter(n => {
+      if (currentUser.role === 'agence') return n.agence === currentUser.agence;
+      if (currentUser.role === 'gerant') return getAgencesUserList().includes(n.agence);
+      return true;
+    })
     .map(n => {
     // CA sortie (négociateur)
     const dosNeg = (DB.dossierNeg || []).filter(d => d.negociateur_id === n.id);
@@ -12163,7 +12167,7 @@ function openRemunerationModal() {
   document.getElementById('remu-resultats').style.display = 'none';
   document.getElementById('remu-empty').style.display = 'block';
   document.getElementById('remu-statut-badge').style.display = 'none';
-  document.getElementById('remu-credit').value = '';
+  const remuCreditEl = document.getElementById('remu-credit'); if (remuCreditEl) remuCreditEl.value = '';
   document.getElementById('remu-mail-sent-badge').style.display = 'none';
   document.getElementById('remu-btn-valider').disabled = false;
   document.getElementById('remu-btn-valider').style.opacity = '';
@@ -13739,7 +13743,7 @@ function openRemunerationForCollab(negId) {
   document.getElementById('remu-resultats').style.display = 'none';
   document.getElementById('remu-empty').style.display = 'block';
   document.getElementById('remu-statut-badge').style.display = 'none';
-  document.getElementById('remu-credit').value = '';
+  const remuCreditEl = document.getElementById('remu-credit'); if (remuCreditEl) remuCreditEl.value = '';
   document.getElementById('remu-mail-sent-badge').style.display = 'none';
   document.getElementById('remu-btn-valider').disabled = false;
   document.getElementById('remu-btn-valider').style.opacity = '';
