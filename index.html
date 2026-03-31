@@ -16603,7 +16603,7 @@ function ndS5(){
           <select id="nd-ap-sel" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit" onchange="ndOnApSel(this.value)">
             <option value="">— Choisir —</option>
             ${apporteursList.map(a=>`<option value="${a}" ${ndS.apporteurNom===a?'selected':''}>${a}</option>`).join('')}
-            ${Object.entries(ND_AP_PRESETS).map(([a])=>`<option value="${a}" ${ndS.apporteurNom===a?'selected':''}>${a}</option>`).join('')}
+            ${Object.entries(ND_AP_PRESETS).filter(([a])=>!apporteursList.includes(a)).map(([a])=>`<option value="${a}" ${ndS.apporteurNom===a?'selected':''}>${a}</option>`).join('')}
             <option value="__new__" ${apSelVal==='__new__'?'selected':''}>+ Créer un nouvel apporteur…</option>
           </select>
           ${apSelVal==='__new__'?`<input type="text" id="nd-ap-new" value="${ndS.apporteurNom}" placeholder="Nom de l'apporteur" style="width:100%;margin-top:8px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit"/>`:''}`)}
