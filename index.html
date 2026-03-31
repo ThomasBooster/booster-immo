@@ -3203,6 +3203,7 @@ function doLogout() {
   ndStep = 1;
   sspModeEdition = false;
   ndEditMode = false;
+  sspConsultationMode = false;
   ndStepSnapshot = null;
   currentUser = null;
   DB = { users: [], dossiers: [], settings: { tva: 20 }, apporteurs: [], negociateurs: [], dossierNeg: [], dossierRent: [], societes: [], agences: [], gerants: [], drafts: [], draftValidations: [] };
@@ -3288,7 +3289,7 @@ function setupNav(role) {
 
 async function initApp() {
   // Toujours réinitialiser l'état du draft au login
-  ndDraftId = null; ndStep = 1; sspModeEdition = false; ndEditMode = false; ndStepSnapshot = null;
+  ndDraftId = null; ndStep = 1; sspModeEdition = false; ndEditMode = false; sspConsultationMode = false; ndStepSnapshot = null;
   await loadDB();
 
   // Sidebar
@@ -15199,6 +15200,7 @@ function sspGoToDashboardFromNotif() {
 
 let sspDragSrc = null;
 let sspModeEdition = false; // true quand Laurie modifie un draft existant depuis le dashboard SSP
+let sspConsultationMode = false; // true quand on consulte un draft sans le modifier
 let ndEditMode = false; // true quand l'utilisateur a cliqué 'Modifier' (navigation libre activée)
 let ndStepSnapshot = null; // snapshot de ndS à l'entrée de chaque étape
 
@@ -15590,6 +15592,7 @@ function sspOuvrirDossier(draftId) {
   ndStep = 9;
   sspModeEdition = false;
   ndEditMode = false;
+  sspConsultationMode = true;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-nouveau-dossier').classList.add('active');
@@ -15602,10 +15605,13 @@ function sspOuvrirDossier(draftId) {
 function sspPasserEnEdition() {
   sspModeEdition = true;
   ndEditMode = true;
+  sspConsultationMode = false;
   ndRender();
 }
 
 function sspRetourDashboard() {
+  sspConsultationMode = false;
+  ndDraftId = null;
   const navSSP = document.getElementById('nav-ssp-dashboard');
   showPage('ssp-dashboard', navSSP);
 }
@@ -15747,7 +15753,7 @@ function ndInit(){
       }
     }
   }
-  ndStep=1; ndDraftId=null; sspModeEdition=false; ndEditMode=false; ndStepSnapshot=null; ndS.statutDraft='brouillon';
+  ndStep=1; ndDraftId=null; sspModeEdition=false; ndEditMode=false; sspConsultationMode=false; ndStepSnapshot=null; ndS.statutDraft='brouillon';
   const agDef=currentUser.agence||'';
   Object.assign(ndS,{
     vendeurNom:'',vendeurUsage:null,
@@ -15782,13 +15788,14 @@ function ndAbandonner() {
   if (!confirm('Abandonner la saisie ? Le brouillon sera conservé et récupérable.')) return;
   ndDraftId = null;
   sspModeEdition = false;
+  sspConsultationMode = false;
   showPage('dashboard', document.getElementById('nav-dashboard'));
 }
 
 function ndRender(){
   const c=document.getElementById('nd-container');
   if(!c) return;
-  const isConsultation = (ndDraftId && !sspModeEdition && !ndEditMode);
+  const isConsultation = sspConsultationMode;
   c.innerHTML=`
     ${isConsultation ? `<div style="background:#fef3c7;border:1px solid #d97706;border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div style="font-size:13px;color:#92400e;font-weight:500">📋 Consultation</div><div style="display:flex;gap:8px"><button onclick="sspPasserEnEdition()" style="font-size:12px;padding:6px 14px;border:none;border-radius:8px;background:#d97706;color:white;cursor:pointer;font-weight:600">✏️ Modifier</button><button onclick="sspRetourDashboard()" style="font-size:12px;padding:6px 14px;border:1px solid #d97706;border-radius:8px;background:white;color:#d97706;cursor:pointer">← Retour</button></div></div>` : ''}
     ${ndProgress()}
