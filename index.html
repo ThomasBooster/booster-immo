@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.3</title>
+<title>SCORIM v1.5.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -780,7 +780,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.3</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.4</div>
     </div>
   </div>
 </div>
@@ -898,7 +898,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.3</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.4</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -1455,16 +1455,27 @@
             </select>
           </div>
           <div class="stats-grid" id="enc-hist-stats"></div>
-          <!-- Graphique encaissements -->
+          <!-- Graphiques encaissements -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-header">
               <span class="card-title">📊 Évolution des encaissements</span>
-              <div style="display:flex;gap:8px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="enc-graph-annee" onchange="renderEncGraph()" class="filter-select" style="font-size:12px;padding:4px 8px"></select>
+                <label style="font-size:12px;display:flex;align-items:center;gap:4px;color:var(--text-muted)"><input type="checkbox" id="enc-graph-all" onchange="renderEncGraph()"> Toutes</label>
                 <button id="enc-graph-courbe" onclick="setEncGraphType('courbe')" style="padding:4px 12px;border:1px solid var(--primary);border-radius:6px;font-size:12px;background:var(--primary);color:white;cursor:pointer">Courbe</button>
                 <button id="enc-graph-histo" onclick="setEncGraphType('histo')" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:white;color:var(--text-muted);cursor:pointer">Histogramme</button>
               </div>
             </div>
-            <div style="padding:16px"><canvas id="enc-graph-canvas" height="80"></canvas></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px">Montant HT</div>
+                <canvas id="enc-graph-canvas" height="100"></canvas>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px">Nombre de dossiers</div>
+                <canvas id="enc-graph-canvas-nb" height="100"></canvas>
+              </div>
+            </div>
           </div>
           <div class="card">
             <div class="card-header">
@@ -3577,7 +3588,7 @@ function refreshDashboard() {
     const agences = getAgencesUserList();
     list = list.filter(d => agences.includes(d.agence));
   }
-  const signed = list.filter(d => isNet(d));
+  const signed = list.filter(d => d.statut === 'SIGNÉ');
 
   const totalTTC = signed.reduce((s, d) => s + (d.ttc || 0), 0);
   const totalHT = signed.reduce((s, d) => s + (d.ht || 0), 0);
@@ -3748,7 +3759,7 @@ function renderPodium(containerId, ranked) {
 
 function refreshRanking() {
   const mois = document.getElementById('filter-mois-rank').value;
-  const list = getDossiers({ mois }).filter(d => isNet(d));
+  const list = getDossiers({ mois }).filter(d => d.statut === 'SIGNÉ');
   const ranked = buildRankData(list);
   const maxHT = ranked[0]?.ht || 1;
 
@@ -3774,7 +3785,7 @@ function refreshRanking() {
 function refreshRankingAnnuel() {
   const annee = document.getElementById('filter-annee-rank').value;
   const moisDeLannee = getMoisList().filter(m => m.endsWith(annee));
-  const list = getDossiers({}).filter(d => isNet(d) && (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))));
+  const list = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))));
   const ranked = buildRankData(list);
   const maxHT = ranked[0]?.ht || 1;
 
@@ -3785,7 +3796,7 @@ function refreshRankingAnnuel() {
   document.getElementById('rank-annuel-tbody').innerHTML = ranked.map((ag, i) => {
     // Détail mois par mois pour cette agence
     const detail = moisDeLannee.map(m => {
-      const dosM = getDossiers({}).filter(d => isNet(d) && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag.name);
+      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag.name);
       const htM = dosM.reduce((s, d) => s + (d.ht || 0), 0);
       return htM > 0 ? `<span style="font-size:11px;background:var(--bg);padding:2px 7px;border-radius:4px;margin:1px">${m.split(' ')[0].substring(0,3)} : ${fmtEuro(htM)}</span>` : '';
     }).filter(Boolean).join(' ');
@@ -3822,13 +3833,13 @@ function refreshRankingAnnuel() {
 
   tbody.innerHTML = AGENCES.map(ag => {
     const cells = moisDeLannee.map(m => {
-      const dosM = getDossiers({}).filter(d => isNet(d) && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag);
+      const dosM = getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag);
       const htM = dosM.reduce((s, d) => s + (d.ht || 0), 0);
       totauxMois[m] += htM;
       return `<td style="text-align:right;padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px">${htM > 0 ? fmtEuro(htM) : '<span style="color:#ccc">—</span>'}</td>`;
     });
     const totalAg = moisDeLannee.reduce((s, m) => {
-      return s + getDossiers({}).filter(d => isNet(d) && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag).reduce((ss, d) => ss + (d.ht || 0), 0);
+      return s + getDossiers({}).filter(d => d.statut === 'SIGNÉ' && (matchMois(d, m) || (!d.date && d.mois === m)) && d.agence === ag).reduce((ss, d) => ss + (d.ht || 0), 0);
     }, 0);
     return `<tr>
       <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap">${ag}</td>
@@ -5312,7 +5323,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.3</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.4</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -5627,8 +5638,8 @@ function setEncGraphType(type) {
 
 function renderEncGraph() {
   const canvas = document.getElementById('enc-graph-canvas');
-  if (!canvas) return;
-  // Charger Chart.js si pas encore chargé
+  const canvasNb = document.getElementById('enc-graph-canvas-nb');
+  if (!canvas || !canvasNb) return;
   if (!window.Chart) {
     const s = document.createElement('script');
     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
@@ -5636,60 +5647,82 @@ function renderEncGraph() {
     document.head.appendChild(s);
     return;
   }
-  if (encGraphInstance) { encGraphInstance.destroy(); encGraphInstance = null; }
+  if (window._encGraphCA) { window._encGraphCA.destroy(); window._encGraphCA = null; }
+  if (window._encGraphNb) { window._encGraphNb.destroy(); window._encGraphNb = null; }
 
-  const filtre = getEncFiltre('enc-hist');
-  const annee = document.getElementById('filter-annee-apporteurs') ? filtre.annee : '';
-  const now = new Date();
+  const showAll = document.getElementById('enc-graph-all')?.checked;
+  const selAnnee = document.getElementById('enc-graph-annee');
+  const anneeChoisie = showAll ? null : (selAnnee?.value || null);
 
-  // Données historiques (encaissements réels)
-  const dosEnc = DB.dossiers.filter(d => (d.statut === 'SIGNÉ' || d.statut === 'AA SIGNÉ') && d.dateActe);
-  const dosPrev = DB.dossiers.filter(d => isNet(d) && !d.dateActe && d.dateButoire);
-
-  // Grouper par mois
-  const byMoisEnc = {}, byMoisPrev = {};
-  dosEnc.forEach(d => {
-    const dt = new Date(d.dateActe);
-    const key = MONTH_NAMES[dt.getMonth()] + ' ' + dt.getFullYear();
-    byMoisEnc[key] = (byMoisEnc[key] || 0) + (d.ht || 0);
-  });
-  dosPrev.forEach(d => {
-    const dt = new Date(d.dateButoire);
-    const key = MONTH_NAMES[dt.getMonth()] + ' ' + dt.getFullYear();
-    byMoisPrev[key] = (byMoisPrev[key] || 0) + (d.ht || 0);
-  });
-
-  // Fusionner et trier les mois
-  const allKeys = [...new Set([...Object.keys(byMoisEnc), ...Object.keys(byMoisPrev)])].sort((a, b) => {
-    const [ma, ya] = a.split(' '); const [mb, yb] = b.split(' ');
-    if (ya !== yb) return parseInt(ya) - parseInt(yb);
-    return MONTH_NAMES.indexOf(ma) - MONTH_NAMES.indexOf(mb);
-  });
-
-  const labels = allKeys.map(k => k.split(' ')[0].substring(0, 3) + ' ' + k.split(' ')[1]);
-  const dataEnc = allKeys.map(k => byMoisEnc[k] || 0);
-  const dataPrev = allKeys.map(k => byMoisPrev[k] || 0);
+  // Peupler le select années
+  const yearsEnc = [...new Set(DB.dossiers.filter(d=>d.dateActe).map(d=>new Date(d.dateActe).getFullYear()))].sort();
+  if (selAnnee && selAnnee.options.length === 0) {
+    yearsEnc.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; selAnnee.appendChild(o); });
+    selAnnee.value = new Date().getFullYear();
+  }
 
   const type = encGraphType === 'courbe' ? 'line' : 'bar';
-  encGraphInstance = new Chart(canvas, {
-    type,
-    data: {
-      labels,
-      datasets: [
-        { label: 'Encaissements réels (HT)', data: dataEnc, borderColor: '#1d4ed8', backgroundColor: type === 'line' ? 'rgba(29,78,216,0.1)' : 'rgba(29,78,216,0.7)', fill: type === 'line', tension: 0.3, pointRadius: 4 },
-        { label: 'Prévisionnel (HT)', data: dataPrev, borderColor: '#f59e0b', backgroundColor: type === 'line' ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.7)', fill: type === 'line', tension: 0.3, borderDash: type === 'line' ? [5,5] : [], pointRadius: 4 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
-      scales: {
-        y: { ticks: { callback: v => fmtEuro(v), font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.05)' } },
-        x: { ticks: { font: { size: 10 } }, grid: { display: false } }
-      }
-    }
-  });
+  const COLORS_ENC = ['#1d4ed8','#f59e0b','#10b981','#8b5cf6','#ef4444','#f97316'];
+  const COLORS_PREV = ['rgba(29,78,216,0.4)','rgba(245,158,11,0.4)','rgba(16,185,129,0.4)','rgba(139,92,246,0.4)','rgba(239,68,68,0.4)','rgba(249,115,22,0.4)'];
+
+  const now = new Date();
+
+  // Mois labels
+  const getMoisLabel = (y) => MONTH_NAMES.map((m,i) => m.substring(0,3));
+
+  if (showAll) {
+    // Mode toutes années superposées
+    const datasetsCA = [], datasetsNb = [];
+    yearsEnc.forEach((y, yi) => {
+      const color = COLORS_ENC[yi % COLORS_ENC.length];
+      const colorPrev = COLORS_PREV[yi % COLORS_PREV.length];
+      const dataCA = MONTH_NAMES.map((m,mi) => {
+        return DB.dossiers.filter(d=>d.dateActe && new Date(d.dateActe).getFullYear()===y && new Date(d.dateActe).getMonth()===mi).reduce((s,d)=>s+(d.ht||0),0);
+      });
+      const dataNb = MONTH_NAMES.map((m,mi) => {
+        return DB.dossiers.filter(d=>d.dateActe && new Date(d.dateActe).getFullYear()===y && new Date(d.dateActe).getMonth()===mi).length;
+      });
+      datasetsCA.push({ label: String(y), data: dataCA, borderColor: color, backgroundColor: type==='line'?color.replace(')',',0.1)').replace('rgb','rgba'):color, fill: false, tension: 0.3, pointRadius: 3 });
+      datasetsNb.push({ label: String(y), data: dataNb, borderColor: color, backgroundColor: type==='line'?color.replace(')',',0.1)').replace('rgb','rgba'):color, fill: false, tension: 0.3, pointRadius: 3 });
+    });
+    const labels = MONTH_NAMES.map(m=>m.substring(0,3));
+    const opts = (isCa) => ({
+      responsive:true, maintainAspectRatio:true,
+      plugins:{legend:{position:'top',labels:{font:{size:10}}}},
+      scales:{y:{ticks:{callback:v=>isCa?fmtEuro(v):v,font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:10}},grid:{display:false}}}
+    });
+    window._encGraphCA = new Chart(canvas, { type, data: { labels, datasets: datasetsCA }, options: opts(true) });
+    window._encGraphNb = new Chart(canvasNb, { type, data: { labels, datasets: datasetsNb }, options: opts(false) });
+  } else {
+    // Mode année unique — historique + prévisionnel
+    const annee = anneeChoisie ? parseInt(anneeChoisie) : new Date().getFullYear();
+    const labels = MONTH_NAMES.map(m=>m.substring(0,3));
+    const dataEncCA = MONTH_NAMES.map((m,mi) =>
+      DB.dossiers.filter(d=>d.dateActe && new Date(d.dateActe).getFullYear()===annee && new Date(d.dateActe).getMonth()===mi).reduce((s,d)=>s+(d.ht||0),0)
+    );
+    const dataPrevCA = MONTH_NAMES.map((m,mi) =>
+      DB.dossiers.filter(d=>isNet(d) && !d.dateActe && d.dateButoire && new Date(d.dateButoire).getFullYear()===annee && new Date(d.dateButoire).getMonth()===mi).reduce((s,d)=>s+(d.ht||0),0)
+    );
+    const dataEncNb = MONTH_NAMES.map((m,mi) =>
+      DB.dossiers.filter(d=>d.dateActe && new Date(d.dateActe).getFullYear()===annee && new Date(d.dateActe).getMonth()===mi).length
+    );
+    const dataPrevNb = MONTH_NAMES.map((m,mi) =>
+      DB.dossiers.filter(d=>isNet(d) && !d.dateActe && d.dateButoire && new Date(d.dateButoire).getFullYear()===annee && new Date(d.dateButoire).getMonth()===mi).length
+    );
+    const mkDatasets = (enc, prev) => [
+      { label: 'Encaissé', data: enc, borderColor:'#1d4ed8', backgroundColor: type==='line'?'rgba(29,78,216,0.1)':'rgba(29,78,216,0.7)', fill:type==='line', tension:0.3, pointRadius:4 },
+      { label: 'Prévisionnel', data: prev, borderColor:'#f59e0b', backgroundColor: type==='line'?'rgba(245,158,11,0.1)':'rgba(245,158,11,0.7)', fill:type==='line', tension:0.3, borderDash:type==='line'?[5,5]:[], pointRadius:4 }
+    ];
+    const opts = (isCa) => ({
+      responsive:true, maintainAspectRatio:true,
+      plugins:{legend:{position:'top',labels:{font:{size:10}}}},
+      scales:{y:{ticks:{callback:v=>isCa?fmtEuro(v):v,font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:10}},grid:{display:false}}}
+    });
+    window._encGraphCA = new Chart(canvas, { type, data:{ labels, datasets: mkDatasets(dataEncCA, dataPrevCA) }, options: opts(true) });
+    window._encGraphNb = new Chart(canvasNb, { type, data:{ labels, datasets: mkDatasets(dataEncNb, dataPrevNb) }, options: opts(false) });
+  }
 }
+
 
 function initEncaissements() {
   // Populate filtres
@@ -5790,13 +5823,14 @@ function refreshEncHistorique() {
   });
 
   tbody.innerHTML = Object.values(byMois).map(g => {
-    const gid = 'enc-prev-grp-' + g.label.replace(/\s/g, '-');
-    return '<tr style="background:' + (g.isPast ? '#fef2f2' : '#f0fdf4') + ';cursor:pointer" onclick="toggleEncGroup(\'' + gid + '\', this)">' +
-      '<td colspan="5" style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' +
-      '<span style="margin-right:8px" class="enc-chevron">▼</span>' + (g.isPast ? '⚠️ ' : '📅 ') + g.label + (g.isPast ? ' (dépassé)' : '') + '</td>' +
+    const gid = 'enc-hist-grp-' + g.label.replace(/\s/g, '-');
+    return '<tr style="background:#f0f9ff;cursor:pointer" onclick="toggleEncGroup(\'' + gid + '\', this)">' +
+      '<td colspan="4" style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' +
+      '<span style="margin-right:8px" class="enc-chevron">▼</span>' + g.label + '</td>' +
       '<td style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + fmtEuro(g.total) + '</td></tr>' +
-      g.rows.map(d => '<tr class="enc-group-row" data-group="' + gid + '"><td style="font-size:12px;color:var(--text-muted)">' + d.mois + '</td><td>' + agenceBadge(d) + '</td><td><strong>' + d.client + '</strong></td><td style="font-size:12px;color:' + (new Date(d.dateButoire) < now ? '#dc2626' : 'var(--text-muted)') + '">' + fmtDate(d.dateButoire) + '</td><td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td><td>' + statusBadge(d.statut) + '</td></tr>').join('');
+      g.rows.map(d => '<tr class="enc-group-row" data-group="' + gid + '"><td style="font-size:12px;color:var(--text-muted)">' + d.mois + '</td><td>' + agenceBadge(d) + '</td><td><strong>' + d.client + '</strong></td><td style="font-size:12px">' + fmtDate(d.dateActe) + '</td><td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td></tr>').join('');
   }).join('');
+  renderEncGraph();
 }
 
 function refreshEncPrevisionnel() {
@@ -5827,10 +5861,14 @@ function refreshEncPrevisionnel() {
     byMois[key].total += d.ht || 0;
   });
 
-  tbody.innerHTML = Object.values(byMois).map(g =>
-    '<tr style="background:' + (g.isPast ? '#fef2f2' : '#f0fdf4') + '"><td colspan="5" style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + (g.isPast ? '⚠️ ' : '📅 ') + g.label + (g.isPast ? ' (dépassé)' : '') + '</td><td style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + fmtEuro(g.total) + '</td></tr>' +
-    g.rows.map(d => '<tr><td style="font-size:12px;color:var(--text-muted)">' + d.mois + '</td><td>' + agenceBadge(d) + '</td><td><strong>' + d.client + '</strong></td><td style="font-size:12px;color:' + (new Date(d.dateButoire) < now ? '#dc2626' : 'var(--text-muted)') + '">' + fmtDate(d.dateButoire) + '</td><td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td><td>' + statusBadge(d.statut) + '</td></tr>').join('')
-  ).join('');
+  tbody.innerHTML = Object.values(byMois).map(g => {
+    const gid = 'enc-prev-grp-' + g.label.replace(/\s/g, '-');
+    return '<tr style="background:' + (g.isPast ? '#fef2f2' : '#f0fdf4') + ';cursor:pointer" onclick="toggleEncGroup(\'' + gid + '\', this)">' +
+      '<td colspan="5" style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' +
+      '<span style="margin-right:8px" class="enc-chevron">▼</span>' + (g.isPast ? '⚠️ ' : '📅 ') + g.label + (g.isPast ? ' (dépassé)' : '') + '</td>' +
+      '<td style="font-weight:700;font-family:Syne,sans-serif;padding:8px 14px;color:var(--primary)">' + fmtEuro(g.total) + '</td></tr>' +
+      g.rows.map(d => '<tr class="enc-group-row" data-group="' + gid + '"><td style="font-size:12px;color:var(--text-muted)">' + d.mois + '</td><td>' + agenceBadge(d) + '</td><td><strong>' + d.client + '</strong></td><td style="font-size:12px;color:' + (new Date(d.dateButoire) < now ? '#dc2626' : 'var(--text-muted)') + '">' + fmtDate(d.dateButoire) + '</td><td style="font-weight:600;color:var(--primary)">' + fmtEuro(d.ht || 0) + '</td><td>' + statusBadge(d.statut) + '</td></tr>').join('');
+  }).join('');
 }
 
 // =====================
@@ -6141,7 +6179,7 @@ function refreshFicheCollab(n) {
   // Données du collab
   const dosNeg = (DB.dossierNeg || []).filter(l => l.negociateur_id === n.id);
   const dossiersVentes = dosNeg.map(l => {
-    const d = DB.dossiers.find(x => x.id === l.dossier_id && isNet(x));
+    const d = DB.dossiers.find(x => x.id === l.dossier_id && x.statut === 'SIGNÉ');
     if (!d) return null;
     return { ...d, caCollab: (d.ht || 0) * (l.pct_ca / 100), pctCollab: l.pct_ca };
   }).filter(Boolean).sort((a, b) => new Date(b.date || '2000-01-01') - new Date(a.date || '2000-01-01'));
@@ -6217,7 +6255,7 @@ function refreshFicheMoyenne() {
   const annee = document.getElementById('fiche-collab-annee-moy')?.value || '';
   const dosNeg = (DB.dossierNeg || []).filter(l => l.negociateur_id === n.id);
   let ventes = dosNeg.map(l => {
-    const d = DB.dossiers.find(x => x.id === l.dossier_id && isNet(x));
+    const d = DB.dossiers.find(x => x.id === l.dossier_id && x.statut === 'SIGNÉ');
     if (!d) return null;
     return { ...d, caCollab: (d.ht || 0) * (l.pct_ca / 100) };
   }).filter(Boolean);
@@ -7612,7 +7650,7 @@ function getSocieteAgences() {
 
 function getSocieteDossiers() {
   const agenceNoms = getSocieteAgences();
-  return DB.dossiers.filter(d => agenceNoms.includes(d.agence) && isNet(d))
+  return DB.dossiers.filter(d => agenceNoms.includes(d.agence) && d.statut === 'SIGNÉ')
     .sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
 }
 
@@ -8061,7 +8099,7 @@ function openFicheAgence(agence, fromPage) {
   ficheAgenceNom = agence;
   ficheAgenceFromPage = fromPage || 'ranking';
   document.getElementById('fiche-agence-titre').textContent = agence;
-  const dosAgence = DB.dossiers.filter(d => d.agence === agence && isNet(d));
+  const dosAgence = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ');
   document.getElementById('fiche-agence-sous-titre').textContent = dosAgence.length + ' ventes signées au total';
   refreshFicheAgence();
   showPage('fiche-agence', null);
@@ -8077,7 +8115,7 @@ function refreshFicheAgence() {
   const curYear = now.getFullYear();
   const n1Year = curYear - 1;
 
-  const dosAgence = DB.dossiers.filter(d => d.agence === agence && isNet(d)).sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+  const dosAgence = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ').sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
   const totalCA = dosAgence.reduce((s, d) => s + (d.ht || 0), 0);
 
   // Stats rapides
@@ -8130,7 +8168,7 @@ function refreshFicheAgence() {
 function refreshFicheAgenceMoyenne() {
   const agence = ficheAgenceNom;
   const annee = document.getElementById('fiche-agence-annee-moy')?.value || '';
-  let dos = DB.dossiers.filter(d => d.agence === agence && isNet(d));
+  let dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ');
   if (annee) dos = dos.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(annee));
 
   const now = new Date();
@@ -8174,7 +8212,7 @@ function refreshFicheAgenceTableau(dossiersAgence, annee, tableId, titleId, tota
 
 function refreshFicheAgenceGraphGlissant() {
   const agence = ficheAgenceNom;
-  const dos = DB.dossiers.filter(d => d.agence === agence && isNet(d) && d.date);
+  const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
   if (dos.length === 0) return;
 
   const now = new Date();
@@ -8257,7 +8295,7 @@ function refreshFicheAgenceGraphs() {
   const agence = ficheAgenceNom;
   const anneeSelect = document.getElementById('fiche-agence-graph-annee')?.value || '';
   const allYears = document.getElementById('fiche-agence-graph-all')?.checked || false;
-  const dos = DB.dossiers.filter(d => d.agence === agence && isNet(d) && d.date);
+  const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
   const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9e7bb5','#6b8fa3','#5ba0a0'];
   const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
@@ -8281,7 +8319,7 @@ function refreshFicheAgenceGraphNb() {
   const agence = ficheAgenceNom;
   const anneeSelect = document.getElementById('fiche-agence-graph-annee-nb')?.value || '';
   const allYears = document.getElementById('fiche-agence-graph-all-nb')?.checked || false;
-  const dos = DB.dossiers.filter(d => d.agence === agence && isNet(d) && d.date);
+  const dos = DB.dossiers.filter(d => d.agence === agence && d.statut === 'SIGNÉ' && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
   const palette = ['#2D455A','#4a7fa5','#7aab8f','#c4836a','#9e7bb5','#6b8fa3','#5ba0a0'];
   const yearsToShow = allYears ? years : [parseInt(anneeSelect) || new Date().getFullYear()];
@@ -9265,7 +9303,7 @@ function buildApporteursSection(containerId, dos) {
 
 function refreshStatsMoyenneSociete() {
   const agenceNoms = getSocieteAgences();
-  const dos = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&isNet(d));
+  const dos = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&d.statut==='SIGNÉ');
   buildMoyenneSection('stats-soc-moyenne','stats-soc-sel-annee-moy', dos, d=>d.ht||0, 'Société');
 }
 function refreshStatsMoyenneAgence() {
@@ -9299,7 +9337,7 @@ function refreshIntercabinet() {
   const metrique = document.getElementById('ic-sel-metrique')?.value || 'nb';
 
   // Dossiers intercabinet = groupId non null, SIGNÉ
-  const dosAll = DB.dossiers.filter(d => isNet(d) && d.groupId);
+  const dosAll = DB.dossiers.filter(d => d.statut === 'SIGNÉ' && d.groupId);
   const dos = periode ? dosAll.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(periode)) : dosAll;
 
   if (dos.length === 0) {
@@ -9458,7 +9496,7 @@ function refreshIntercabinet() {
   html += '</div>'; // fin grid matrice + camembert
 
   // ── BARRES Solo vs IC ──
-  const dosSolo = DB.dossiers.filter(d => isNet(d) && !d.groupId);
+  const dosSolo = DB.dossiers.filter(d => d.statut === 'SIGNÉ' && !d.groupId);
   const dosSoloPeriode = periode ? dosSolo.filter(d => d.date && new Date(d.date).getFullYear() === parseInt(periode)) : dosSolo;
   const soloCounts = {};
   agences.forEach(a => { soloCounts[a] = { nb: 0, ca: 0 }; });
@@ -9932,7 +9970,7 @@ function renderStatsReseau(container) {
   const now = new Date();
   const curYear = now.getFullYear();
   const n1Year = curYear - 1;
-  const dosNet = DB.dossiers.filter(d => isNet(d));
+  const dosNet = DB.dossiers.filter(d => d.statut === 'SIGNÉ');
   const dosBrut = DB.dossiers.filter(d => isBrut(d));
   const dos = window.caMode === 'brut' ? dosBrut : dosNet;
   const totalCA = dos.reduce((s,d) => s+(d.ht||0), 0);
@@ -10000,14 +10038,14 @@ function renderStatsReseau(container) {
     refreshIntercabinet();
   }
   buildDelaiPyramideSection('stats-reseau-delai', dos);
-  buildAnnulationsSection('stats-reseau-annul', DB.dossiers.filter(d=>isNet(d)), DB.dossiers.filter(d=>isBrut(d)));
+  buildAnnulationsSection('stats-reseau-annul', DB.dossiers.filter(d=>d.statut==='SIGNÉ'), DB.dossiers.filter(d=>isBrut(d)));
   buildRecordsSection('stats-reseau-records', 'reseau', null);
   buildRetroBoosterSection('stats-reseau-retro', dos);
   buildTopApporteursSection('stats-reseau-apporteurs', dos);
 }
 
 function renderStatsReseauGraphs() {
-  const dos = DB.dossiers.filter(d => isNet(d) && d.date);
+  const dos = DB.dossiers.filter(d => d.statut === 'SIGNÉ' && d.date);
   const years = [...new Set(dos.map(d => new Date(d.date).getFullYear()))].sort();
   const selAnnee = document.getElementById('stats-graph-annee');
   if (selAnnee && !selAnnee.options.length) {
@@ -10040,7 +10078,7 @@ function renderStatsSociete(container, socId) {
   const s = (DB.societes||[]).find(x => x.id === socId);
   if (!s) return;
   const agenceNoms = getSocieteAgences();
-  const dosNet = DB.dossiers.filter(d => agenceNoms.includes(d.agence) && isNet(d));
+  const dosNet = DB.dossiers.filter(d => agenceNoms.includes(d.agence) && d.statut === 'SIGNÉ');
   const dosBrut = DB.dossiers.filter(d => agenceNoms.includes(d.agence) && isBrut(d));
   const dos = window.caMode === 'brut' ? dosBrut : dosNet;
   const now = new Date();
@@ -10103,7 +10141,7 @@ function renderStatsSociete(container, socId) {
   // Apporteurs
   buildDelaiPyramideSection('stats-soc-delai', dos);
   const dosSocBrut = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&isBrut(d));
-  const dosSocNet  = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&isNet(d));
+  const dosSocNet  = DB.dossiers.filter(d=>agenceNoms.includes(d.agence)&&d.statut==='SIGNÉ');
   buildAnnulationsSection('stats-soc-annul', dosSocNet, dosSocBrut);
   buildRecordsSection('stats-soc-records', 'societe', null);
   buildRetroBoosterSection('stats-soc-retro', dos);
@@ -10119,7 +10157,7 @@ function renderStatsSociete(container, socId) {
 
 function renderStatsAgence(container, agNom) {
   ficheAgenceNom = agNom;
-  const dosNet = DB.dossiers.filter(d => d.agence === agNom && isNet(d));
+  const dosNet = DB.dossiers.filter(d => d.agence === agNom && d.statut === 'SIGNÉ');
   const dosBrut = DB.dossiers.filter(d => d.agence === agNom && isBrut(d));
   const dosAgence = window.caMode === 'brut' ? dosBrut : dosNet;
   const now = new Date();
@@ -10192,7 +10230,7 @@ function renderStatsAgence(container, agNom) {
   // Apporteurs
   buildDelaiPyramideSection('stats-ag-delai', dosAgence);
   const dosAgBrut = DB.dossiers.filter(d=>d.agence===agNom&&isBrut(d));
-  const dosAgNet  = DB.dossiers.filter(d=>d.agence===agNom&&isNet(d));
+  const dosAgNet  = DB.dossiers.filter(d=>d.agence===agNom&&d.statut==='SIGNÉ');
   buildAnnulationsSection('stats-ag-annul', dosAgNet, dosAgBrut);
   buildRecordsSection('stats-ag-records', 'agence', agNom);
   buildRetroBoosterSection('stats-ag-retro', dosAgence);
@@ -10235,7 +10273,7 @@ function renderStatsNeg(container, negId) {
   const curYear = now.getFullYear();
   const n1Year = curYear - 1;
   const dosNeg = (DB.dossierNeg||[]).filter(l=>l.negociateur_id===n.id);
-  const dossiersVentes = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&isNet(x));if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100),pctCollab:l.pct_ca};}).filter(Boolean).sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000'));
+  const dossiersVentes = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&x.statut==='SIGNÉ');if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100),pctCollab:l.pct_ca};}).filter(Boolean).sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000'));
   const totalCA = dossiersVentes.reduce((s,d)=>s+d.caCollab,0);
   const caN = dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===curYear).reduce((s,d)=>s+d.caCollab,0);
   const caN1 = dossiersVentes.filter(d=>d.date&&new Date(d.date).getFullYear()===n1Year).reduce((s,d)=>s+d.caCollab,0);
@@ -10268,14 +10306,29 @@ function renderStatsNeg(container, negId) {
     '<span style="padding:4px 12px;background:white;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--text-muted)">💼 Préparation des salaires</span>' +
     '</div></div>';
 
-  // 10 dernières ventes
-  document.getElementById('fiche-collab-ventes').innerHTML = [...dossiersVentes].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0,10).map(d => {
-    const j = d.date?Math.floor((now-new Date(d.date))/86400000):'—';
-    return '<tr><td><strong>'+d.client+'</strong></td><td>'+d.agence+'</td><td>'+fmtDate(d.date)+'</td><td style="color:'+(j>90?'#dc2626':j>30?'#f59e0b':'#10b981')+';font-weight:600">'+(j!=='—'?j+'j':'—')+'</td><td style="font-weight:600;color:var(--primary)">'+fmtEuro(d.caCollab)+'</td><td>'+statusBadge(d.statut)+'</td></tr>';
-  }).join('');
-  const last10neg = [...dossiersVentes].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0,10);
+  // 10 dernières ventes — dédoublonnage IC + badge
+  const seenIdsNeg = new Set();
+  const dossiersVentesDedoubNeg = dossiersVentes.filter(d => {
+    const key = d.groupId || d.id;
+    if (seenIdsNeg.has(key)) return false;
+    seenIdsNeg.add(key);
+    return true;
+  });
+  // Fréquence
   const ratioNegEl = document.getElementById('ratio-neg-ventes');
-  if (ratioNegEl) ratioNegEl.innerHTML = buildRatioVentes(last10neg);
+  if (dossiersVentesDedoubNeg.length >= 2) {
+    const datesNeg = dossiersVentesDedoubNeg.filter(d=>d.date).map(d=>new Date(d.date)).sort((a,b)=>a-b);
+    if (datesNeg.length >= 2) {
+      const ecartNeg = (datesNeg[datesNeg.length-1]-datesNeg[0])/86400000;
+      const freqNeg = Math.round(ecartNeg/(datesNeg.length-1));
+      if (ratioNegEl && freqNeg > 0) ratioNegEl.textContent = '· 1 vente / ' + freqNeg + 'j en moy.';
+    }
+  }
+  document.getElementById('fiche-collab-ventes').innerHTML = [...dossiersVentesDedoubNeg].sort((a,b)=>new Date(b.date||'2000')-new Date(a.date||'2000')).slice(0,10).map(d => {
+    const j = d.date?Math.floor((now-new Date(d.date))/86400000):'—';
+    const icB = d.groupId ? '<span style="font-size:10px;background:#e0e7ff;color:#4338ca;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:4px">IC</span>' : '';
+    return '<tr><td><strong>'+d.client+'</strong>'+icB+'</td><td>'+d.agence+'</td><td>'+fmtDate(d.date)+'</td><td style="color:'+(j>90?'#dc2626':j>30?'#f59e0b':'#10b981')+';font-weight:600">'+(j!=='—'?j+'j':'—')+'</td><td style="font-weight:600;color:var(--primary)">'+fmtEuro(d.caCollab)+'</td><td>'+statusBadge(d.statut)+'</td></tr>';
+  }).join('');
 
   // Tableaux
   const years = [...new Set(dossiersVentes.map(d=>d.date?new Date(d.date).getFullYear():null).filter(Boolean))].sort();
@@ -10288,7 +10341,7 @@ function renderStatsNeg(container, negId) {
   buildDelaiPyramideSection('stats-neg-delai', dossiersVentes);
   buildRetroBoosterSection('stats-neg-retro', dossiersVentes);
   const dosNegBrut = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&isBrut(x));if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100)};}).filter(Boolean);
-  const dosNegNet  = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&isNet(x));if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100)};}).filter(Boolean);
+  const dosNegNet  = dosNeg.map(l=>{const d=DB.dossiers.find(x=>x.id===l.dossier_id&&x.statut==='SIGNÉ');if(!d)return null;return {...d,caCollab:(d.ht||0)*(l.pct_ca/100)};}).filter(Boolean);
   buildAnnulationsSection('stats-neg-annul', dosNegNet, dosNegBrut);
   const dosAvecAp = dossiersVentes.filter(d => d.hasApporteur && d.apporteurNom);
   buildApporteursSection('stats-neg-apporteurs', dosAvecAp);
@@ -10801,7 +10854,7 @@ async function saveRecord(key, value, meta) {
 
 // Calculer tous les records depuis l'historique
 function computeAllRecords() {
-  const dos = DB.dossiers.filter(d => isNet(d) && d.date);
+  const dos = DB.dossiers.filter(d => d.statut === 'SIGNÉ' && d.date);
   const records = {};
 
   // ── Individuels ──
