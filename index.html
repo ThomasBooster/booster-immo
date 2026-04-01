@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.8</title>
+<title>SCORIM v1.5.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -780,7 +780,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.8</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.0</div>
     </div>
   </div>
 </div>
@@ -898,7 +898,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.8</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.0</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -2613,7 +2613,7 @@
             </div>
           </div>
           <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;padding:16px;align-items:center">
-            <canvas id="ap-pie-canvas" height="120" style="max-width:220px;margin:0 auto"></canvas>
+            <canvas id="ap-pie-canvas" style="width:220px!important;height:220px!important;max-width:220px;max-height:220px"></canvas>
             <div id="ap-pie-legend" style="font-size:13px"></div>
           </div>
         </div>
@@ -2622,14 +2622,20 @@
         <div class="card" style="margin-bottom:20px">
           <div class="card-header">
             <span class="card-title">🎯 Aide à la décision — Valeur des apporteurs</span>
-            <div style="display:flex;gap:8px;align-items:center">
-              <select id="ap-decision-scope" onchange="renderApporteursDecision()" class="filter-select" style="font-size:12px;padding:4px 8px">
-                <option value="reseau">Réseau</option>
-                <option value="agence">Par agence</option>
-              </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:200px">
+            <div style="border-right:1px solid var(--border);padding:16px">
+              <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">🌐 Réseau</div>
+              <div id="ap-decision-reseau"></div>
+            </div>
+            <div style="padding:16px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase">🔍 Zoom</div>
+                <select id="ap-decision-zoom" onchange="renderApporteursDecisionZoom()" class="filter-select" style="font-size:12px;padding:4px 8px;flex:1"></select>
+              </div>
+              <div id="ap-decision-zoom-content"></div>
             </div>
           </div>
-          <div id="ap-decision-grid" style="padding:16px"></div>
         </div>
 
         <!-- Tableau mensuel ou annuel -->
@@ -4063,7 +4069,7 @@ function renderApporteursPie() {
   window._apPieChart = new Chart(canvas, {
     type: 'doughnut',
     data: { labels: noms, datasets: [{ data: vals, backgroundColor: COLORS.slice(0, noms.length), borderWidth: 2 }] },
-    options: { responsive:true, maintainAspectRatio:true, plugins:{ legend:{display:false} } }
+    options: { responsive:false, maintainAspectRatio:false, plugins:{ legend:{display:false} } }
   });
 
   legend.innerHTML = noms.map((n,i) => {
@@ -4076,103 +4082,113 @@ function renderApporteursPie() {
   }).join('');
 }
 
-function renderApporteursDecision() {
-  const container = document.getElementById('ap-decision-grid');
-  if (!container) return;
-  const scope = document.getElementById('ap-decision-scope')?.value || 'reseau';
-
+function _getApDecisionDos() {
   const dos = DB.dossiers.filter(d => isNet(d) && d.hasApporteur && d.apporteurNom);
   const seen = new Map();
   dos.forEach(d => { const k = d.groupId||d.id; if (!seen.has(k)) seen.set(k, d); });
-  const dosDedoub = [...seen.values()];
+  return [...seen.values()];
+}
 
-  if (scope === 'agence') {
-    // Vue par agence : afficher les stats d'apporteur pour chaque agence séparément
-    const agences = [...new Set(dosDedoub.map(d=>d.agence))].sort();
-    if (agences.length === 0) { container.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px">Aucune donnée</div>'; return; }
-    container.innerHTML = agences.map(ag => {
-      const dosAg = dosDedoub.filter(d=>d.agence===ag);
-      const byAp = {};
-      dosAg.forEach(d => {
-        if (!byAp[d.apporteurNom]) byAp[d.apporteurNom] = { nb:0, ca:0, rev:0 };
-        byAp[d.apporteurNom].nb++; byAp[d.apporteurNom].ca += d.ht||0; byAp[d.apporteurNom].rev += d.apportHT||0;
-      });
-      const rows = Object.entries(byAp).sort((a,b)=>b[1].ca-a[1].ca).map(([n,v]) =>
-        `<tr><td style="padding:6px 10px;font-weight:600">${n}</td>
-        <td style="padding:6px 10px;text-align:center">${v.nb}</td>
-        <td style="padding:6px 10px;text-align:right;color:var(--primary);font-weight:600">${fmtEuro(v.ca)}</td>
-        <td style="padding:6px 10px;text-align:right;color:#c2410c">${fmtEuro(v.rev)}</td>
-        <td style="padding:6px 10px;text-align:right;color:#15803d;font-weight:700">${fmtEuro(v.ca-v.rev)}</td>
-        <td style="padding:6px 10px;text-align:center;color:var(--text-muted);font-size:12px">${v.ca>0?(v.rev/v.ca*100).toFixed(1):0}%</td></tr>`
-      ).join('');
-      return `<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px">
-        <div style="background:var(--primary);color:white;padding:10px 14px;font-weight:700;font-size:13px">🏠 ${ag}</div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-          <thead><tr style="background:#f8fafc">
-            <th style="padding:6px 10px;text-align:left">Apporteur</th>
-            <th style="padding:6px 10px;text-align:center">Dossiers</th>
-            <th style="padding:6px 10px;text-align:right">CA HT</th>
-            <th style="padding:6px 10px;text-align:right">Reversé HT</th>
-            <th style="padding:6px 10px;text-align:right">Gain net</th>
-            <th style="padding:6px 10px;text-align:center">% comm.</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`;
-    }).join('');
-    return;
-  }
-
-  // Vue réseau : synthèse par apporteur
+function _buildApStats(dosDedoub) {
   const byAp = {};
   dosDedoub.forEach(d => {
-    if (!byAp[d.apporteurNom]) byAp[d.apporteurNom] = { nb:0, ca:0, rev:0, dates:[], agences:{} };
-    const ap = byAp[d.apporteurNom];
-    ap.nb++; ap.ca += d.ht||0; ap.rev += d.apportHT||0;
-    if (d.date) ap.dates.push(new Date(d.date));
-    if (!ap.agences[d.agence]) ap.agences[d.agence] = { ca:0, rev:0 };
-    ap.agences[d.agence].ca += d.ht||0; ap.agences[d.agence].rev += d.apportHT||0;
+    if (!byAp[d.apporteurNom]) byAp[d.apporteurNom] = { nb:0, ca:0, rev:0, dates:[] };
+    byAp[d.apporteurNom].nb++;
+    byAp[d.apporteurNom].ca += d.ht||0;
+    byAp[d.apporteurNom].rev += d.apportHT||0;
+    if (d.date) byAp[d.apporteurNom].dates.push(new Date(d.date));
   });
+  return byAp;
+}
 
+function _renderApStatsHtml(byAp) {
   const noms = Object.keys(byAp).sort();
-  if (noms.length === 0) { container.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px">Aucune donnée</div>'; return; }
-
-  container.innerHTML = noms.map(n => {
+  if (!noms.length) return '<div style="color:var(--text-muted);font-size:13px">Aucune donnée</div>';
+  return noms.map(n => {
     const ap = byAp[n];
     const dates = ap.dates.sort((a,b)=>a-b);
     const anciennete = dates.length ? Math.floor((new Date()-dates[0])/86400000/30) + ' mois' : '—';
     const ratio = ap.ca > 0 ? (ap.rev/ap.ca*100).toFixed(1) : 0;
     const gainNet = ap.ca - ap.rev;
-    const agencesHtml = Object.entries(ap.agences).sort((a,b)=>b[1].ca-a[1].ca).map(([ag, v]) =>
-      `<div style="font-size:11px;color:var(--text-muted)">🏠 ${ag} : CA ${fmtEuro(v.ca)} · reversé ${fmtEuro(v.rev)} · gain net <strong style="color:#16a34a">${fmtEuro(v.ca-v.rev)}</strong></div>`
-    ).join('');
-    return `<div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-        <div style="font-weight:700;font-size:15px">${n}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <span style="padding:3px 10px;border-radius:20px;background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:600">${ap.nb} dossier(s)</span>
-          <span style="padding:3px 10px;border-radius:20px;background:#f0fdf4;color:#15803d;font-size:11px;font-weight:600">Ancienneté : ${anciennete}</span>
-          <span style="padding:3px 10px;border-radius:20px;background:#fff7ed;color:#c2410c;font-size:11px;font-weight:600">Commission moy. : ${ratio}%</span>
+    return `<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">${n}
+        <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:6px">${ap.nb} dossier(s) · ${anciennete} · ${ratio}% comm.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <div style="background:#f8fafc;border-radius:6px;padding:7px;text-align:center">
+          <div style="font-size:10px;color:var(--text-muted)">CA HT</div>
+          <div style="font-weight:700;color:var(--primary);font-size:13px">${fmtEuro(ap.ca)}</div>
+        </div>
+        <div style="background:#fff7ed;border-radius:6px;padding:7px;text-align:center">
+          <div style="font-size:10px;color:var(--text-muted)">Reversé HT</div>
+          <div style="font-weight:700;color:#c2410c;font-size:13px">${fmtEuro(ap.rev)}</div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:6px;padding:7px;text-align:center">
+          <div style="font-size:10px;color:var(--text-muted)">Gain net</div>
+          <div style="font-weight:700;color:#15803d;font-size:13px">${fmtEuro(gainNet)}</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
-        <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">CA HT généré</div>
-          <div style="font-weight:700;color:var(--primary)">${fmtEuro(ap.ca)}</div>
-        </div>
-        <div style="background:#fff7ed;border-radius:8px;padding:10px;text-align:center">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Montant reversé HT</div>
-          <div style="font-weight:700;color:#c2410c">${fmtEuro(ap.rev)}</div>
-        </div>
-        <div style="background:#f0fdf4;border-radius:8px;padding:10px;text-align:center">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Gain net réseau</div>
-          <div style="font-weight:700;color:#15803d">${fmtEuro(gainNet)}</div>
-        </div>
-      </div>
-      <div style="border-top:1px solid var(--border);padding-top:8px">${agencesHtml}</div>
     </div>`;
   }).join('');
 }
+
+function renderApporteursDecision() {
+  const container = document.getElementById('ap-decision-reseau');
+  if (!container) return;
+  const dosDedoub = _getApDecisionDos();
+  container.innerHTML = _renderApStatsHtml(_buildApStats(dosDedoub));
+
+  // Peupler le sélecteur zoom (sociétés + agences)
+  const sel = document.getElementById('ap-decision-zoom');
+  if (!sel) return;
+  sel.innerHTML = '';
+  // Sociétés
+  (DB.societes || []).forEach(s => {
+    const o = document.createElement('option');
+    o.value = 'soc_' + s.id; o.textContent = '🏛 ' + s.nom; sel.appendChild(o);
+  });
+  // Agences accessibles
+  getAgencesAccessibles().forEach(a => {
+    const o = document.createElement('option');
+    o.value = 'ag_' + a.nom; o.textContent = '🏠 ' + a.nom; sel.appendChild(o);
+  });
+  // Valeur par défaut selon rôle
+  if (currentUser.role === 'gerant' || currentUser.role === 'agence') {
+    // Chercher la société ou l'agence du user
+    const agenceUser = (DB.agences||[]).find(a => a.nom === currentUser.agence);
+    if (agenceUser && agenceUser.societe_id && currentUser.role === 'gerant') {
+      sel.value = 'soc_' + agenceUser.societe_id;
+    } else {
+      const opt = [...sel.options].find(o => o.value === 'ag_' + currentUser.agence);
+      if (opt) sel.value = opt.value;
+    }
+  } else if (currentUser.role === 'admin') {
+    const agOpt = [...sel.options].find(o => o.value.startsWith('ag_'));
+    if (agOpt) sel.value = agOpt.value;
+  }
+  renderApporteursDecisionZoom();
+}
+
+function renderApporteursDecisionZoom() {
+  const container = document.getElementById('ap-decision-zoom-content');
+  if (!container) return;
+  const val = document.getElementById('ap-decision-zoom')?.value || '';
+  const dosDedoub = _getApDecisionDos();
+  let dosFiltre;
+  if (val.startsWith('soc_')) {
+    const socId = parseInt(val.replace('soc_', ''));
+    const soc = (DB.societes||[]).find(s => s.id === socId);
+    const agNoms = (DB.agences||[]).filter(a => a.societe_id === socId).map(a => a.nom);
+    dosFiltre = dosDedoub.filter(d => agNoms.includes(d.agence));
+  } else if (val.startsWith('ag_')) {
+    const agNom = val.replace('ag_', '');
+    dosFiltre = dosDedoub.filter(d => d.agence === agNom);
+  } else {
+    dosFiltre = dosDedoub;
+  }
+  container.innerHTML = _renderApStatsHtml(_buildApStats(dosFiltre));
+}
+
 
 function renderApporteursList() {
   const list = getApporteursList();
@@ -5505,7 +5521,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.8</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.0</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -9155,25 +9171,48 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // =====================
 // AFFAIRES APPORTEUR (modal)
 // =====================
+let _modalApporteurDos = [];
+
 function openAffairesApporteur(nom, dosIds) {
   if (!nom) return;
   let dosRaw;
   if (dosIds && dosIds.length) {
-    dosRaw = DB.dossiers.filter(d => dosIds.includes(d.id) && d.apporteurNom === nom && d.statut !== 'ANNULÉ');
+    dosRaw = DB.dossiers.filter(d => dosIds.includes(d.id) && d.apporteurNom === nom && isNet(d));
   } else {
-    dosRaw = DB.dossiers.filter(d => d.apporteurNom === nom && d.statut !== 'ANNULÉ');
+    dosRaw = DB.dossiers.filter(d => d.apporteurNom === nom && isNet(d));
   }
   // Dédoublonnage IC
   const seen = new Map();
-  dosRaw.forEach(d => {
-    const key = d.groupId || d.id;
-    if (!seen.has(key)) seen.set(key, d);
-  });
-  const dos = [...seen.values()].sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+  dosRaw.forEach(d => { const key = d.groupId||d.id; if (!seen.has(key)) seen.set(key, d); });
+  _modalApporteurDos = [...seen.values()].sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
 
   document.getElementById('modal-apporteur-titre').textContent = nom;
-  const totalCA = dos.reduce((s,d) => s + (d.ht||0), 0);
-  const totalRev = dos.reduce((s,d) => s + (d.apportHT||0), 0);
+
+  // Peupler les filtres
+  const moisSet = new Set(_modalApporteurDos.filter(d=>d.date).map(d=>dateToMoisStr(d.date)).filter(Boolean));
+  const selMois = document.getElementById('modal-ap-filtre-mois');
+  selMois.innerHTML = '<option value="">Tous les mois</option>' +
+    [...moisSet].sort().map(m=>`<option value="${m}">${m}</option>`).join('');
+
+  const agSet = new Set(_modalApporteurDos.map(d=>d.agence));
+  const selAg = document.getElementById('modal-ap-filtre-agence');
+  selAg.innerHTML = '<option value="">Toutes les agences</option>' +
+    [...agSet].sort().map(a=>`<option value="${a}">${a}</option>`).join('');
+
+  document.getElementById('modal-affaires-apporteur').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  filterModalApporteur();
+}
+
+function filterModalApporteur() {
+  const moisFiltre = document.getElementById('modal-ap-filtre-mois')?.value || '';
+  const agFiltre = document.getElementById('modal-ap-filtre-agence')?.value || '';
+  let dos = _modalApporteurDos;
+  if (moisFiltre) dos = dos.filter(d => matchMois(d, moisFiltre) || (!d.date && d.mois === moisFiltre));
+  if (agFiltre) dos = dos.filter(d => d.agence === agFiltre);
+
+  const totalCA = dos.reduce((s,d) => s+(d.ht||0), 0);
+  const totalRev = dos.reduce((s,d) => s+(d.apportHT||0), 0);
   document.getElementById('modal-apporteur-stats').textContent =
     dos.length + ' affaire(s) · CA HT : ' + fmtEuro(totalCA) + ' · Reversé HT : ' + fmtEuro(totalRev);
 
@@ -9192,9 +9231,6 @@ function openAffairesApporteur(nom, dosIds) {
         '<td style="padding:10px 12px;text-align:center">' + statusBadge(d.statut) + '</td>' +
         '</tr>';
       }).join('');
-
-  document.getElementById('modal-affaires-apporteur').style.display = 'block';
-  document.body.style.overflow = 'hidden';
 }
 
 
@@ -18349,6 +18385,14 @@ function ndUpdateCA(){
         </div>
         <button onclick="document.getElementById('modal-affaires-apporteur').style.display='none';document.body.style.overflow=''" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
       </div>
+      <div style="padding:12px 24px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap">
+        <select id="modal-ap-filtre-mois" onchange="filterModalApporteur()" class="filter-select" style="font-size:12px">
+          <option value="">Tous les mois</option>
+        </select>
+        <select id="modal-ap-filtre-agence" onchange="filterModalApporteur()" class="filter-select" style="font-size:12px">
+          <option value="">Toutes les agences</option>
+        </select>
+      </div>
       <div style="padding:16px 24px;overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:13px">
           <thead>
@@ -18356,7 +18400,7 @@ function ndUpdateCA(){
               <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Affaire</th>
               <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Agence</th>
               <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Date SSP</th>
-              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">CA TTC</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">CA HT</th>
               <th style="padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Reversé HT</th>
               <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">%</th>
               <th style="padding:10px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)">Statut</th>
