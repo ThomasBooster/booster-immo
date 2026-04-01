@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.6</title>
+<title>SCORIM v1.5.7</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -780,7 +780,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.6</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.7</div>
     </div>
   </div>
 </div>
@@ -898,7 +898,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.6</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.7</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -2600,6 +2600,32 @@
         <!-- Stats globales apporteurs -->
         <div class="stats-grid" id="apporteurs-stats-grid" style="margin-bottom:20px"></div>
 
+        <!-- Camembert répartition -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">🥧 Répartition par apporteur</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="ap-pie-metric" onchange="renderApporteursPie()" class="filter-select" style="font-size:12px;padding:4px 8px">
+                <option value="nb">Nb dossiers</option>
+                <option value="ca">CA HT généré</option>
+                <option value="rev">Montant reversé HT</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;align-items:center">
+            <canvas id="ap-pie-canvas" height="200"></canvas>
+            <div id="ap-pie-legend" style="font-size:13px"></div>
+          </div>
+        </div>
+
+        <!-- Stats aide à la décision -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <span class="card-title">🎯 Aide à la décision — Valeur des apporteurs</span>
+          </div>
+          <div id="ap-decision-grid" style="padding:16px"></div>
+        </div>
+
         <!-- Tableau mensuel ou annuel -->
         <div class="card" style="margin-bottom:20px">
           <div class="card-header">
@@ -3994,6 +4020,118 @@ async function deleteApporteur(nom) {
   }
 }
 
+function renderApporteursPie() {
+  const canvas = document.getElementById('ap-pie-canvas');
+  const legend = document.getElementById('ap-pie-legend');
+  if (!canvas) return;
+  if (!window.Chart) {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+    s.onload = renderApporteursPie;
+    document.head.appendChild(s);
+    return;
+  }
+  if (window._apPieChart) { window._apPieChart.destroy(); window._apPieChart = null; }
+
+  const metric = document.getElementById('ap-pie-metric')?.value || 'nb';
+  // Utiliser les dossiers déjà filtrés (dossiersSig de refreshApporteurs)
+  const dos = DB.dossiers.filter(d => d.statut !== 'ANNULÉ' && d.hasApporteur && d.apporteurNom);
+  // Dédoublonnage IC
+  const seen = new Map();
+  dos.forEach(d => { const k = d.groupId||d.id; if (!seen.has(k)) seen.set(k, d); });
+  const dosDedoub = [...seen.values()];
+
+  const byAp = {};
+  dosDedoub.forEach(d => {
+    if (!byAp[d.apporteurNom]) byAp[d.apporteurNom] = { nb:0, ca:0, rev:0 };
+    byAp[d.apporteurNom].nb++;
+    byAp[d.apporteurNom].ca += d.ht || 0;
+    byAp[d.apporteurNom].rev += d.apportHT || 0;
+  });
+
+  const noms = Object.keys(byAp).sort();
+  const COLORS = ['#1d4ed8','#f59e0b','#10b981','#8b5cf6','#ef4444','#f97316','#06b6d4','#84cc16'];
+  const vals = noms.map(n => metric==='nb' ? byAp[n].nb : metric==='ca' ? byAp[n].ca : byAp[n].rev);
+  const total = vals.reduce((s,v)=>s+v, 0);
+
+  window._apPieChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels: noms, datasets: [{ data: vals, backgroundColor: COLORS.slice(0, noms.length), borderWidth: 2 }] },
+    options: { responsive:true, maintainAspectRatio:true, plugins:{ legend:{display:false} } }
+  });
+
+  legend.innerHTML = noms.map((n,i) => {
+    const pct = total > 0 ? (vals[i]/total*100).toFixed(1) : 0;
+    const val = metric==='nb' ? vals[i]+' dossiers' : fmtEuro(vals[i]);
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="width:12px;height:12px;border-radius:3px;background:${COLORS[i%COLORS.length]};flex-shrink:0"></div>
+      <div><strong>${n}</strong> — ${val} <span style="color:var(--text-muted);font-size:11px">(${pct}%)</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderApporteursDecision() {
+  const container = document.getElementById('ap-decision-grid');
+  if (!container) return;
+
+  const dos = DB.dossiers.filter(d => d.statut !== 'ANNULÉ' && d.hasApporteur && d.apporteurNom);
+  const seen = new Map();
+  dos.forEach(d => { const k = d.groupId||d.id; if (!seen.has(k)) seen.set(k, d); });
+  const dosDedoub = [...seen.values()];
+
+  const byAp = {};
+  dosDedoub.forEach(d => {
+    if (!byAp[d.apporteurNom]) byAp[d.apporteurNom] = { nb:0, ca:0, rev:0, dates:[], agences:{} };
+    const ap = byAp[d.apporteurNom];
+    ap.nb++;
+    ap.ca += d.ht || 0;
+    ap.rev += d.apportHT || 0;
+    if (d.date) ap.dates.push(new Date(d.date));
+    if (!ap.agences[d.agence]) ap.agences[d.agence] = { ca:0, rev:0 };
+    ap.agences[d.agence].ca += d.ht || 0;
+    ap.agences[d.agence].rev += d.apportHT || 0;
+  });
+
+  const noms = Object.keys(byAp).sort();
+  if (noms.length === 0) { container.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px">Aucune donnée</div>'; return; }
+
+  container.innerHTML = noms.map(n => {
+    const ap = byAp[n];
+    const dates = ap.dates.sort((a,b)=>a-b);
+    const anciennete = dates.length ? Math.floor((new Date()-dates[0])/86400000/30) + ' mois' : '—';
+    const ratio = ap.ca > 0 ? (ap.rev/ap.ca*100).toFixed(1) : 0;
+    const gainNet = ap.ca - ap.rev;
+    const agencesHtml = Object.entries(ap.agences).map(([ag, v]) =>
+      `<div style="font-size:11px;color:var(--text-muted)">🏠 ${ag} : CA ${fmtEuro(v.ca)} · reversé ${fmtEuro(v.rev)} · gain net <strong style="color:#16a34a">${fmtEuro(v.ca-v.rev)}</strong></div>`
+    ).join('');
+    return `<div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-weight:700;font-size:15px">${n}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="padding:3px 10px;border-radius:20px;background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:600">${ap.nb} dossier(s)</span>
+          <span style="padding:3px 10px;border-radius:20px;background:#f0fdf4;color:#15803d;font-size:11px;font-weight:600">Ancienneté : ${anciennete}</span>
+          <span style="padding:3px 10px;border-radius:20px;background:#fff7ed;color:#c2410c;font-size:11px;font-weight:600">Commission moy. : ${ratio}%</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+        <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">CA HT généré</div>
+          <div style="font-weight:700;color:var(--primary)">${fmtEuro(ap.ca)}</div>
+        </div>
+        <div style="background:#fff7ed;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Montant reversé HT</div>
+          <div style="font-weight:700;color:#c2410c">${fmtEuro(ap.rev)}</div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Gain net réseau</div>
+          <div style="font-weight:700;color:#15803d">${fmtEuro(gainNet)}</div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:8px">${agencesHtml}</div>
+    </div>`;
+  }).join('');
+}
+
 function renderApporteursList() {
   const list = getApporteursList();
   const container = document.getElementById('apporteurs-list');
@@ -4103,8 +4241,7 @@ function refreshApporteurs() {
       <th>Apporteur</th>
       ${!agenceFiltre ? '<th>Agences</th>' : ''}
       <th style="text-align:center">Dossiers</th>
-      <th>CA TTC</th>
-      <th>CA Net HT</th>
+      <th>CA HT</th>
       <th style="color:#92400e">Reversé HT</th>
       <th>% moy</th>
     </tr>`;
@@ -4118,19 +4255,18 @@ function refreshApporteurs() {
         const dosAg = dosA.filter(d => d.agence === ag);
         return `<div style="font-size:11px">${ag} : <strong>${fmtEuro(dosAg.reduce((s,d)=>s+(d.apportHT||0),0))}</strong></div>`;
       }).join('') : '';
-      return `<tr class="tr-clickable" style="cursor:pointer" data-nom="${a}" onclick="openAffairesApporteur(this.dataset.nom)">
+      const dosAIdsMens = dosA.map(d=>d.id);
+      return `<tr class="tr-clickable" style="cursor:pointer" onclick="openAffairesApporteur('${a}', ${JSON.stringify(dosAIdsMens)})">
         <td><strong>${a}</strong></td>
         <td style="text-align:center;font-weight:700">${dosA.length}</td>
-        <td style="font-weight:600;color:var(--primary)">${fmtEuro(ca)}</td>
-        <td style="font-weight:600">${fmtEuro(caNet)}</td>
+        <td style="font-weight:600;color:var(--primary)">${fmtEuro(caNet)}</td>
         <td style="font-weight:700;color:#92400e">${fmtEuro(rev)}</td>
         <td style="font-size:12px;color:var(--text-muted)">${pctMoy}%</td>
       </tr>`;
     }).join('') + `<tr style="background:#f8f9fa;border-top:2px solid var(--border)">
       <td style="font-weight:700">TOTAL</td>
       <td style="text-align:center;font-weight:700">${nbDossiers}</td>
-      <td style="font-weight:700;color:var(--primary)">${fmtEuro(totalCA)}</td>
-      <td style="font-weight:700">${fmtEuro(dossiersSig.reduce((s,d)=>s+(d.ht||0),0))}</td>
+      <td style="font-weight:700;color:var(--primary)">${fmtEuro(dossiersSig.reduce((s,d)=>s+(d.ht||0),0))}</td>
       <td style="font-weight:700;color:#92400e">${fmtEuro(totalApport)}</td>
       <td></td>
     </tr>`;
@@ -4144,23 +4280,25 @@ function refreshApporteurs() {
       <th>Apporteur</th>
       ${moisAnnee.map(m => `<th style="font-size:11px">${m.split(' ')[0].substring(0,3)}</th>`).join('')}
       <th>Dossiers</th>
-      <th>CA TTC</th>
+      <th>CA HT</th>
       <th style="color:#92400e">Reversé HT</th>
     </tr>`;
     tbody.innerHTML = apporteurs.map(a => {
       const dosA = dossiersSig.filter(d => d.apporteurNom === a);
       const totalApportA = dosA.reduce((s, d) => s + (d.apportHT || 0), 0);
-      const totalCAA = dosA.reduce((s, d) => s + (d.ttcTotal || d.ttc || 0), 0);
+      const totalCAA = dosA.reduce((s, d) => s + (d.ht || 0), 0);
       const parMois = moisAnnee.map(m => {
         const dosM = dosA.filter(d => matchMois(d, m) || (!d.date && d.mois === m));
+        const dosIds = dosM.map(d => d.id);
         return dosM.length > 0
-          ? `<td style="text-align:center;font-size:12px">
+          ? `<td style="text-align:center;font-size:12px;cursor:pointer;text-decoration:underline dotted" onclick="openAffairesApporteur('${a}', ${JSON.stringify(dosIds)})">
               <div style="font-weight:600">${dosM.length}</div>
               <div style="color:#92400e;font-size:11px">${fmtEuro(dosM.reduce((s,d)=>s+(d.apportHT||0),0))}</div>
              </td>`
           : `<td style="text-align:center;color:var(--text-muted);font-size:12px">—</td>`;
       }).join('');
-      return `<tr class="tr-clickable" style="cursor:pointer" data-nom="${a}" onclick="openAffairesApporteur(this.dataset.nom)">
+      const dosAIds = dosA.map(d=>d.id);
+      return `<tr class="tr-clickable" style="cursor:pointer" onclick="openAffairesApporteur('${a}', ${JSON.stringify(dosAIds)})">
         <td><strong>${a}</strong></td>
         ${parMois}
         <td style="text-align:center;font-weight:700">${dosA.length}</td>
@@ -4182,6 +4320,8 @@ function refreshApporteurs() {
   }
 
   renderApporteursList();
+  renderApporteursPie();
+  renderApporteursDecision();
   } catch(e) {
     console.error('refreshApporteurs error:', e);
     const statsGrid = document.getElementById('apporteurs-stats-grid');
@@ -5323,7 +5463,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.6</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.7</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
@@ -5914,7 +6054,7 @@ function switchPerfTab(tab) {
 }
 
 function buildPerfStats(dossiers, containerId, titlePrefix) {
-  const signed = dossiers.filter(d => d.statut === 'SIGNÉ');
+  const signed = dossiers.filter(d => isNet(d));
   const totalHT = signed.reduce((s, d) => s + (d.ht || 0), 0);
   const totalTTC = signed.reduce((s, d) => s + (d.ttc || 0), 0);
   document.getElementById(containerId).innerHTML =
@@ -5925,7 +6065,7 @@ function buildPerfStats(dossiers, containerId, titlePrefix) {
 }
 
 function buildPerfTable(dossiers, tbodyId) {
-  const signed = dossiers.filter(d => d.statut === 'SIGNÉ');
+  const signed = dossiers.filter(d => isNet(d));
   const agencesActives = AGENCES.filter(a => { const ag = DB.agences.find(x => x.nom === a); return !ag || ag.actif !== false; });
   const ranked = agencesActives.map(a => {
     const dos = signed.filter(d => d.agence === a);
@@ -5956,7 +6096,7 @@ function refreshPerfAnnuel() {
 
 function refreshPerfMensuel() {
   const mois = document.getElementById('perf-mensuel-sel')?.value || '';
-  const dos = DB.dossiers.filter(d => d.mois === mois);
+  const dos = DB.dossiers.filter(d => matchMois(d, mois) || (!d.date && d.mois === mois));
   document.getElementById('perf-mensuel-title').textContent = 'Classement ' + mois;
   buildPerfStats(dos, 'perf-mensuel-stats', 'Mensuel');
   buildPerfTable(dos, 'perf-mensuel-tbody');
@@ -8975,35 +9115,41 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // =====================
 function openAffairesApporteur(nom, dosIds) {
   if (!nom) return;
-  let dos;
+  let dosRaw;
   if (dosIds && dosIds.length) {
-    // Périmètre fourni : on filtre UNIQUEMENT sur ces IDs
-    // puis on vérifie que l'apporteur correspond bien
-    dos = DB.dossiers.filter(d => dosIds.includes(d.id) && d.apporteurNom === nom && d.statut !== 'ANNULÉ');
+    dosRaw = DB.dossiers.filter(d => dosIds.includes(d.id) && d.apporteurNom === nom && d.statut !== 'ANNULÉ');
   } else {
-    // Pas de périmètre : tous les dossiers de cet apporteur
-    dos = DB.dossiers.filter(d => d.apporteurNom === nom && d.statut !== 'ANNULÉ');
+    dosRaw = DB.dossiers.filter(d => d.apporteurNom === nom && d.statut !== 'ANNULÉ');
   }
-  dos = dos.sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
+  // Dédoublonnage IC
+  const seen = new Map();
+  dosRaw.forEach(d => {
+    const key = d.groupId || d.id;
+    if (!seen.has(key)) seen.set(key, d);
+  });
+  const dos = [...seen.values()].sort((a,b) => new Date(b.date||'2000') - new Date(a.date||'2000'));
 
   document.getElementById('modal-apporteur-titre').textContent = nom;
-  const totalCA = dos.reduce((s,d) => s + (d.ttcTotal||d.ttc||0), 0);
+  const totalCA = dos.reduce((s,d) => s + (d.ht||0), 0);
   const totalRev = dos.reduce((s,d) => s + (d.apportHT||0), 0);
   document.getElementById('modal-apporteur-stats').textContent =
-    dos.length + ' affaire(s) · CA TTC : ' + fmtEuro(totalCA) + ' · Reversé HT : ' + fmtEuro(totalRev);
+    dos.length + ' affaire(s) · CA HT : ' + fmtEuro(totalCA) + ' · Reversé HT : ' + fmtEuro(totalRev);
 
   const tbody = document.getElementById('modal-apporteur-tbody');
   tbody.innerHTML = dos.length === 0
     ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">Aucune affaire</td></tr>'
-    : dos.map((d,i) => '<tr style="border-bottom:1px solid var(--border);' + (i%2===0?'':'background:#f8fafc') + '">' +
-        '<td style="padding:10px 12px;font-weight:600">' + d.client + '</td>' +
+    : dos.map((d,i) => {
+        const icBadge = d.groupId ? ' <span style="font-size:11px" title="Intercabinet">🔀</span>' : '';
+        return '<tr style="border-bottom:1px solid var(--border);' + (i%2===0?'':'background:#f8fafc') + '">' +
+        '<td style="padding:10px 12px;font-weight:600">' + d.client + icBadge + '</td>' +
         '<td style="padding:10px 12px;font-size:12px;color:var(--text-muted)">' + d.agence + '</td>' +
         '<td style="padding:10px 12px;font-size:12px">' + fmtDate(d.date) + '</td>' +
-        '<td style="padding:10px 12px;text-align:right;font-weight:600;color:var(--primary)">' + fmtEuro(d.ttcTotal||d.ttc||0) + '</td>' +
+        '<td style="padding:10px 12px;text-align:right;font-weight:600;color:var(--primary)">' + fmtEuro(d.ht||0) + '</td>' +
         '<td style="padding:10px 12px;text-align:right;font-weight:700;color:#92400e">' + fmtEuro(d.apportHT||0) + '</td>' +
         '<td style="padding:10px 12px;text-align:center;font-size:12px">' + (d.apporteurPct||0) + '%</td>' +
         '<td style="padding:10px 12px;text-align:center">' + statusBadge(d.statut) + '</td>' +
-        '</tr>').join('');
+        '</tr>';
+      }).join('');
 
   document.getElementById('modal-affaires-apporteur').style.display = 'block';
   document.body.style.overflow = 'hidden';
