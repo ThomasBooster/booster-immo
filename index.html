@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.1</title>
+<title>SCORIM v1.5.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -780,7 +780,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.1</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.2</div>
     </div>
   </div>
 </div>
@@ -898,7 +898,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.1</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.2</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -4110,6 +4110,18 @@ function _renderApStatsHtmlByNoms(byAp, noms) {
   if (!noms.length) return '<div style="color:var(--text-muted);font-size:13px">Aucune donnée</div>';
   return noms.map(n => {
     const ap = byAp[n];
+    if (!ap) {
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;opacity:0.35">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px">${n}
+          <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:6px">0 dossier(s)</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          <div style="background:#f8fafc;border-radius:6px;padding:7px;text-align:center"><div style="font-size:10px;color:var(--text-muted)">CA HT</div><div style="font-weight:700;color:var(--primary);font-size:13px">—</div></div>
+          <div style="background:#fff7ed;border-radius:6px;padding:7px;text-align:center"><div style="font-size:10px;color:var(--text-muted)">Reversé HT</div><div style="font-weight:700;color:#c2410c;font-size:13px">—</div></div>
+          <div style="background:#f0fdf4;border-radius:6px;padding:7px;text-align:center"><div style="font-size:10px;color:var(--text-muted)">Gain net</div><div style="font-weight:700;color:#15803d;font-size:13px">—</div></div>
+        </div>
+      </div>`;
+    }
     const dates = ap.dates.sort((a,b)=>a-b);
     const anciennete = dates.length ? Math.floor((new Date()-dates[0])/86400000/30) + ' mois' : '—';
     const ratio = ap.ca > 0 ? (ap.rev/ap.ca*100).toFixed(1) : 0;
@@ -5531,7 +5543,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.1</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.2</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
