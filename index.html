@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.4</title>
+<title>SCORIM v1.5.5</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -780,7 +780,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.4</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5</div>
     </div>
   </div>
 </div>
@@ -898,7 +898,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.4</div>
+        <div class="sidebar-version" style="text-align:center;font-size:10px;color:#4a5f70;letter-spacing:.05em;margin-bottom:8px">v1.5.5</div>
         <button class="btn-logout" onclick="doLogout()">← Déconnexion</button>
       </div>
     </nav>
@@ -2625,12 +2625,12 @@
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:200px">
             <div style="border-right:1px solid var(--border);padding:16px">
-              <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">🌐 Réseau</div>
+              <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px;height:28px;display:flex;align-items:center">🌐 Réseau</div>
               <div id="ap-decision-reseau"></div>
             </div>
             <div style="padding:16px">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-                <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase">🔍 Zoom</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;height:28px">
+                <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;white-space:nowrap">🔍 Zoom</div>
                 <select id="ap-decision-zoom" onchange="renderApporteursDecisionZoom()" class="filter-select" style="font-size:12px;padding:4px 8px;flex:1"></select>
               </div>
               <div id="ap-decision-zoom-content"></div>
@@ -4149,6 +4149,7 @@ function _renderApStatsHtmlByNoms(byAp, noms) {
         <div style="background:#f0fdf4;border-radius:6px;padding:7px;text-align:center">
           <div style="font-size:10px;color:var(--text-muted)">Gain net</div>
           <div style="font-weight:700;color:#15803d;font-size:13px">${fmtEuro(gainNet)}</div>
+          <div style="font-size:10px;color:#15803d;margin-top:2px">${ap.ca>0?(gainNet/ap.ca*100).toFixed(1)+'%':''}</div>
         </div>
       </div>
     </div>`;
@@ -5555,7 +5556,7 @@ function genererRapportPDF() {
       return `
 <div class="page-agence">
 <div class="header">
-  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.4</div></div>
+  <div><div class="logo">Scorim</div><div class="logo-sub">by Booster Immobilier · v1.5.5</div></div>
   <div class="report-title"><h1>Rapport mensuel — ${agence}</h1><p>${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>
 </div>
 
