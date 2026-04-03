@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.3</title>
+<title>SCORIM v1.5.5</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -872,7 +872,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.3</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5</div>
     </div>
   </div>
 </div>
@@ -1018,7 +1018,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.3</div>
+        <div class="sidebar-version">v1.5.5</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -3514,7 +3514,7 @@ function setupNav(role) {
     'nav-remunerations':          ['admin','gerant'],
     'nav-feedback':               ['admin','saisie','agence','gerant'],
     'nav-params':                 ['admin','saisie','agence','gerant'],
-    'nav-rapport':                ['admin','saisie','agence','gerant'],
+    'nav-rapport':                ['saisie','gerant'],
     'nav-saisie-admin':           ['admin','saisie'],
   };
 
@@ -5759,8 +5759,7 @@ function populateRapportFilters() {
   if (selSoc) {
     while (selSoc.options.length > 1) selSoc.remove(1);
     const societes = (DB.societes || []).filter(s => {
-      if (['admin','saisie'].includes(currentUser.role)) return true;
-      // Gérant : seulement ses sociétés
+      if (currentUser.role === 'saisie') return true;
       if (currentUser.role === 'gerant') {
         const neg = (DB.negociateurs || []).find(n => n.nom === currentUser.nom);
         if (!neg) return false;
@@ -5794,11 +5793,13 @@ function populateRapportMois() {
   while (selMois.options.length > 1) selMois.remove(1);
   const moisFiltres = annee ? getMoisList().filter(m => m.endsWith(annee)) : getMoisList();
   moisFiltres.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selMois.appendChild(o); });
-  // Pré-sélectionner le mois courant si possible
+  // Pré-sélectionner le mois PRÉCÉDENT par défaut
   const now = new Date();
   const moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const moisCourant = moisNoms[now.getMonth()] + ' ' + now.getFullYear();
-  if (moisFiltres.includes(moisCourant)) selMois.value = moisCourant;
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const moisPrecedent = moisNoms[prevDate.getMonth()] + ' ' + prevDate.getFullYear();
+  if (moisFiltres.includes(moisPrecedent)) selMois.value = moisPrecedent;
+  else if (moisFiltres.length > 0) selMois.value = moisFiltres[moisFiltres.length - 1];
 }
 
 async function genererRapportPDF() {
@@ -6045,7 +6046,9 @@ async function genererRapportPDF() {
       const bolds = [false,false,false,false,true];
       vals.forEach((v, i) => {
         setF(bolds[i]?'bold':'normal', 7.5);
-        doc.text(safe(v), cx2+cFact[i+1]-2, y+5, { align:'right' });
+        // Dernière colonne alignée sur ML+TW-4 (même référence que les totaux)
+        const xRight = i === vals.length-1 ? ML+TW-4 : cx2+cFact[i+1]-2;
+        doc.text(safe(v), xRight, y+5, { align:'right' });
         cx2 += cFact[i+1];
       });
       y += 7;
@@ -6054,7 +6057,7 @@ async function genererRapportPDF() {
 
     // Totaux
     doc.setDrawColor(200,210,220); doc.setLineWidth(0.25);
-    doc.line(ML+TW*0.55, y, ML+TW-2, y);
+    doc.line(ML+TW*0.55, y, ML+TW-4, y);
     y += 4;
     [
       { label:'Total HT', val:fmt(fraisTotal), bold:false, size:8 },
@@ -6064,7 +6067,7 @@ async function genererRapportPDF() {
       setF(t.bold?'bold':'normal', t.size);
       doc.setTextColor(t.bold?180:80, t.bold?20:80, t.bold?20:80);
       doc.text(safe(t.label), ML+TW*0.57, y);
-      doc.text(safe(t.val), ML+TW-2, y, { align:'right' });
+      doc.text(safe(t.val), ML+TW-4, y, { align:'right' });
       y += t.bold ? 7 : 5;
     });
     y += 3;
