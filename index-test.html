@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.2</title>
+<title>SCORIM v1.5.3</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -858,7 +858,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.2</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.3</div>
     </div>
   </div>
 </div>
@@ -1004,7 +1004,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.2</div>
+        <div class="sidebar-version">v1.5.3</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -5787,23 +5787,22 @@ async function genererRapportPDF() {
   document.getElementById('rapport-status').innerHTML =
     '<div style="padding:10px 14px;background:#fef3c7;border-radius:8px;color:#92400e;font-size:13px;font-weight:600">⏳ Chargement de la police...</div>';
 
-  // Charger Noto Sans (supporte € et tous les glyphes)
+  // Charger Noto Sans TTF (supporte € et tous les glyphes)
   let notoBase64 = null;
   try {
-    const urls = [
-      'https://fonts.gstatic.com/s/notosans/v36/o-0IIpQlx3QUlC5A4PNr6zRAW_0.woff2',
-      'https://fonts.gstatic.com/s/notosans/v36/o-0IIpQlx3QUlC5A4PNr5DRBBZ4.woff2'
-    ];
-    // Essayer de charger la police
-    const resp = await fetch('https://fonts.gstatic.com/s/notosans/v36/o-0IIpQlx3QUlC5A4PNr6zRAW_0.woff2');
+    // TTF direct depuis GitHub (raw) — compatible jsPDF
+    const resp = await fetch('https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf');
     if (resp.ok) {
       const buffer = await resp.arrayBuffer();
       const bytes = new Uint8Array(buffer);
       let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      const chunk = 8192;
+      for (let i = 0; i < bytes.byteLength; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
       notoBase64 = btoa(binary);
     }
-  } catch(e) { /* police non disponible, fallback helvetica */ }
+  } catch(e) { /* fallback helvetica */ }
 
   document.getElementById('rapport-status').innerHTML =
     '<div style="padding:10px 14px;background:#fef3c7;border-radius:8px;color:#92400e;font-size:13px;font-weight:600">⏳ Génération du PDF...</div>';
