@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.6</title>
+<title>SCORIM v1.5.4</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -872,7 +872,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.6</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.4</div>
     </div>
   </div>
 </div>
@@ -1018,7 +1018,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.6</div>
+        <div class="sidebar-version">v1.5.4</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -3500,21 +3500,21 @@ function setupNav(role) {
   const NAV_ITEMS = {
     'nav-dashboard':              ['admin','saisie','agence','gerant'],
     'nav-dossiers-link':          ['admin','saisie','agence','gerant'],
-    'nav-ic-validation':          ['admin','agence','gratuit','gerant'],
+    'nav-ic-validation':          ['admin','saisie','agence','gratuit','gerant'],
     'nav-nouveau-dossier':        ['admin','agence','gratuit','gerant'],
     'nav-dossiers-redaction':     ['admin','saisie','agence','gerant'],
     'nav-stats':                  ['admin','saisie','agence','gerant'],
-    'nav-ranking':                ['admin','saisie','agence','gratuit','gerant'],
+    'nav-ranking':                ['admin','saisie','agence','gerant','gratuit'],
     'nav-negociateurs-classement':['admin','saisie','agence','gerant'],
     'nav-encaissements':          ['admin','saisie','agence','gerant'],
     'nav-performances':           ['admin','agence','gerant'],
     'nav-apporteurs':             ['admin','saisie','agence','gerant'],
-    'nav-chatbot':                ['admin','agence','gerant'],
+    'nav-chatbot':                ['admin','saisie','agence','gerant'],
     'nav-equipe':                 ['admin','saisie','agence','gerant'],
     'nav-remunerations':          ['admin','gerant'],
     'nav-feedback':               ['admin','saisie','agence','gerant'],
     'nav-params':                 ['admin','saisie','agence','gerant'],
-    'nav-rapport':                ['saisie','gerant'],
+    'nav-rapport':                ['admin','saisie','gerant'],
     'nav-saisie-admin':           ['admin','saisie'],
   };
 
@@ -5765,10 +5765,10 @@ function populateRapportFilters() {
     const societes = societesActives.filter(s => {
       if (currentUser.role === 'saisie') return true;
       if (currentUser.role === 'gerant') {
-        // Le gérant ne voit QUE ses propres sociétés
-        const neg = (DB.negociateurs || []).find(n => n.nom === currentUser.nom);
-        if (!neg) return false;
-        return (DB.gerants || []).some(g => g.negociateur_id === neg.id && g.societe_id === s.id);
+        // Trouver la société du gérant via son agence (currentUser.agence)
+        const agenceUser = (DB.agences || []).find(a => a.nom === currentUser.agence);
+        if (!agenceUser) return false;
+        return s.id === agenceUser.societe_id;
       }
       return false;
     });
@@ -5778,6 +5778,8 @@ function populateRapportFilters() {
       selSoc.value = societes[0].id;
       // Si une seule société, désactiver le select (pas de choix possible)
       if (societes.length === 1) selSoc.disabled = true;
+    } else {
+      selSoc.disabled = false;
     }
     // Saisie : retirer l'option "Toutes les sociétés" si on veut forcer le choix
     // (on la laisse pour la flexibilité)
