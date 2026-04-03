@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.4</title>
+<title>SCORIM v1.5.5</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -871,7 +871,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.4</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5</div>
     </div>
   </div>
 </div>
@@ -1017,7 +1017,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.4</div>
+        <div class="sidebar-version">v1.5.5</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -16042,13 +16042,8 @@ function icUpdateBadge() {
   }).length;
   if (count>0) { badge.textContent=count; badge.style.display='inline-flex'; badge.style.alignItems='center'; badge.style.justifyContent='center'; }
   else { badge.style.display='none'; }
-  // Afficher/masquer le nav selon s'il y a des IC
-  const total = (DB.drafts||[]).filter(d=>{
-    if(d.statut!=='en_attente_ic') return false;
-    const nd=d.data||{};
-    return (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).includes(myAgence);
-  }).length;
-  if (navIC) navIC.style.display = total>0 ? 'flex' : 'none';
+  // Ne jamais masquer le nav-ic-validation — setupNav gère la visibilité par rôle
+  // Le badge seul indique le nombre de dossiers en attente
 }
 
 
