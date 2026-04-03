@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.5</title>
+<title>SCORIM v1.5.6</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -872,7 +872,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.6</div>
     </div>
   </div>
 </div>
@@ -1018,7 +1018,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.5</div>
+        <div class="sidebar-version">v1.5.6</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -5758,9 +5758,14 @@ function populateRapportFilters() {
   // Sociétés
   if (selSoc) {
     while (selSoc.options.length > 1) selSoc.remove(1);
-    const societes = (DB.societes || []).filter(s => {
+    // Sociétés actives = ayant au moins une agence active
+    const societesActives = (DB.societes || []).filter(s => {
+      return (DB.agences || []).some(a => a.societe_id === s.id && a.actif !== false);
+    });
+    const societes = societesActives.filter(s => {
       if (currentUser.role === 'saisie') return true;
       if (currentUser.role === 'gerant') {
+        // Le gérant ne voit QUE ses propres sociétés
         const neg = (DB.negociateurs || []).find(n => n.nom === currentUser.nom);
         if (!neg) return false;
         return (DB.gerants || []).some(g => g.negociateur_id === neg.id && g.societe_id === s.id);
@@ -5768,8 +5773,14 @@ function populateRapportFilters() {
       return false;
     });
     societes.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.nom; selSoc.appendChild(o); });
-    // Pré-sélectionner si gérant avec une seule société
-    if (societes.length === 1) selSoc.value = societes[0].id;
+    // Gérant : pré-sélectionner sa société (unique en général)
+    if (currentUser.role === 'gerant' && societes.length >= 1) {
+      selSoc.value = societes[0].id;
+      // Si une seule société, désactiver le select (pas de choix possible)
+      if (societes.length === 1) selSoc.disabled = true;
+    }
+    // Saisie : retirer l'option "Toutes les sociétés" si on veut forcer le choix
+    // (on la laisse pour la flexibilité)
     populateRapportAgences();
   }
 }
