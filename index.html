@@ -821,7 +821,6 @@
 
 
 
-
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-card">
@@ -5774,7 +5773,7 @@ function populateRapportMois() {
   if (moisFiltres.includes(moisCourant)) selMois.value = moisCourant;
 }
 
-function genererRapportPDF() {
+async function genererRapportPDF() {
   const mois = document.getElementById('rapport-mois').value;
   const agenceFiltree = document.getElementById('rapport-agence').value;
   if (!mois) { showToast('Veuillez choisir un mois', 'error'); return; }
@@ -5782,10 +5781,101 @@ function genererRapportPDF() {
   const agences = agenceFiltree ? [agenceFiltree] : AGENCES;
   const annee = mois.split(' ')[1];
   const moisDeLannee = getMoisList().filter(m => m.endsWith(annee));
-  const medals = ['🥇', '🥈', '🥉'];
   const fmtE = v => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(Math.round(v));
 
-  const pagesHTML = agences.map(agence => {
+  document.getElementById('rapport-status').innerHTML =
+    '<div style="padding:10px 14px;background:#fef3c7;border-radius:8px;color:#92400e;font-size:13px;font-weight:600">⏳ Chargement de la police...</div>';
+
+  // Charger Noto Sans TTF (supporte € et tous les glyphes)
+  let notoBase64 = null;
+  try {
+    // TTF direct depuis GitHub (raw) — compatible jsPDF
+    const resp = await fetch('https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf');
+    if (resp.ok) {
+      const buffer = await resp.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      const chunk = 8192;
+      for (let i = 0; i < bytes.byteLength; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      notoBase64 = btoa(binary);
+    }
+  } catch(e) { /* fallback helvetica */ }
+
+  document.getElementById('rapport-status').innerHTML =
+    '<div style="padding:10px 14px;background:#fef3c7;border-radius:8px;color:#92400e;font-size:13px;font-weight:600">⏳ Génération du PDF...</div>';
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  // Injecter Noto Sans si disponible
+  const fontName = notoBase64 ? 'NotoSans' : 'helvetica';
+  if (notoBase64) {
+    doc.addFileToVFS('NotoSans-Regular.ttf', notoBase64);
+    doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+    doc.addFileToVFS('NotoSans-Bold.ttf', notoBase64);
+    doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
+  }
+
+  const PW = 210; const PH = 297;
+  const ML = 12; const MR = 12; const MT = 12;
+  const TW = PW - ML - MR;
+  const PRIMARY = [27, 45, 62];
+  const ACCENT = [220, 38, 38];
+  const GRAY = [107, 127, 142];
+  const LIGHT = [244, 246, 248];
+
+  const fmt = v => fmtE(v);
+  const safe = s => (s || '').toString();
+  const setF = (style, size) => { doc.setFont(fontName, style); doc.setFontSize(size); };
+
+  const drawStatBox = (doc, x, y, w, label, value, highlight) => {
+    doc.setFillColor(...(highlight ? [255, 251, 235] : LIGHT));
+    doc.roundedRect(x, y, w, 18, 2, 2, 'F');
+    if (highlight) { doc.setDrawColor(245,166,35); doc.setLineWidth(0.5); doc.roundedRect(x, y, w, 18, 2, 2, 'S'); }
+    doc.setTextColor(...GRAY); setF('normal', 7);
+    doc.text(label.toUpperCase(), x+4, y+6);
+    doc.setTextColor(...PRIMARY); setF('bold', 11);
+    doc.text(safe(value), x+4, y+14);
+  };
+
+  const drawTableHeader = (doc, y, cols, headers, rights) => {
+    doc.setFillColor(...PRIMARY);
+    doc.rect(ML, y, TW, 7, 'F');
+    doc.setTextColor(255,255,255); setF('bold', 7.5);
+    let cx = ML;
+    headers.forEach((h, i) => {
+      const tx = rights[i] ? cx + cols[i] - 2 : cx + 2;
+      doc.text(safe(h), tx, y+5, { align: rights[i] ? 'right' : 'left' });
+      cx += cols[i];
+    });
+    return y + 7;
+  };
+
+  const drawTableRow = (doc, y, rowH, cols, vals, rights, bolds, idx, highlight) => {
+    if (highlight) { doc.setFillColor(255,251,235); doc.rect(ML, y, TW, rowH, 'F'); }
+    else if (idx % 2 === 1) { doc.setFillColor(248,250,252); doc.rect(ML, y, TW, rowH, 'F'); }
+    doc.setDrawColor(229,231,235); doc.setLineWidth(0.15);
+    doc.line(ML, y+rowH, ML+TW, y+rowH);
+    let cx = ML;
+    vals.forEach((v, i) => {
+      doc.setTextColor(bolds[i] ? 27 : 80, bolds[i] ? 45 : 80, bolds[i] ? 62 : 80);
+      setF(bolds[i] ? 'bold' : 'normal', 7.5);
+      const tx = rights[i] ? cx + cols[i] - 2 : cx + 2;
+      doc.text(safe(String(v)), tx, y + rowH/2 + 2.5, { align: rights[i] ? 'right' : 'left' });
+      cx += cols[i];
+    });
+    return y + rowH;
+  };
+
+  const medals = ['1er', '2eme', '3eme'];
+  let firstPage = true;
+
+  for (const agence of agences) {
+    if (!firstPage) doc.addPage();
+    firstPage = false;
+
     const dosMois = DB.dossiers.filter(d => (matchMois(d, mois) || (!d.date && d.mois === mois)) && d.agence === agence && isNet(d));
     const dosAnnee = DB.dossiers.filter(d => (matchAnnee(d, annee) || (!d.date && d.mois && d.mois.endsWith(annee))) && d.agence === agence && isNet(d));
     const rankMois = buildRankDataRaw(DB.dossiers.filter(d => (matchMois(d, mois) || (!d.date && d.mois === mois)) && isNet(d)));
@@ -5795,188 +5885,182 @@ function genererRapportPDF() {
     const caHTMois = dosMois.reduce((s, d) => s + (d.ht || 0), 0);
     const caHTAnnee = dosAnnee.reduce((s, d) => s + (d.ht || 0), 0);
     const posMois = rankMois.findIndex(r => r.name === agence) + 1;
-    const posAnnee = rankAnnee.findIndex(r => r.name === agence) + 1;
 
-    // Regrouper frais par %
+    let y = MT;
+
+    // ── Header ──────────────────────────────────────────────────────────────
+    doc.setFillColor(...PRIMARY);
+    doc.rect(ML, y, TW, 16, 'F');
+    doc.setTextColor(255,255,255);
+    setF('bold', 14); doc.text('SCORIM', ML+4, y+7);
+    setF('normal', 8); doc.text('by Booster Immobilier', ML+4, y+12);
+    setF('bold', 13); doc.text(safe('Rapport mensuel - ' + agence), ML+60, y+7);
+    setF('normal', 8); doc.text(safe(mois + ' - Genere le ' + new Date().toLocaleDateString('fr-FR')), ML+60, y+12);
+    y += 20;
+
+    // ── Stats ────────────────────────────────────────────────────────────────
+    const bw = (TW - 8) / 3;
+    drawStatBox(doc, ML, y, bw, 'CA net HT - ' + mois, fmt(caHTMois), false);
+    drawStatBox(doc, ML+bw+4, y, bw, 'Classement mensuel', posMois <= 3 ? medals[posMois-1] : posMois+'eme', posMois <= 3);
+    drawStatBox(doc, ML+(bw+4)*2, y, bw, 'CA net HT - ' + annee, fmt(caHTAnnee), false);
+    y += 22;
+
+    // ── Classement mensuel ────────────────────────────────────────────────────
+    doc.setTextColor(...PRIMARY); setF('bold', 9);
+    doc.text(safe('Classement mensuel - ' + mois), ML, y);
+    doc.setDrawColor(...PRIMARY); doc.setLineWidth(0.3); doc.line(ML, y+1.5, ML+TW, y+1.5);
+    y += 5;
+    const colsM = [12, 80, 50, 44]; const hdrsM = ['#','Agence','CA HT','Dossiers']; const rightM = [true,false,true,true];
+    y = drawTableHeader(doc, y, colsM, hdrsM, rightM);
+    rankMois.forEach((r, i) => {
+      y = drawTableRow(doc, y, 6, colsM, [i+1, r.name, fmt(r.ht), fmtCount(r.count)], rightM, [true,r.name===agence,r.name===agence,false], i, r.name===agence);
+    });
+    y += 6;
+
+    // ── Classement annuel ─────────────────────────────────────────────────────
+    doc.setTextColor(...PRIMARY); setF('bold', 9);
+    doc.text(safe('Classement annuel - ' + annee), ML, y);
+    doc.setDrawColor(...PRIMARY); doc.setLineWidth(0.3); doc.line(ML, y+1.5, ML+TW, y+1.5);
+    y += 5;
+    const moisLbl = moisDeLannee.map(m => m.split(' ')[0].substring(0,3));
+    const moisW = Math.min(18, Math.floor(50 / Math.max(moisDeLannee.length, 1)));
+    const colsA = [12, 52, 36, 24, ...moisDeLannee.map(() => moisW)];
+    const hdrsA = ['#','Agence','CA HT '+annee,'Doss.',...moisLbl];
+    const rightA = [true,false,true,true,...moisDeLannee.map(() => true)];
+    y = drawTableHeader(doc, y, colsA, hdrsA, rightA);
+    rankAnnee.forEach((r, i) => {
+      const moisVals = moisDeLannee.map(m => {
+        const ht = DB.dossiers.filter(d => d.agence===r.name && (matchMois(d,m)||(!d.date&&d.mois===m)) && isNet(d)).reduce((s,d)=>s+(d.ht||0),0);
+        return ht > 0 ? fmt(ht) : '-';
+      });
+      y = drawTableRow(doc, y, 6, colsA, [i+1,r.name,fmt(r.ht),fmtCount(r.count),...moisVals], rightA, [true,r.name===agence,r.name===agence,false,...moisDeLannee.map(()=>false)], i, r.name===agence);
+    });
+    y += 6;
+
+    // ── Frais juridiques ──────────────────────────────────────────────────────
+    doc.setTextColor(...PRIMARY); setF('bold', 9);
+    doc.text(safe('Frais de dossier juridique - ' + mois), ML, y);
+    doc.setDrawColor(...PRIMARY); doc.setLineWidth(0.3); doc.line(ML, y+1.5, ML+TW, y+1.5);
+    y += 5;
+    if (dosActe.length > 0) {
+      const colsF = [74, 32, 26, 54]; const hdrsF = ['Affaire','Date acte','% vente','Frais imputes']; const rightF = [false,false,true,true];
+      y = drawTableHeader(doc, y, colsF, hdrsF, rightF);
+      dosActe.forEach((d, i) => {
+        y = drawTableRow(doc, y, 6, colsF, [safe(d.client), fmtDate(d.dateActe), (d.pct||100)+'%', fmt(FRAIS_JURIDIQUE*(d.pct||100)/100)], rightF, [true,false,false,true], i, false);
+      });
+    } else {
+      setF('normal', 8); doc.setTextColor(...GRAY);
+      doc.text('Aucun acte authentique signe ce mois.', ML+2, y+5);
+      y += 8;
+    }
+    y += 5;
+
+    // ── Note de frais (facture) ───────────────────────────────────────────────
     const fraisParPct = {};
     dosActe.forEach(d => {
       const pct = d.pct || 100;
       const puProrata = FRAIS_JURIDIQUE * pct / 100;
-      if (!fraisParPct[pct]) fraisParPct[pct] = { pct, qte: 0, puProrata, totalHT: 0 };
+      if (!fraisParPct[pct]) fraisParPct[pct] = { pct, qte:0, puProrata, totalHT:0 };
       fraisParPct[pct].qte++;
       fraisParPct[pct].totalHT += puProrata;
     });
-    const lignesFacture = Object.values(fraisParPct).sort((a,b) => b.pct - a.pct);
+    const lignesF = Object.values(fraisParPct).sort((a,b) => b.pct - a.pct);
     const fraisTTC = fraisTotal * 1.2;
+    const yFacture = y;
 
-    return `
-<div class="page">
-  <div class="header">
-    <div>
-      <div class="logo">SCORIM</div>
-      <div class="logo-sub">by Booster Immobilier · v1.5.1</div>
-    </div>
-    <div class="report-meta">
-      <div class="report-title">Rapport mensuel — ${agence}</div>
-      <div class="report-sub">${mois} · Généré le ${new Date().toLocaleDateString('fr-FR')}</div>
-    </div>
-  </div>
+    // Fond
+    doc.setFillColor(255,250,245);
+    doc.roundedRect(ML, y, TW, 10, 2, 2, 'F');
+    doc.rect(ML, y+5, TW, 5, 'F');
+    // Header facture
+    doc.setFillColor(...PRIMARY);
+    doc.roundedRect(ML, y, TW, 10, 2, 2, 'F');
+    doc.rect(ML, y+5, TW, 5, 'F');
+    doc.setTextColor(255,255,255); setF('bold', 9);
+    doc.text('NOTE DE FRAIS JURIDIQUES', ML+4, y+7);
+    setF('normal', 7.5);
+    doc.text(safe('Agence Booster Immobilier ' + agence + ' - ' + mois), ML+TW-4, y+7, { align:'right' });
+    y += 12;
 
-  <div class="stats-row">
-    <div class="stat-box"><div class="stat-label">CA net HT — ${mois}</div><div class="stat-value">${fmtE(caHTMois)}</div></div>
-    <div class="stat-box${posMois <= 3 ? ' gold' : ''}"><div class="stat-label">Classement mensuel</div><div class="stat-value">${medals[posMois-1] || posMois + 'ème'}</div></div>
-    <div class="stat-box"><div class="stat-label">CA net HT — ${annee}</div><div class="stat-value">${fmtE(caHTAnnee)}</div></div>
-  </div>
+    // En-tête colonnes facture : Designation | PU HT | % | Qte | PU prorata | Total HT
+    const cFact = [54, 26, 14, 14, 30, TW-54-26-14-14-30];
+    const hFact = ['Designation','PU HT','%','Qte','PU prorata','Total HT'];
+    const rFact = [false,true,true,true,true,true];
+    doc.setFillColor(235,240,245);
+    doc.rect(ML, y, TW, 6, 'F');
+    doc.setTextColor(...PRIMARY); setF('bold', 7);
+    let cx = ML+2;
+    hFact.forEach((h, i) => {
+      const tx = rFact[i] ? cx+cFact[i]-2 : cx;
+      doc.text(h, tx, y+4.5, { align: rFact[i] ? 'right' : 'left' });
+      cx += cFact[i];
+    });
+    y += 6;
 
-  <div class="section">
-    <div class="section-title">📅 Classement mensuel — ${mois}</div>
-    <table>
-      <thead><tr><th>#</th><th>Agence</th><th>CA HT</th><th>Dossiers</th></tr></thead>
-      <tbody>
-        ${rankMois.map((r,i) => `<tr class="${r.name===agence?'hl':''}">
-          <td><span class="badge ${i<3?'b'+(i+1):'bo'}">${i+1}</span></td>
-          <td>${r.name}</td><td class="num">${fmtE(r.ht)}</td><td class="num">${fmtCount(r.count)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-  </div>
+    // Lignes facture
+    lignesF.forEach((l, idx) => {
+      if (idx%2===1) { doc.setFillColor(250,252,255); doc.rect(ML+0.5, y, TW-1, 7, 'F'); }
+      doc.setDrawColor(220,228,235); doc.setLineWidth(0.12);
+      doc.line(ML+2, y+7, ML+TW-2, y+7);
+      doc.setTextColor(50,50,50); setF('normal', 7.5);
+      doc.text('Frais de traitement juridique', ML+2, y+5);
+      let cx2 = ML+2+cFact[0];
+      const vals = [fmt(FRAIS_JURIDIQUE), l.pct+'%', String(l.qte), fmt(l.puProrata), fmt(l.totalHT)];
+      const bolds = [false,false,false,false,true];
+      vals.forEach((v, i) => {
+        setF(bolds[i]?'bold':'normal', 7.5);
+        doc.text(safe(v), cx2+cFact[i+1]-2, y+5, { align:'right' });
+        cx2 += cFact[i+1];
+      });
+      y += 7;
+    });
+    y += 3;
 
-  <div class="section">
-    <div class="section-title">📆 Classement annuel — ${annee}</div>
-    <table>
-      <thead><tr><th>#</th><th>Agence</th><th>CA HT ${annee}</th><th>Doss.</th>
-        ${moisDeLannee.map(m => `<th>${m.split(' ')[0].substring(0,3)}</th>`).join('')}
-      </tr></thead>
-      <tbody>
-        ${rankAnnee.map((r,i) => `<tr class="${r.name===agence?'hl':''}">
-          <td><span class="badge ${i<3?'b'+(i+1):'bo'}">${i+1}</span></td>
-          <td>${r.name}</td>
-          <td class="num">${fmtE(r.ht)}</td>
-          <td class="num">${fmtCount(r.count)}</td>
-          ${moisDeLannee.map(m => {
-            const ht = DB.dossiers.filter(d => d.agence===r.name && (matchMois(d,m)||(!d.date&&d.mois===m)) && isNet(d)).reduce((s,d)=>s+(d.ht||0),0);
-            return `<td class="num">${ht>0?fmtE(ht):'—'}</td>`;
-          }).join('')}
-        </tr>`).join('')}
-      </tbody>
-    </table>
-  </div>
+    // Totaux
+    doc.setDrawColor(200,210,220); doc.setLineWidth(0.25);
+    doc.line(ML+TW*0.55, y, ML+TW-2, y);
+    y += 4;
+    [
+      { label:'Total HT', val:fmt(fraisTotal), bold:false, size:8 },
+      { label:'TVA 20 %', val:fmt(fraisTotal*0.2), bold:false, size:8 },
+      { label:'TOTAL TTC', val:fmt(fraisTTC), bold:true, size:9.5 },
+    ].forEach(t => {
+      setF(t.bold?'bold':'normal', t.size);
+      doc.setTextColor(t.bold?180:80, t.bold?20:80, t.bold?20:80);
+      doc.text(safe(t.label), ML+TW*0.57, y);
+      doc.text(safe(t.val), ML+TW-2, y, { align:'right' });
+      y += t.bold ? 7 : 5;
+    });
+    y += 3;
 
-  <div class="section">
-    <div class="section-title">⚖️ Frais de dossier juridique — ${mois}</div>
-    ${dosActe.length > 0 ? `<table>
-      <thead><tr><th>Affaire</th><th>Date acte</th><th>% vente</th><th>Frais imputés</th></tr></thead>
-      <tbody>
-        ${dosActe.map(d => `<tr>
-          <td>${d.client}</td>
-          <td class="num">${fmtDate(d.dateActe)}</td>
-          <td class="num">${d.pct||100}%</td>
-          <td class="num">${fmtE(FRAIS_JURIDIQUE*(d.pct||100)/100)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>` : '<p class="muted">Aucun acte authentique signé ce mois.</p>'}
-  </div>
+    // Mention paiement
+    doc.setDrawColor(220,38,38); doc.setLineWidth(0.15);
+    doc.line(ML+2, y, ML+TW-2, y);
+    y += 4;
+    doc.setTextColor(...GRAY); setF('normal', 7);
+    doc.text('A regler avant le 10 du mois au service juridique du GIE Booster Immobilier', ML+4, y);
+    y += 5;
 
-  <div class="facture">
-    <div class="facture-header">
-      <span>NOTE DE FRAIS JURIDIQUES</span>
-      <span>Agence Booster Immobilier ${agence} — ${mois}</span>
-    </div>
-    <table class="facture-table">
-      <thead><tr><th>Désignation</th><th style="text-align:right">PU HT</th><th style="text-align:right">%</th><th style="text-align:right">Qté</th><th style="text-align:right">PU prorata</th><th style="text-align:right">Total HT</th></tr></thead>
-      <tbody>
-        ${lignesFacture.map((l,i) => `<tr class="${i%2===1?'alt':''}">
-          <td>Frais de traitement juridique</td>
-          <td class="num">${fmtE(FRAIS_JURIDIQUE)}</td>
-          <td class="num">${l.pct}%</td>
-          <td class="num">${l.qte}</td>
-          <td class="num">${fmtE(l.puProrata)}</td>
-          <td class="num bold">${fmtE(l.totalHT)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-    <div class="totaux">
-      <div class="tot-row"><span>Total HT</span><span>${fmtE(fraisTotal)}</span></div>
-      <div class="tot-row"><span>TVA 20 %</span><span>${fmtE(fraisTotal*0.2)}</span></div>
-      <div class="tot-row ttc"><span>TOTAL TTC</span><span>${fmtE(fraisTTC)}</span></div>
-    </div>
-    <div class="facture-mention">À régler avant le 10 du mois au service juridique du GIE Booster Immobilier</div>
-  </div>
+    // Cadre rouge autour de la facture
+    doc.setDrawColor(...ACCENT); doc.setLineWidth(0.5);
+    doc.roundedRect(ML, yFacture, TW, y-yFacture+2, 2, 2, 'S');
+    y += 6;
 
-  <div class="footer">
-    <span>Scorim — Booster Immobilier — Document confidentiel</span>
-    <span>Rapport généré automatiquement le ${new Date().toLocaleDateString('fr-FR', {day:'numeric',month:'long',year:'numeric'})}</span>
-  </div>
-</div>`;
-  }).join('<div style="page-break-after:always"></div>');
-
-  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-<title>Rapport ${mois}${agenceFiltree?' — '+agenceFiltree:''}</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,600;9..40,700;9..40,800&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'DM Sans',Arial,sans-serif;color:#1a2530;font-size:12px;background:white}
-.page{padding:28px 32px;max-width:210mm;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:3px solid #1B2D3E;margin-bottom:20px}
-.logo{font-weight:800;font-size:22px;color:#1B2D3E;letter-spacing:-0.5px}
-.logo-sub{font-size:11px;color:#6b7f8e;margin-top:2px}
-.report-meta{text-align:right}
-.report-title{font-weight:700;font-size:18px;color:#1B2D3E}
-.report-sub{font-size:11px;color:#6b7f8e;margin-top:3px}
-.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px}
-.stat-box{background:#f4f6f8;border-radius:8px;padding:12px 14px;border-left:3px solid #1B2D3E}
-.stat-box.gold{border-color:#F5A623;background:#fffbf0}
-.stat-label{font-size:9px;font-weight:600;color:#6b7f8e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px}
-.stat-value{font-weight:800;font-size:18px;color:#1B2D3E}
-.section{margin-bottom:16px}
-.section-title{font-weight:700;font-size:13px;color:#1B2D3E;padding-bottom:6px;border-bottom:1.5px solid #d8e2ea;margin-bottom:10px}
-table{width:100%;border-collapse:collapse;font-size:11px}
-thead th{padding:6px 8px;background:#1B2D3E;color:white;font-size:9px;text-transform:uppercase;letter-spacing:0.3px;text-align:left;font-weight:600}
-tbody tr:nth-child(even){background:#f8fafc}
-tbody td{padding:6px 8px;border-bottom:1px solid #e8eef3}
-.num{text-align:right}
-.bold{font-weight:700}
-.hl{background:#fffbeb !important;font-weight:700}
-.muted{color:#6b7f8e;font-size:11px;font-style:italic;padding:8px 0}
-.badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-weight:700;font-size:10px}
-.b1{background:#FFD700;color:#7d6200}.b2{background:#C0C0C0;color:#444}.b3{background:#CD7F32;color:#5a2c00}.bo{background:#f0f4f8;color:#6b7f8e}
-.facture{border:1.5px solid #dc2626;border-radius:8px;overflow:hidden;margin-bottom:16px}
-.facture-header{background:#1B2D3E;color:white;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:11px}
-.facture-table{width:100%;border-collapse:collapse;font-size:11px}
-.facture-table thead th{background:#e8eef3;color:#1B2D3E;padding:5px 8px;font-size:9px;text-transform:uppercase;letter-spacing:0.3px;font-weight:700;border-bottom:1px solid #d8e2ea}
-.facture-table tbody td{padding:5px 8px;border-bottom:1px solid #f0f4f8}
-.facture-table tbody tr.alt{background:#fafafa}
-.totaux{padding:8px 14px;border-top:1px solid #e8eef3;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-.tot-row{display:flex;gap:40px;font-size:11px;color:#374151}
-.tot-row.ttc{font-weight:800;font-size:13px;color:#dc2626;padding-top:4px;border-top:1.5px solid #dc2626;margin-top:2px}
-.facture-mention{padding:7px 14px;font-size:10px;color:#6b7f8e;font-style:italic;border-top:1px solid #f0f4f8;background:#fafafa}
-.footer{margin-top:20px;padding-top:10px;border-top:1px solid #d8e2ea;display:flex;justify-content:space-between;font-size:9px;color:#6b7f8e}
-.print-btn{position:fixed;top:16px;right:16px;background:#1B2D3E;color:white;border:none;padding:10px 20px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:9999}
-.print-btn:hover{background:#2a4057}
-@media print{.print-btn{display:none}.page{padding:16px 20px}}
-</style></head><body>
-<button class="print-btn" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
-${pagesHTML}
-</body></html>`;
-
-  // Ouvrir via blob URL (fonctionne aussi en local file://)
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const blobUrl = URL.createObjectURL(blob);
-  const win = window.open(blobUrl, '_blank');
-  if (!win) {
-    // Fallback : télécharger le fichier HTML
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = 'rapport_' + mois.replace(' ','_') + (agenceFiltree ? '_' + agenceFiltree.replace(/\s+/g,'_') : '') + '.html';
-    a.click();
-    document.getElementById('rapport-status').innerHTML =
-      "<div style=\"padding:10px 14px;background:#fef3c7;border-radius:8px;color:#92400e;font-size:13px;font-weight:600\">Rapport telecharge - ouvre le fichier et utilise Cmd+P pour enregistrer en PDF</div>";
-  } else {
-    document.getElementById('rapport-status').innerHTML =
-      '<div style="padding:10px 14px;background:#d1fae5;border-radius:8px;color:#065f46;font-size:13px;font-weight:600">✅ Rapport ouvert — clique sur "Imprimer / Enregistrer en PDF" dans la fenêtre</div>';
+    // ── Footer ────────────────────────────────────────────────────────────────
+    doc.setTextColor(...GRAY); setF('normal', 7);
+    doc.text('Scorim - Booster Immobilier - Document confidentiel', ML, PH-8);
+    doc.text(safe('Rapport genere automatiquement le ' + new Date().toLocaleDateString('fr-FR', {day:'numeric',month:'long',year:'numeric'})), ML+TW, PH-8, { align:'right' });
+    doc.setDrawColor(...GRAY); doc.setLineWidth(0.2);
+    doc.line(ML, PH-10, ML+TW, PH-10);
   }
-  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+  const nomFichier = 'rapport_' + mois.replace(' ','_') + (agenceFiltree ? '_'+agenceFiltree.replace(/\s+/g,'_') : '_toutes_agences') + '.pdf';
+  doc.save(nomFichier);
+  document.getElementById('rapport-status').innerHTML =
+    '<div style="padding:10px 14px;background:#d1fae5;border-radius:8px;color:#065f46;font-size:13px;font-weight:600">PDF genere : ' + nomFichier + '</div>';
+
 }
+
 
 function refreshButoires() {
   const now = new Date();
