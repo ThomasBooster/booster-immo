@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.13</title>
+<title>SCORIM v1.5.14</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -881,7 +881,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.13</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.14</div>
     </div>
   </div>
 </div>
@@ -1033,7 +1033,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.13</div>
+        <div class="sidebar-version">v1.5.14</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -2313,7 +2313,14 @@
                   <div style="font-size:13px;color:var(--text-muted)">Prime mensuelle agence</div>
                   <span style="font-weight:600;color:#16a34a" id="remu-bilan-prime">0 €</span>
                 </div>
-                <div id="remu-bilan-total-zone" style="display:none;display:flex;justify-content:space-between;padding:10px 0">
+                <div id="remu-bilan-prime-except-zone" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0;align-items:center;gap:8px">
+                  <div style="font-size:13px;color:var(--text-muted);white-space:nowrap">Prime exceptionnelle</div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <input type="number" id="remu-prime-exceptionnelle" min="0" step="10" placeholder="0" oninput="recalcBilanRemu()" style="width:100px;padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;text-align:right">
+                    <span style="font-size:13px;color:var(--text-muted)">€</span>
+                  </div>
+                </div>
+                <div id="remu-bilan-total-zone" style="display:flex;justify-content:space-between;padding:10px 0">
                   <div style="font-size:14px;font-weight:700">💰 TOTAL À VERSER</div>
                   <span style="font-weight:700;font-size:16px;color:#15803d" id="remu-bilan-total">0 €</span>
                 </div>
@@ -6832,6 +6839,7 @@ async function loadRemuHistorique(neg) {
     const hasRemises = remises && remises.length > 0;
     const isResponsable = neg.statut_emploi === 'responsable';
     const hasPrime = isResponsable && validations.some(v => (v.prime_agence_montant || 0) > 0);
+    const hasPrimeExcept = validations.some(v => (v.prime_exceptionnelle || 0) > 0);
     // Afficher/cacher colonnes via th
     const table = tbody.closest('table');
     if (table) {
@@ -6839,6 +6847,8 @@ async function loadRemuHistorique(neg) {
       if (thRemise) thRemise.style.display = hasRemises ? '' : 'none';
       const thPrime = table.querySelector('#th-prime');
       if (thPrime) thPrime.style.display = hasPrime ? '' : 'none';
+      const thPrimeExcept = table.querySelector('#th-prime-except');
+      if (thPrimeExcept) thPrimeExcept.style.display = hasPrimeExcept ? '' : 'none';
     }
     const avance = parseFloat(neg.avance_commission) || 0;
     tbody.innerHTML = validations.map(v => {
@@ -6858,6 +6868,7 @@ async function loadRemuHistorique(neg) {
           '<td style="text-align:right;font-weight:700;color:#16a34a">' + fmtEuro(total) + '</td>' +
           '<td style="text-align:right;color:var(--text-muted)">—</td>' +
           (hasPrime ? '<td style="text-align:right;color:var(--text-muted)">—</td>' : '') +
+          (hasPrimeExcept ? '<td style="text-align:right;' + (v.prime_exceptionnelle > 0 ? 'color:#0369a1;font-weight:700' : 'color:var(--text-muted)') + '">' + (v.prime_exceptionnelle > 0 ? fmtEuro(v.prime_exceptionnelle) : '—') + '</td>' : '') +
           (hasRemises ? '<td style="text-align:right;color:var(--text-muted)">—</td>' : '') +
           '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:' + (v.mail_envoye ? '#dcfce7' : '#f1f5f9') + ';color:' + (v.mail_envoye ? '#15803d' : '#64748b') + '">' + (v.mail_envoye ? '✓ Mail' : '—') + '</span></td>' +
           '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d">✓ Validé</span></td>' +
@@ -6879,6 +6890,8 @@ async function loadRemuHistorique(neg) {
         ? '<span title="' + (remiseMois.motif || '').replace(/"/g, '&quot;') + ' — par ' + (remiseMois.auteur || '') + '" style="cursor:help;color:#d97706;font-weight:700;text-decoration:underline dotted">+ ' + fmtEuro(remiseMois.montant) + '</span>'
         : '<span style="color:var(--text-muted)">—</span>') + '</td>' : '';
       const primeCell = hasPrime ? '<td style="text-align:right;color:#7c3aed;font-weight:700">' + (prime > 0 ? fmtEuro(prime) : '—') + '</td>' : '';
+      const primeExceptVal = v.prime_exceptionnelle || 0;
+      const primeExceptCell = hasPrimeExcept ? '<td style="text-align:right;color:#0369a1;font-weight:700">' + (primeExceptVal > 0 ? fmtEuro(primeExceptVal) : '—') + '</td>' : '';
       return '<tr>' +
         '<td style="font-weight:600">' + (moisNoms[v.mois] || v.mois) + ' ' + v.annee + '</td>' +
         '<td style="text-align:right;color:var(--primary);font-weight:600">' + fmtEuro(commissions) + '</td>' +
@@ -6888,6 +6901,7 @@ async function loadRemuHistorique(neg) {
         '<td style="text-align:right;font-weight:700;color:#16a34a">' + fmtEuro(salaireVerse) + '</td>' +
         '<td style="text-align:right;font-weight:700;color:' + nsColor + '">' + (nouveauSolde < 0 ? '- ' + fmtEuro(Math.abs(nouveauSolde)) : '0 €') + '</td>' +
         primeCell +
+        primeExceptCell +
         remiseCell +
         '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:' + (v.mail_envoye ? '#dcfce7' : '#f1f5f9') + ';color:' + (v.mail_envoye ? '#15803d' : '#64748b') + '">' + (v.mail_envoye ? '✓ Mail' : '—') + '</span></td>' +
         '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d">✓ Validé</span></td>' +
@@ -11038,7 +11052,7 @@ function renderStatsNeg(container, negId) {
     '</div>' +
     '<div class="stats-sep"><span>📈 CA cumulé 12 mois glissants<span class="info-tip" data-tip="Somme glissante du CA HT sur les 12 derniers mois. Chaque point représente le total des 12 mois précédents — permet de lisser les effets de saisonnalité et de voir la tendance de fond.">i</span></span></div><div><canvas id="stats-neg-chart-glissant" height="70"></canvas></div>' +
     '<div class="stats-sep"><span>📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px"></div>' +
-    ((['salarié','responsable','agent-co','alternant'].includes(n.statut_emploi)) ? '<div class="card" id="fiche-remu-section" style="margin-bottom:20px"><div class="card-header"><span class="card-title">💶 Historique des rémunérations</span>' + '</div><div style="overflow-x:auto"><table><thead><tr><th>Période</th><th style="text-align:right">Commissions</th><th style="text-align:right">Solde ant.</th><th style="text-align:right">Débit/Crédit</th><th style="text-align:right">Avance</th><th style="text-align:right">Salaire versé</th><th style="text-align:right">Nouveau solde</th><th style="text-align:right" id="th-prime" style="display:none">Prime agence</th><th style="text-align:right" id="th-remise" style="display:none">Remise</th><th style="text-align:center">Mail</th><th style="text-align:center">Statut</th></tr></thead><tbody id="fiche-remu-tbody"><tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Chargement...</td></tr></tbody></table></div></div>' : '') +
+    ((['salarié','responsable','agent-co','alternant'].includes(n.statut_emploi)) ? '<div class="card" id="fiche-remu-section" style="margin-bottom:20px"><div class="card-header"><span class="card-title">💶 Historique des rémunérations</span>' + '</div><div style="overflow-x:auto"><table><thead><tr><th>Période</th><th style="text-align:right">Commissions</th><th style="text-align:right">Solde ant.</th><th style="text-align:right">Débit/Crédit</th><th style="text-align:right">Avance</th><th style="text-align:right">Salaire versé</th><th style="text-align:right">Nouveau solde</th><th style="text-align:right" id="th-prime" style="display:none">Prime agence</th><th style="text-align:right" id="th-prime-except" style="display:none">Prime except.</th><th style="text-align:right" id="th-remise" style="display:none">Remise</th><th style="text-align:center">Mail</th><th style="text-align:center">Statut</th></tr></thead><tbody id="fiche-remu-tbody"><tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Chargement...</td></tr></tbody></table></div></div>' : '') +
     '<div class="stats-sep"><span>⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-neg-delai"></div>' +
     '<div class="stats-sep"><span>🔴 Annulations post-SSP</span></div><div id="stats-neg-annul"></div>' +
     '<div class="stats-sep"><span>🏷 Rétrocession Booster</span></div><div id="stats-neg-retro"></div>' +
@@ -13651,7 +13665,8 @@ function recalcRemuTotal() {
       nouveauSolde = -(avance - debitCreditSansPrime) + remiseDejaMois;
       if (nouveauSolde > 0) nouveauSolde = 0;
     }
-    const totalAVerser = salaireAVerser + primeMontantCalc;
+    const primeExcept = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+    const totalAVerser = salaireAVerser + primeMontantCalc + primeExcept;
 
     if (bilanEl) bilanEl.style.display = 'block';
     document.getElementById('remu-bilan-commissions').textContent = fmtEuro(commissionsSansPrime);
@@ -13672,13 +13687,13 @@ function recalcRemuTotal() {
     const totalZone = document.getElementById('remu-bilan-total-zone');
     if (primeMontantCalc > 0) {
       if (primeZone) primeZone.style.display = '';
-      if (totalZone) totalZone.style.display = '';
       document.getElementById('remu-bilan-prime').textContent = fmtEuro(primeMontantCalc);
-      document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAVerser);
     } else {
       if (primeZone) primeZone.style.display = 'none';
-      if (totalZone) totalZone.style.display = 'none';
     }
+    // Le total est toujours affiché (prime agence ou exceptionnelle)
+    if (totalZone) totalZone.style.display = '';
+    document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAVerser);
     const nvSoldeEl = document.getElementById('remu-bilan-nouveau-solde');
     if (remiseDejaMois > 0) {
       const soldeAvantRemise = -(avance - debitCredit);
@@ -14188,7 +14203,8 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
   const debitCreditSansPrime = commissionsSansPrimePDF + soldeAntEffectifPDF;
   const salaireAVerserFinal = debitCreditSansPrime >= avance ? debitCreditSansPrime : avance;
   const nouveauSoldeFinal = debitCreditSansPrime >= avance ? 0 : -(avance - debitCreditSansPrime);
-  const totalAVerserPDF = salaireAVerserFinal + primeMontantPDF;
+  const primeExcept = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+  const totalAVerserPDF = salaireAVerserFinal + primeMontantPDF + primeExcept;
 
   // Bilan du mois
   const bilanHTML = '<div class="section-title">Bilan du mois</div>' +
@@ -14198,8 +14214,9 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
       '<div class="bilan-row"><span>Debit / Credit du mois</span><span style="font-weight:700;color:' + (debitCreditSansPrime>=0?'#16a34a':'#dc2626') + '">' + (debitCreditSansPrime>=0?'+ ':'- ') + fmtEuro(Math.abs(debitCreditSansPrime)) + '</span></div>' +
       '<div class="bilan-row"><span>Avance sur commission mensuelle</span><span>' + fmtEuro(avance) + '</span></div>' +
       (primeMontantPDF > 0 ? '<div class="bilan-row"><span>Prime CA agence (' + (parseFloat(neg.prime_agence_pct)||0) + '%)</span><span style="font-weight:700;color:#7c3aed">+ ' + fmtEuro(primeMontantPDF) + '</span></div>' : '') +
-      (primeMontantPDF > 0 ? '<div class="bilan-row" style="border-bottom:none"><span>Total a verser</span><span style="font-weight:700;color:#16a34a">= ' + fmtEuro(totalAVerserPDF) + '</span></div>' : '<div class="bilan-row" style="border-bottom:none"></div>') +
-      '<div class="bilan-highlight-green"><span>' + (primeMontantPDF > 0 ? 'Dont avance a verser' : 'Salaire brut a verser') + '</span><span>' + fmtEuro(salaireAVerserFinal) + '</span></div>' +
+      (primeExcept > 0 ? '<div class="bilan-row" style="color:#0369a1;font-weight:700"><span>Prime exceptionnelle</span><span>+ ' + fmtEuro(primeExcept) + '</span></div>' : '') +
+      ((primeMontantPDF > 0 || primeExcept > 0) ? '<div class="bilan-row" style="border-bottom:none"><span>Total a verser</span><span style="font-weight:700;color:#16a34a">= ' + fmtEuro(totalAVerserPDF) + '</span></div>' : '<div class="bilan-row" style="border-bottom:none"></div>') +
+      '<div class="bilan-highlight-green"><span>' + ((primeMontantPDF > 0 || primeExcept > 0) ? 'Dont avance a verser' : 'Salaire brut a verser') + '</span><span>' + fmtEuro(salaireAVerserFinal) + '</span></div>' +
       '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSoldeFinal<0 ? '- '+fmtEuro(Math.abs(nouveauSoldeFinal)) : '0 €') + '</span></div>' +
     '</div>';
 
@@ -14539,7 +14556,8 @@ async function validerRemuneration() {
   const annee = parseInt(document.getElementById('remu-annee').value);
   const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
   const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
-  const totalNet = remuLignes.reduce((s,l)=>s+l.commission,0) + credit + soldeInitial;
+  const primeExceptionnelle = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+  const totalNet = remuLignes.reduce((s,l)=>s+l.commission,0) + credit + soldeInitial + primeExceptionnelle;
 
   const _primeLigneV = remuLignes.find(l => l.isPrimeAgence);
   const _primeAgenceMontant = _primeLigneV ? _primeLigneV.commission : 0;
@@ -14556,6 +14574,7 @@ async function validerRemuneration() {
       annee,
       total_commissions: remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0),
       prime_agence_montant: _primeAgenceMontant,
+      prime_exceptionnelle: primeExceptionnelle,
       credit_courtier: credit,
       solde_initial: soldeInitial,
       total_net: totalNet,
@@ -14683,8 +14702,9 @@ async function loadRemunerationsList() {
         const _comm = (val.total_commissions || 0) + (val.credit_courtier || 0);
         const _fixe = collab.statut_emploi === 'alternant' ? (parseFloat(collab.avance_commission) || 0) : 0;
         const _prime = val.prime_agence_montant || 0;
-        if (collab.statut_emploi === 'alternant') return _comm + _fixe;
-        if (_sal > 0) return collab.statut_emploi === 'responsable' ? _sal + _prime : _sal;
+        const _primeExcept = val.prime_exceptionnelle || 0;
+        if (collab.statut_emploi === 'alternant') return _comm + _fixe + _primeExcept;
+        if (_sal > 0) return collab.statut_emploi === 'responsable' ? _sal + _prime + _primeExcept : _sal + _primeExcept;
         // Fallback recalcul (anciennes validations sans salaire_a_verser)
         const _avance = parseFloat(collab.avance_commission) || 0;
         const _partNR = collab.part_non_recup != null ? parseFloat(collab.part_non_recup) / 100 : 0;
@@ -14692,7 +14712,7 @@ async function loadRemunerationsList() {
         const _soldeAnt = -Math.abs(val.solde_initial || 0) + _montantNR;
         const _dc = _comm + _soldeAnt;
         const _s = _dc >= _avance ? _dc : _avance;
-        return collab.statut_emploi === 'responsable' ? _s + _prime : _s;
+        return collab.statut_emploi === 'responsable' ? _s + _prime + _primeExcept : _s + _primeExcept;
       };
 
       if (v) {
@@ -14704,10 +14724,12 @@ async function loadRemunerationsList() {
           const _fixe = parseFloat(c.avance_commission) || 0;
           detailHtml = fmtEuro(_comm) + ' comm. + ' + fmtEuro(_fixe) + ' fixe';
         } else if (c.statut_emploi === 'responsable') {
-          const _base = totalAVerser - _prime;
-          detailHtml = fmtEuro(_base) + ' avance' + (_prime > 0 ? ' + ' + fmtEuro(_prime) + ' prime' : '');
+          const _primeEx = v.prime_exceptionnelle || 0;
+          const _base = totalAVerser - _prime - _primeEx;
+          detailHtml = fmtEuro(_base) + ' avance' + (_prime > 0 ? ' + ' + fmtEuro(_prime) + ' prime' : '') + (_primeEx > 0 ? ' + ' + fmtEuro(_primeEx) + ' except.' : '');
         } else {
-          detailHtml = fmtEuro(totalAVerser);
+          const _primeEx = v.prime_exceptionnelle || 0;
+          detailHtml = fmtEuro(totalAVerser) + (_primeEx > 0 ? ' (dont ' + fmtEuro(_primeEx) + ' prime except.)' : '');
         }
       }
 
