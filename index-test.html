@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.16</title>
+<title>SCORIM v1.5.17</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -189,15 +189,12 @@
     position: fixed;
     top: 0; left: 0; bottom: 0;
     z-index: 100;
-    overflow: hidden;
     transition: width var(--tsb), background var(--tsb), backdrop-filter var(--tsb);
     will-change: width;
   }
   .sidebar:hover {
     width: var(--dock-exp);
-    background: rgba(27, 45, 62, 0.75);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: #243d52;
     box-shadow: 4px 0 32px rgba(0,0,0,0.22);
   }
 
@@ -887,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.16</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.17</div>
     </div>
   </div>
 </div>
@@ -1039,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.16</div>
+        <div class="sidebar-version">v1.5.17</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -2286,7 +2283,7 @@
                 <span style="font-size:13px;font-weight:600">Crédit courtier / régularisation</span>
                 <input type="number" id="remu-credit" placeholder="0" step="0.01"
                   style="width:120px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:white"
-                  oninput="recalcRemuTotal()">
+                  oninput="recalcBilanRemu()">
                 <span style="font-size:12px;color:var(--text-muted)">€ (positif = bonus, négatif = déduction)</span>
               </div>
             </div>
@@ -2299,15 +2296,15 @@
                   <div style="font-size:13px;color:var(--text-muted)">Commissions générées</div>
                   <span style="font-weight:600" id="remu-bilan-commissions">0 €</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
+                <div id="remu-bilan-solde-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
                   <div style="font-size:13px;color:var(--text-muted)">Solde antérieur (dette)</div>
                   <span style="font-weight:600;color:#dc2626" id="remu-bilan-solde-ant">0 €</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
+                <div id="remu-bilan-dc-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
                   <div style="font-size:13px;color:var(--text-muted)">Débit / Crédit</div>
                   <span style="font-weight:700" id="remu-bilan-debit-credit">0 €</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
+                <div id="remu-bilan-avance-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
                   <div style="font-size:13px;color:var(--text-muted)">Avance mensuelle</div>
                   <span style="font-weight:600" id="remu-bilan-avance">0 €</span>
                 </div>
@@ -2333,7 +2330,7 @@
                   <div style="font-size:14px;font-weight:700">💰 TOTAL À VERSER</div>
                   <span style="font-weight:700;font-size:16px;color:#15803d" id="remu-bilan-total">0 €</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0">
+                <div id="remu-bilan-nvsolde-row" style="display:flex;justify-content:space-between;padding:8px 0">
                   <div style="font-size:13px;color:var(--text-muted)">Nouveau solde reporté</div>
                   <span style="font-weight:600" id="remu-bilan-nouveau-solde">0 €</span>
                 </div>
@@ -13668,6 +13665,10 @@ function recalcRemuTotal() {
     if (slLbl) { const lbl = slLbl.querySelector('div'); if (lbl) lbl.textContent = '💰 TOTAL À VERSER'; }
     document.getElementById('remu-btn-offrir-apres').style.display = 'none';
   } else if (isSalarie && remuLignes.length > 0) {
+    // Logique salarié : remettre les lignes potentiellement masquées par agent-co
+    ['remu-bilan-solde-row','remu-bilan-dc-row','remu-bilan-avance-row','remu-bilan-nvsolde-row'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = '';
+    });
     // Logique salarié : commissions - dette antérieure = crédit/débit vs avance
     const commissionsTotal = sousTotal + credit;
     const soldeAnt = -Math.abs(soldeInitial); // solde antérieur = dette (toujours négatif ou 0)
@@ -13744,29 +13745,28 @@ function recalcRemuTotal() {
     }
     nvSoldeEl.style.color = nouveauSolde < 0 ? '#d97706' : '#16a34a';
   } else if (remuCurrentNeg && remuCurrentNeg.statut_emploi === 'agent-co' && remuLignes.length > 0) {
-    // Agent-co : commissions uniquement + prime exceptionnelle
+    // Agent-co : commissions uniquement + prime exceptionnelle — masquer lignes salarié
     if (bilanEl) bilanEl.style.display = 'block';
+    // Masquer les lignes non pertinentes
+    ['remu-bilan-solde-row','remu-bilan-dc-row','remu-bilan-avance-row','remu-bilan-nvsolde-row','remu-bilan-prime-zone'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
     const commissionsAgCo = remuLignes.reduce((s,l)=>s+l.commission,0) + credit;
     const primeExceptAgCo = (window._remuPrimesExcept && remuCurrentNeg ? (window._remuPrimesExcept[remuCurrentNeg.id] || 0) : 0);
     const totalAgCo = commissionsAgCo + primeExceptAgCo;
     document.getElementById('remu-bilan-commissions').textContent = fmtEuro(commissionsAgCo);
-    const soldeAntElAgCo = document.getElementById('remu-bilan-solde-ant');
-    soldeAntElAgCo.textContent = '—'; soldeAntElAgCo.style.color = 'var(--text-muted)';
-    const dcElAgCo = document.getElementById('remu-bilan-debit-credit');
-    dcElAgCo.textContent = '—'; dcElAgCo.style.color = 'var(--text-muted)';
-    document.getElementById('remu-bilan-avance').textContent = '—';
-    document.getElementById('remu-bilan-salaire').textContent = fmtEuro(commissionsAgCo);
-    const pzAgCo = document.getElementById('remu-bilan-prime-zone'); if (pzAgCo) pzAgCo.style.display = 'none';
+    // Libellé "Commissions à verser" sur la ligne salaire
+    const slElAgCo = document.getElementById('remu-bilan-salaire');
+    if (slElAgCo) slElAgCo.textContent = fmtEuro(commissionsAgCo);
+    const slRowAgCo = slElAgCo?.closest('[style*="padding"]');
+    if (slRowAgCo) { const lbl = slRowAgCo.querySelector('div'); if (lbl) lbl.textContent = '💰 Commissions à verser'; }
+    // Total si prime except
     const tzAgCo = document.getElementById('remu-bilan-total-zone');
     if (primeExceptAgCo > 0) {
       if (tzAgCo) { tzAgCo.style.display = ''; document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAgCo); }
     } else {
       if (tzAgCo) tzAgCo.style.display = 'none';
     }
-    const nvSoldeElAgCo = document.getElementById('remu-bilan-nouveau-solde');
-    nvSoldeElAgCo.textContent = '—'; nvSoldeElAgCo.style.color = 'var(--text-muted)';
-    const slLblAgCo = document.getElementById('remu-bilan-salaire')?.closest('[style*="padding"]');
-    if (slLblAgCo) { const lbl = slLblAgCo.querySelector('div'); if (lbl) lbl.textContent = 'Commissions à verser'; }
     document.getElementById('remu-btn-offrir-apres').style.display = 'none';
   } else {
     if (bilanEl) bilanEl.style.display = 'none';
