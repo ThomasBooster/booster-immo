@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.15</title>
+<title>SCORIM v1.5.16</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -183,23 +183,21 @@
   /* ══ DOCK SIDEBAR ══ */
   .sidebar {
     width: var(--dock-w);
-    background: rgba(27, 45, 62, 0.72);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: var(--primary);
     display: flex;
     flex-direction: column;
     position: fixed;
     top: 0; left: 0; bottom: 0;
     z-index: 100;
     overflow: hidden;
-    transition: width var(--tsb), background var(--tsb), box-shadow var(--tsb);
+    transition: width var(--tsb), background var(--tsb), backdrop-filter var(--tsb);
     will-change: width;
   }
   .sidebar:hover {
     width: var(--dock-exp);
-    background: rgba(27, 45, 62, 0.88);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(27, 45, 62, 0.75);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     box-shadow: 4px 0 32px rgba(0,0,0,0.22);
   }
 
@@ -889,7 +887,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.15</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.16</div>
     </div>
   </div>
 </div>
@@ -1041,7 +1039,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.15</div>
+        <div class="sidebar-version">v1.5.16</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -2321,12 +2319,15 @@
                   <div style="font-size:13px;color:var(--text-muted)">Prime mensuelle agence</div>
                   <span style="font-weight:600;color:#16a34a" id="remu-bilan-prime">0 €</span>
                 </div>
-                <div id="remu-bilan-prime-except-zone" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0;align-items:center;gap:8px">
-                  <div style="font-size:13px;color:var(--text-muted);white-space:nowrap">Prime exceptionnelle</div>
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <input type="number" id="remu-prime-exceptionnelle" min="0" step="10" placeholder="0" oninput="recalcBilanRemu()" onchange="recalcBilanRemu()" onblur="recalcBilanRemu()" style="width:100px;padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;text-align:right;-moz-appearance:textfield;appearance:textfield" onwheel="this.blur()">
-                    <span style="font-size:13px;color:var(--text-muted)">€</span>
+                <div id="remu-bilan-prime-except-zone" style="padding:8px 0;border-bottom:1px solid #bbf7d0">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
+                    <div style="font-size:13px;color:var(--text-muted);white-space:nowrap">Prime exceptionnelle</div>
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <input type="number" id="remu-prime-exceptionnelle" min="0" step="10" placeholder="0" oninput="onPrimeExceptChange()" onchange="onPrimeExceptChange()" style="width:100px;padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;text-align:right;-moz-appearance:textfield;appearance:textfield" onwheel="this.blur()">
+                      <span style="font-size:13px;color:var(--text-muted)">€</span>
+                    </div>
                   </div>
+                  <input type="text" id="remu-prime-commentaire" placeholder="Motif / commentaire (optionnel)" oninput="onPrimeExceptChange()" style="width:100%;padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted)">
                 </div>
                 <div id="remu-bilan-total-zone" style="display:flex;justify-content:space-between;padding:10px 0">
                   <div style="font-size:14px;font-weight:700">💰 TOTAL À VERSER</div>
@@ -6899,7 +6900,8 @@ async function loadRemuHistorique(neg) {
         : '<span style="color:var(--text-muted)">—</span>') + '</td>' : '';
       const primeCell = hasPrime ? '<td style="text-align:right;color:#7c3aed;font-weight:700">' + (prime > 0 ? fmtEuro(prime) : '—') + '</td>' : '';
       const primeExceptVal = v.prime_exceptionnelle || 0;
-      const primeExceptCell = hasPrimeExcept ? '<td style="text-align:right;color:#0369a1;font-weight:700">' + (primeExceptVal > 0 ? fmtEuro(primeExceptVal) : '—') + '</td>' : '';
+      const primeCommentVal = v.prime_commentaire || '';
+      const primeExceptCell = hasPrimeExcept ? '<td style="text-align:right;color:#0369a1;font-weight:700">' + (primeExceptVal > 0 ? '<span class="info-tip" data-tip="' + (primeCommentVal || 'Prime exceptionnelle') + '" style="' + (primeCommentVal ? '' : 'display:none') + '">i</span> ' + fmtEuro(primeExceptVal) : '—') + '</td>' : '';
       return '<tr>' +
         '<td style="font-weight:600">' + (moisNoms[v.mois] || v.mois) + ' ' + v.annee + '</td>' +
         '<td style="text-align:right;color:var(--primary);font-weight:600">' + fmtEuro(commissions) + '</td>' +
@@ -13221,7 +13223,12 @@ function openRemunerationModal() {
   document.getElementById('remu-empty').style.display = 'block';
   document.getElementById('remu-statut-badge').style.display = 'none';
   const remuCreditEl = document.getElementById('remu-credit'); if (remuCreditEl) remuCreditEl.value = '';
-  const remuPrimeExceptEl = document.getElementById('remu-prime-exceptionnelle'); if (remuPrimeExceptEl) remuPrimeExceptEl.value = '';
+  // Charger prime/commentaire individuels pour ce collab
+  const _rpeNegId = remuCurrentNeg?.id;
+  const remuPrimeExceptEl = document.getElementById('remu-prime-exceptionnelle');
+  if (remuPrimeExceptEl) remuPrimeExceptEl.value = (_rpeNegId && window._remuPrimesExcept?.[_rpeNegId]) ? window._remuPrimesExcept[_rpeNegId] : '';
+  const remuCommentEl = document.getElementById('remu-prime-commentaire');
+  if (remuCommentEl) remuCommentEl.value = (_rpeNegId && window._remuCommentaires?.[_rpeNegId]) ? window._remuCommentaires[_rpeNegId] : '';
   document.getElementById('remu-mail-sent-badge').style.display = 'none';
   document.getElementById('remu-btn-valider').disabled = false;
   document.getElementById('remu-btn-valider').style.opacity = '';
@@ -13588,6 +13595,19 @@ function renderRemuResultats(mois, annee) {
     '</div>';
 }
 
+// Stockage individuel des primes et commentaires par negId
+window._remuPrimesExcept = window._remuPrimesExcept || {};
+window._remuCommentaires = window._remuCommentaires || {};
+
+function onPrimeExceptChange() {
+  if (!remuCurrentNeg) return;
+  const montant = (window._remuPrimesExcept && remuCurrentNeg ? (window._remuPrimesExcept[remuCurrentNeg.id] || 0) : 0);
+  const commentaire = document.getElementById('remu-prime-commentaire')?.value || '';
+  window._remuPrimesExcept[remuCurrentNeg.id] = montant;
+  window._remuCommentaires[remuCurrentNeg.id] = commentaire;
+  recalcRemuTotal();
+}
+
 function recalcBilanRemu() {
   recalcRemuTotal();
 }
@@ -13628,7 +13648,7 @@ function recalcRemuTotal() {
     soldeAntElAlt.textContent = '—'; soldeAntElAlt.style.color = 'var(--text-muted)';
     const dcElAlt = document.getElementById('remu-bilan-debit-credit');
     dcElAlt.textContent = '—'; dcElAlt.style.color = 'var(--text-muted)';
-    const primeExceptAlt = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+    const primeExceptAlt = (window._remuPrimesExcept && remuCurrentNeg ? (window._remuPrimesExcept[remuCurrentNeg.id] || 0) : 0);
     const totalAltFinal = totalAlt + primeExceptAlt;
     document.getElementById('remu-bilan-avance').textContent = fmtEuro(fixeAlt);
     document.getElementById('remu-bilan-salaire').textContent = fmtEuro(totalAlt);
@@ -13685,7 +13705,7 @@ function recalcRemuTotal() {
       nouveauSolde = -(avance - debitCreditSansPrime) + remiseDejaMois;
       if (nouveauSolde > 0) nouveauSolde = 0;
     }
-    const primeExcept = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+    const primeExcept = (window._remuPrimesExcept && remuCurrentNeg ? (window._remuPrimesExcept[remuCurrentNeg.id] || 0) : 0);
     const totalAVerser = salaireAVerser + primeMontantCalc + primeExcept;
 
     if (bilanEl) bilanEl.style.display = 'block';
@@ -13727,7 +13747,7 @@ function recalcRemuTotal() {
     // Agent-co : commissions uniquement + prime exceptionnelle
     if (bilanEl) bilanEl.style.display = 'block';
     const commissionsAgCo = remuLignes.reduce((s,l)=>s+l.commission,0) + credit;
-    const primeExceptAgCo = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+    const primeExceptAgCo = (window._remuPrimesExcept && remuCurrentNeg ? (window._remuPrimesExcept[remuCurrentNeg.id] || 0) : 0);
     const totalAgCo = commissionsAgCo + primeExceptAgCo;
     document.getElementById('remu-bilan-commissions').textContent = fmtEuro(commissionsAgCo);
     const soldeAntElAgCo = document.getElementById('remu-bilan-solde-ant');
@@ -14249,7 +14269,8 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
   const debitCreditSansPrime = commissionsSansPrimePDF + soldeAntEffectifPDF;
   const salaireAVerserFinal = debitCreditSansPrime >= avance ? debitCreditSansPrime : avance;
   const nouveauSoldeFinal = debitCreditSansPrime >= avance ? 0 : -(avance - debitCreditSansPrime);
-  const primeExcept = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+  const primeExcept = (window._remuPrimesExcept && remuCurrentNeg ? (window._remuPrimesExcept[remuCurrentNeg.id] || 0) : 0);
+  const primeCommentPDF = (window._remuCommentaires && remuCurrentNeg) ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
   const totalAVerserPDF = salaireAVerserFinal + primeMontantPDF + primeExcept;
 
   // Bilan du mois
@@ -14260,7 +14281,7 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
       '<div class="bilan-row"><span>Debit / Credit du mois</span><span style="font-weight:700;color:' + (debitCreditSansPrime>=0?'#16a34a':'#dc2626') + '">' + (debitCreditSansPrime>=0?'+ ':'- ') + fmtEuro(Math.abs(debitCreditSansPrime)) + '</span></div>' +
       '<div class="bilan-row"><span>Avance sur commission mensuelle</span><span>' + fmtEuro(avance) + '</span></div>' +
       (primeMontantPDF > 0 ? '<div class="bilan-row"><span>Prime CA agence (' + (parseFloat(neg.prime_agence_pct)||0) + '%)</span><span style="font-weight:700;color:#7c3aed">+ ' + fmtEuro(primeMontantPDF) + '</span></div>' : '') +
-      (primeExcept > 0 ? '<div class="bilan-row" style="color:#0369a1;font-weight:700"><span>Prime exceptionnelle</span><span>+ ' + fmtEuro(primeExcept) + '</span></div>' : '') +
+      (primeExcept > 0 ? '<div class="bilan-row" style="color:#0369a1;font-weight:700"><span>Prime exceptionnelle' + (primeCommentPDF ? '<br><span style="font-size:10px;font-weight:400;color:#0369a1">' + primeCommentPDF + '</span>' : '') + '</span><span>+ ' + fmtEuro(primeExcept) + '</span></div>' : '') +
       (true ? '<div class="bilan-row" style="border-bottom:none;font-weight:700;font-size:12px;padding:6px 0"><span>Total a verser</span><span style="font-weight:800;color:#065f46;font-size:14px">= ' + fmtEuro(totalAVerserPDF) + '</span></div>' : '') +
       '<div class="bilan-highlight-green"><span>' + ((primeMontantPDF > 0 || primeExcept > 0) ? 'Dont avance a verser' : '💰 TOTAL A VERSER') + '</span><span>' + fmtEuro((primeMontantPDF > 0 || primeExcept > 0) ? salaireAVerserFinal : totalAVerserPDF) + '</span></div>' +
       '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSoldeFinal<0 ? '- '+fmtEuro(Math.abs(nouveauSoldeFinal)) : '0 €') + '</span></div>' +
@@ -14602,7 +14623,8 @@ async function validerRemuneration() {
   const annee = parseInt(document.getElementById('remu-annee').value);
   const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
   const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
-  const primeExceptionnelle = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+  const primeExceptionnelle = (window._remuPrimesExcept && remuCurrentNeg ? (window._remuPrimesExcept[remuCurrentNeg.id] || 0) : 0);
+  const primeCommentaire = (window._remuCommentaires && remuCurrentNeg) ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
   const totalNet = remuLignes.reduce((s,l)=>s+l.commission,0) + credit + soldeInitial + primeExceptionnelle;
 
   const _primeLigneV = remuLignes.find(l => l.isPrimeAgence);
@@ -14621,6 +14643,7 @@ async function validerRemuneration() {
       total_commissions: remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0),
       prime_agence_montant: _primeAgenceMontant,
       prime_exceptionnelle: primeExceptionnelle,
+      prime_commentaire: primeCommentaire,
       credit_courtier: credit,
       solde_initial: soldeInitial,
       total_net: totalNet,
@@ -14870,6 +14893,12 @@ function openRemunerationForCollab(negId) {
   document.getElementById('remu-solde-initial').value = '';
   window._remisesMois = [];
   window._remuOpenedFrom = 'remunerations';
+  // Charger prime/commentaire individuels pour ce collab
+  const _rpeNegId2 = neg.id;
+  const remuPrimeExEl2 = document.getElementById('remu-prime-exceptionnelle');
+  if (remuPrimeExEl2) remuPrimeExEl2.value = (window._remuPrimesExcept?.[_rpeNegId2]) ? window._remuPrimesExcept[_rpeNegId2] : '';
+  const remuCommentEl2 = document.getElementById('remu-prime-commentaire');
+  if (remuCommentEl2) remuCommentEl2.value = (window._remuCommentaires?.[_rpeNegId2]) ? window._remuCommentaires[_rpeNegId2] : '';
 
   checkRemuValidation();
   document.getElementById('modal-remuneration').classList.add('open');
