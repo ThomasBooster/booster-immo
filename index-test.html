@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.14</title>
+<title>SCORIM v1.5.15</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -183,18 +183,23 @@
   /* ══ DOCK SIDEBAR ══ */
   .sidebar {
     width: var(--dock-w);
-    background: var(--primary);
+    background: rgba(27, 45, 62, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     position: fixed;
     top: 0; left: 0; bottom: 0;
     z-index: 100;
     overflow: hidden;
-    transition: width var(--tsb);
+    transition: width var(--tsb), background var(--tsb), box-shadow var(--tsb);
     will-change: width;
   }
   .sidebar:hover {
     width: var(--dock-exp);
+    background: rgba(27, 45, 62, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     box-shadow: 4px 0 32px rgba(0,0,0,0.22);
   }
 
@@ -789,6 +794,9 @@
     pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 9999;
   }
   .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
+  input#remu-prime-exceptionnelle::-webkit-inner-spin-button,
+  input#remu-prime-exceptionnelle::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
   .tr-clickable:hover { background: var(--color-background-secondary, #f8fafc) !important; transition: background .1s; }
   /* Nav items masqués par défaut, setupNav() les affiche selon le rôle */
   .nav-item-role { display: none; }
@@ -881,7 +889,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.14</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.15</div>
     </div>
   </div>
 </div>
@@ -1033,7 +1041,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.14</div>
+        <div class="sidebar-version">v1.5.15</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -2316,7 +2324,7 @@
                 <div id="remu-bilan-prime-except-zone" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0;align-items:center;gap:8px">
                   <div style="font-size:13px;color:var(--text-muted);white-space:nowrap">Prime exceptionnelle</div>
                   <div style="display:flex;align-items:center;gap:6px">
-                    <input type="number" id="remu-prime-exceptionnelle" min="0" step="10" placeholder="0" oninput="recalcBilanRemu()" style="width:100px;padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;text-align:right">
+                    <input type="number" id="remu-prime-exceptionnelle" min="0" step="10" placeholder="0" oninput="recalcBilanRemu()" onchange="recalcBilanRemu()" onblur="recalcBilanRemu()" style="width:100px;padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;text-align:right;-moz-appearance:textfield;appearance:textfield" onwheel="this.blur()">
                     <span style="font-size:13px;color:var(--text-muted)">€</span>
                   </div>
                 </div>
@@ -13213,6 +13221,7 @@ function openRemunerationModal() {
   document.getElementById('remu-empty').style.display = 'block';
   document.getElementById('remu-statut-badge').style.display = 'none';
   const remuCreditEl = document.getElementById('remu-credit'); if (remuCreditEl) remuCreditEl.value = '';
+  const remuPrimeExceptEl = document.getElementById('remu-prime-exceptionnelle'); if (remuPrimeExceptEl) remuPrimeExceptEl.value = '';
   document.getElementById('remu-mail-sent-badge').style.display = 'none';
   document.getElementById('remu-btn-valider').disabled = false;
   document.getElementById('remu-btn-valider').style.opacity = '';
@@ -13579,6 +13588,10 @@ function renderRemuResultats(mois, annee) {
     '</div>';
 }
 
+function recalcBilanRemu() {
+  recalcRemuTotal();
+}
+
 function recalcRemuTotal() {
   const totalFrais = remuLignes.reduce((s,l)=>s+(l.fraisJuridiques||0),0);
   const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
@@ -13615,10 +13628,17 @@ function recalcRemuTotal() {
     soldeAntElAlt.textContent = '—'; soldeAntElAlt.style.color = 'var(--text-muted)';
     const dcElAlt = document.getElementById('remu-bilan-debit-credit');
     dcElAlt.textContent = '—'; dcElAlt.style.color = 'var(--text-muted)';
+    const primeExceptAlt = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+    const totalAltFinal = totalAlt + primeExceptAlt;
     document.getElementById('remu-bilan-avance').textContent = fmtEuro(fixeAlt);
     document.getElementById('remu-bilan-salaire').textContent = fmtEuro(totalAlt);
     const pzAlt = document.getElementById('remu-bilan-prime-zone'); if (pzAlt) pzAlt.style.display = 'none';
-    const tzAlt = document.getElementById('remu-bilan-total-zone'); if (tzAlt) tzAlt.style.display = 'none';
+    const tzAlt = document.getElementById('remu-bilan-total-zone');
+    if (primeExceptAlt > 0) {
+      if (tzAlt) { tzAlt.style.display = ''; document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAltFinal); }
+    } else {
+      if (tzAlt) tzAlt.style.display = 'none';
+    }
     const nvSoldeElAlt = document.getElementById('remu-bilan-nouveau-solde');
     nvSoldeElAlt.textContent = '—'; nvSoldeElAlt.style.color = 'var(--text-muted)';
     // Adapter les libellés
@@ -13703,6 +13723,31 @@ function recalcRemuTotal() {
       nvSoldeEl.textContent = nouveauSolde < 0 ? '- ' + fmtEuro(Math.abs(nouveauSolde)) : '0 €';
     }
     nvSoldeEl.style.color = nouveauSolde < 0 ? '#d97706' : '#16a34a';
+  } else if (remuCurrentNeg && remuCurrentNeg.statut_emploi === 'agent-co' && remuLignes.length > 0) {
+    // Agent-co : commissions uniquement + prime exceptionnelle
+    if (bilanEl) bilanEl.style.display = 'block';
+    const commissionsAgCo = remuLignes.reduce((s,l)=>s+l.commission,0) + credit;
+    const primeExceptAgCo = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+    const totalAgCo = commissionsAgCo + primeExceptAgCo;
+    document.getElementById('remu-bilan-commissions').textContent = fmtEuro(commissionsAgCo);
+    const soldeAntElAgCo = document.getElementById('remu-bilan-solde-ant');
+    soldeAntElAgCo.textContent = '—'; soldeAntElAgCo.style.color = 'var(--text-muted)';
+    const dcElAgCo = document.getElementById('remu-bilan-debit-credit');
+    dcElAgCo.textContent = '—'; dcElAgCo.style.color = 'var(--text-muted)';
+    document.getElementById('remu-bilan-avance').textContent = '—';
+    document.getElementById('remu-bilan-salaire').textContent = fmtEuro(commissionsAgCo);
+    const pzAgCo = document.getElementById('remu-bilan-prime-zone'); if (pzAgCo) pzAgCo.style.display = 'none';
+    const tzAgCo = document.getElementById('remu-bilan-total-zone');
+    if (primeExceptAgCo > 0) {
+      if (tzAgCo) { tzAgCo.style.display = ''; document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAgCo); }
+    } else {
+      if (tzAgCo) tzAgCo.style.display = 'none';
+    }
+    const nvSoldeElAgCo = document.getElementById('remu-bilan-nouveau-solde');
+    nvSoldeElAgCo.textContent = '—'; nvSoldeElAgCo.style.color = 'var(--text-muted)';
+    const slLblAgCo = document.getElementById('remu-bilan-salaire')?.closest('[style*="padding"]');
+    if (slLblAgCo) { const lbl = slLblAgCo.querySelector('div'); if (lbl) lbl.textContent = 'Commissions à verser'; }
+    document.getElementById('remu-btn-offrir-apres').style.display = 'none';
   } else {
     if (bilanEl) bilanEl.style.display = 'none';
   }
@@ -13833,6 +13878,7 @@ function buildBulletinAlternantHTML(mois, annee, withPrintStyle) {
     '.bilan{background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:12px;margin-bottom:14px}' +
     '.bilan-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:11px}' +
     '.bilan-highlight-green{background:#f0fdf4;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#15803d;font-size:14px}' +
+    '.bilan-total-bold{background:#16a34a;color:white;padding:10px 8px;border-radius:8px;font-size:16px;margin-top:4px}' +
     '.signature{margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px}' +
     '@media print{button{display:none}}</style>' : '';
 
@@ -13973,7 +14019,7 @@ function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
     '.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}' +
     '.bilan{background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:12px;margin-bottom:14px}' +
     '.bilan-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:11px}' +
-    '.bilan-highlight-green{background:#f0fdf4;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#15803d;font-size:13px}' +
+    '.bilan-highlight-green{background:#d1fae5;padding:10px 14px;display:flex;justify-content:space-between;font-weight:800;color:#065f46;font-size:15px;border-radius:6px;margin-top:4px}' +
     '.bilan-highlight-purple{background:#f5f3ff;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#7c3aed;font-size:13px}' +
     '.bilan-highlight-blue{background:#eff6ff;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#1d4ed8;font-size:14px}' +
     '.bilan-highlight-amber{background:#fef3c7;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#d97706;font-size:13px}' +
@@ -14125,7 +14171,7 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
     '.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}' +
     '.bilan{background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:12px;margin-bottom:14px}' +
     '.bilan-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:11px}' +
-    '.bilan-highlight-green{background:#f0fdf4;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#15803d;font-size:13px}' +
+    '.bilan-highlight-green{background:#d1fae5;padding:10px 14px;display:flex;justify-content:space-between;font-weight:800;color:#065f46;font-size:15px;border-radius:6px;margin-top:4px}' +
     '.bilan-highlight-amber{background:#fef3c7;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#d97706;font-size:13px}' +
     '.bareme-table td{font-size:10px;padding:3px 6px}.bareme-active{background:#dbeafe;color:#1d4ed8;font-weight:700}' +
     '.signature{margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px}' +
@@ -14215,8 +14261,8 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
       '<div class="bilan-row"><span>Avance sur commission mensuelle</span><span>' + fmtEuro(avance) + '</span></div>' +
       (primeMontantPDF > 0 ? '<div class="bilan-row"><span>Prime CA agence (' + (parseFloat(neg.prime_agence_pct)||0) + '%)</span><span style="font-weight:700;color:#7c3aed">+ ' + fmtEuro(primeMontantPDF) + '</span></div>' : '') +
       (primeExcept > 0 ? '<div class="bilan-row" style="color:#0369a1;font-weight:700"><span>Prime exceptionnelle</span><span>+ ' + fmtEuro(primeExcept) + '</span></div>' : '') +
-      ((primeMontantPDF > 0 || primeExcept > 0) ? '<div class="bilan-row" style="border-bottom:none"><span>Total a verser</span><span style="font-weight:700;color:#16a34a">= ' + fmtEuro(totalAVerserPDF) + '</span></div>' : '<div class="bilan-row" style="border-bottom:none"></div>') +
-      '<div class="bilan-highlight-green"><span>' + ((primeMontantPDF > 0 || primeExcept > 0) ? 'Dont avance a verser' : 'Salaire brut a verser') + '</span><span>' + fmtEuro(salaireAVerserFinal) + '</span></div>' +
+      (true ? '<div class="bilan-row" style="border-bottom:none;font-weight:700;font-size:12px;padding:6px 0"><span>Total a verser</span><span style="font-weight:800;color:#065f46;font-size:14px">= ' + fmtEuro(totalAVerserPDF) + '</span></div>' : '') +
+      '<div class="bilan-highlight-green"><span>' + ((primeMontantPDF > 0 || primeExcept > 0) ? 'Dont avance a verser' : '💰 TOTAL A VERSER') + '</span><span>' + fmtEuro((primeMontantPDF > 0 || primeExcept > 0) ? salaireAVerserFinal : totalAVerserPDF) + '</span></div>' +
       '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSoldeFinal<0 ? '- '+fmtEuro(Math.abs(nouveauSoldeFinal)) : '0 €') + '</span></div>' +
     '</div>';
 
