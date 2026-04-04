@@ -871,13 +871,13 @@
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
         <div style="text-align:center;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Accès rapide — TEST</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center" id="quick-login-btns">
-          <button onclick="quickLoginProd('thomas','admin')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Thomas Admin</button>
-          <button onclick="quickLoginProd('thomasg','gerant')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Thomas Gérant</button>
-          <button onclick="quickLoginProd('laurie','saisie')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Laurie Saisie</button>
-          <button onclick="quickLoginProd('minimes','agence')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Minimes Gratuit</button>
-          <button onclick="quickLoginProd('bonnefoy','agence')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Bonnefoy Gratuit</button>
-          <button onclick="quickLoginProd('cotepavee','agence')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Côte Pavée Gratuit</button>
-          <button onclick="quickLoginProd('margot','agence')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Margot St-Cyprien</button>
+          <button onclick="quickLoginProd('admin')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Thomas Admin</button>
+          <button onclick="quickLoginProd('thomasg')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Thomas Gérant</button>
+          <button onclick="quickLoginProd('laurie')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Laurie Saisie</button>
+          <button onclick="quickLoginProd('minimes')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Minimes Gratuit</button>
+          <button onclick="quickLoginProd('bonnefoy')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Bonnefoy Gratuit</button>
+          <button onclick="quickLoginProd('cotepavee')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Côte Pavée Gratuit</button>
+          <button onclick="quickLoginProd('margot')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Margot St-Cyprien</button>
         </div>
       </div>
 
@@ -3439,24 +3439,17 @@ let currentUser = null;
 const PROD_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co';
 const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
 
-async function quickLoginProd(nomUser, roleHint) {
+async function quickLoginProd(userId) {
   try {
-    const res = await fetch(PROD_URL + '/rest/v1/users?nom=eq.' + encodeURIComponent(nomUser) + '&select=nom,password', {
+    const res = await fetch(PROD_URL + '/rest/v1/users?id=eq.' + encodeURIComponent(userId) + '&select=id,password', {
       headers: { 'apikey': PROD_KEY, 'Authorization': 'Bearer ' + PROD_KEY }
     });
     const rows = await res.json();
     if (!rows || rows.length === 0) {
-      // Fallback : chercher par rôle et nom approximatif
-      const res2 = await fetch(PROD_URL + '/rest/v1/users?select=nom,password&role=eq.' + roleHint, {
-        headers: { 'apikey': PROD_KEY, 'Authorization': 'Bearer ' + PROD_KEY }
-      });
-      const rows2 = await res2.json();
-      const found = rows2.find(r => r.nom && r.nom.toLowerCase().includes(nomUser.toLowerCase()));
-      if (found) { quickLogin(found.nom, found.password); return; }
-      showToast('Utilisateur introuvable en prod : ' + nomUser, 'error');
+      showToast('Utilisateur introuvable : ' + userId, 'error');
       return;
     }
-    quickLogin(rows[0].nom, rows[0].password);
+    quickLogin(rows[0].id, rows[0].password);
   } catch(e) {
     showToast('Erreur connexion prod : ' + e.message, 'error');
   }
