@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.5</title>
+<title>SCORIM v1.5.11</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -306,6 +306,10 @@
     color: white;
   }
 
+  /* Sections stats sans cadre */
+  .stats-sep { font-family:DM Sans,sans-serif; font-weight:700; font-size:13px; color:var(--primary); padding:6px 0 8px; border-bottom:2px solid var(--primary); margin:20px 0 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .stats-sep-inner { display:flex; align-items:center; gap:10px; }
+
   /* Footer */
   .sidebar-footer {
     padding:8px 0 12px;
@@ -422,19 +426,9 @@
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
   }
   .stat-card {
-    background: white;
-    border-radius: 14px;
-    padding: 20px;
-    border: 1px solid var(--border);
+    padding: 16px 20px 16px 0;
     position: relative;
-    overflow: hidden;
-  }
-  .stat-card::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-bottom: 2px solid var(--border);
   }
   .stat-label {
     font-size: 11px;
@@ -872,7 +866,22 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5</div>
+
+      <!-- Connexion rapide TEST -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
+        <div style="text-align:center;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Accès rapide — TEST</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center" id="quick-login-btns">
+          <button onclick="quickLoginProd('thomas','admin')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Thomas Admin</button>
+          <button onclick="quickLoginProd('thomasg','gerant')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Thomas Gérant</button>
+          <button onclick="quickLoginProd('laurie','saisie')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Laurie Saisie</button>
+          <button onclick="quickLoginProd('minimes','agence')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Minimes Gratuit</button>
+          <button onclick="quickLoginProd('bonnefoy','agence')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Bonnefoy Gratuit</button>
+          <button onclick="quickLoginProd('cotepavee','agence')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Côte Pavée Gratuit</button>
+          <button onclick="quickLoginProd('margot','agence')" style="font-size:11px;padding:4px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(255,255,255,0.06);color:#94a3b8;cursor:pointer;white-space:nowrap">Margot St-Cyprien</button>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.11</div>
     </div>
   </div>
 </div>
@@ -915,7 +924,10 @@
           </div>
           <div class="nav-item nav-item-role" id="nav-ic-validation" onclick="showPage('ic-validation',this)">
             <div class="nav-icon-cell">
-              <div class="nav-icon-inner"><i class="fa-solid fa-shuffle"></i></div>
+              <div class="nav-icon-inner" id="ic-icon-inner" style="position:relative;transition:background 0.3s">
+                <i class="fa-solid fa-shuffle" id="ic-icon-shuffle"></i>
+                <i class="fa-solid fa-triangle-exclamation" id="ic-icon-alert" style="display:none;color:white"></i>
+              </div>
               <span id="ic-badge" class="nav-badge" style="display:none"></span>
             </div>
             <span class="nav-label">Validation intercabinet</span>
@@ -1018,7 +1030,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.5</div>
+        <div class="sidebar-version">v1.5.11</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -1058,61 +1070,39 @@
         </div>
 
         <!-- Dates butoire du mois -->
-        <div class="card" id="card-butoires" style="margin-bottom:20px">
-          <div class="card-header">
-            <span class="card-title">⏰ Dates butoire à surveiller</span>
-            <span style="font-size:12px;color:var(--text-muted)" id="butoire-subtitle"></span>
-          </div>
-          <div style="overflow-x:auto">
-            <table>
-              <thead><tr><th>Affaire</th><th>Agence</th><th>Date butoire</th><th>Statut</th><th>Jours restants</th><th>Actions</th></tr></thead>
-              <tbody id="butoires-tbody"></tbody>
-            </table>
-          </div>
+        <div class="stats-sep" id="card-butoires">
+          <span>⏰ Dates butoire à surveiller</span>
+          <span style="font-size:12px;color:var(--text-muted)" id="butoire-subtitle"></span>
         </div>
+        <table style="margin-bottom:20px">
+          <thead><tr><th>Affaire</th><th>Agence</th><th>Date butoire</th><th>Statut</th><th>Jours restants</th><th>Actions</th></tr></thead>
+          <tbody id="butoires-tbody"></tbody>
+        </table>
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Dossiers SSP</span>
-            <span id="dash-count" style="font-size:12px;color:var(--text-muted)"></span>
-          </div>
-          <div style="overflow-x:auto">
-            <table>
-              <thead>
-                <tr>
-                  <th>Affaire</th>
-                  <th>Agence</th>
-                  <th>Brut TTC</th>
-                  <th>Apporteur</th>
-                  <th>Apport HT</th>
-                  <th>Net HT</th>
-                  <th>Statut</th>
-                  <th>Date SSP</th>
-                  <th>Date butoire</th>
-                  <th>Diag.</th>
-                  <th>Mois</th>
-                  <th>Saisi par</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="dash-tbody"></tbody>
-            </table>
-          </div>
+        <div class="stats-sep">
+          <span>Dossiers SSP</span>
+          <span id="dash-count" style="font-size:12px;color:var(--text-muted)"></span>
         </div>
+        <table style="margin-bottom:20px">
+          <thead>
+            <tr>
+              <th>Affaire</th><th>Agence</th><th>Brut TTC</th><th>Apporteur</th>
+              <th>Apport HT</th><th>Net HT</th><th>Statut</th><th>Date SSP</th>
+              <th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Saisi par</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="dash-tbody"></tbody>
+        </table>
 
         <!-- Frais juridiques -->
-        <div class="card" id="card-juridique">
-          <div class="card-header">
-            <span class="card-title">⚖️ Frais de dossier juridique</span>
-            <span style="font-size:12px;color:var(--text-muted)">450 € HT / dossier — dûs à l'acte authentique</span>
-          </div>
-          <div style="overflow-x:auto">
-            <table>
-              <thead><tr><th>Agence</th><th>Dossiers à l'acte</th><th>Frais dus (HT)</th><th>Détail dossiers</th></tr></thead>
-              <tbody id="juridique-tbody"></tbody>
-            </table>
-          </div>
+        <div class="stats-sep" id="card-juridique">
+          <span>⚖️ Frais de dossier juridique</span>
+          <span style="font-size:12px;color:var(--text-muted)">450 € HT / dossier — dûs à l'acte authentique</span>
         </div>
+        <table style="margin-bottom:20px">
+          <thead><tr><th>Agence</th><th>Dossiers à l'acte</th><th>Frais dus (HT)</th><th>Détail dossiers</th></tr></thead>
+          <tbody id="juridique-tbody"></tbody>
+        </table>
       </div>
 
       <!-- CLASSEMENT -->
@@ -1587,7 +1577,7 @@
               <span class="card-title">📊 Évolution des encaissements</span>
               <div style="display:flex;gap:8px;align-items:center">
                 <select id="enc-graph-annee" onchange="renderEncGraph()" class="filter-select" style="font-size:12px;padding:4px 8px"></select>
-                <label style="font-size:12px;display:flex;align-items:center;gap:4px;color:var(--text-muted)"><input type="checkbox" id="enc-graph-all" onchange="renderEncGraph()"> Toutes</label>
+                <label style="font-size:12px;display:flex;align-items:center;gap:4px;color:var(--text-muted)"><input type="checkbox" id="enc-graph-all" onchange="renderEncGraph()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label>
                 <button id="enc-graph-courbe" onclick="setEncGraphType('courbe')" style="padding:4px 12px;border:1px solid var(--primary);border-radius:6px;font-size:12px;background:var(--primary);color:white;cursor:pointer">Courbe</button>
                 <button id="enc-graph-histo" onclick="setEncGraphType('histo')" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:white;color:var(--text-muted);cursor:pointer">Histogramme</button>
               </div>
@@ -3445,6 +3435,33 @@ let currentUser = null;
 // =====================
 // AUTH
 // =====================
+// Connexion rapide TEST — récupère le vrai mot de passe depuis la base PROD
+const PROD_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co';
+const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
+
+async function quickLoginProd(nomUser, roleHint) {
+  try {
+    const res = await fetch(PROD_URL + '/rest/v1/users?nom=eq.' + encodeURIComponent(nomUser) + '&select=nom,password', {
+      headers: { 'apikey': PROD_KEY, 'Authorization': 'Bearer ' + PROD_KEY }
+    });
+    const rows = await res.json();
+    if (!rows || rows.length === 0) {
+      // Fallback : chercher par rôle et nom approximatif
+      const res2 = await fetch(PROD_URL + '/rest/v1/users?select=nom,password&role=eq.' + roleHint, {
+        headers: { 'apikey': PROD_KEY, 'Authorization': 'Bearer ' + PROD_KEY }
+      });
+      const rows2 = await res2.json();
+      const found = rows2.find(r => r.nom && r.nom.toLowerCase().includes(nomUser.toLowerCase()));
+      if (found) { quickLogin(found.nom, found.password); return; }
+      showToast('Utilisateur introuvable en prod : ' + nomUser, 'error');
+      return;
+    }
+    quickLogin(rows[0].nom, rows[0].password);
+  } catch(e) {
+    showToast('Erreur connexion prod : ' + e.message, 'error');
+  }
+}
+
 function quickLogin(user, pass) {
   document.getElementById('login-user').value = user;
   document.getElementById('login-pass').value = pass;
@@ -3478,6 +3495,7 @@ async function doLogin() {
 function doLogout() {
   stopSSPPolling();
   stopICPolling();
+  icStopPulse();
   // Réinitialiser l'état du draft
   ndDraftId = null;
   ndStep = 1;
@@ -3913,8 +3931,8 @@ function refreshDashboard() {
     <div class="stat-card"><div class="stat-label">CA net HT (signés)<span class="info-tip" data-tip="CA HT après déduction de la TVA et des commissions versées aux apporteurs d'affaires. C'est le CA réellement encaissé par le réseau.">i</span></div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
     <div class="stat-card"><div class="stat-label">Dossiers signés<span class="info-tip" data-tip="Nombre de sous-seings privés signés sur la période.">i</span></div><div class="stat-value">${fmtCount(nbSigned)}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
 
-    <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-label">CA à signer — ${moisCourantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue ce mois-ci.">i</span></div><div class="stat-value" style="color:#d97706">${fmtEuro(caASignerCourant)}</div><div class="stat-sub">${aSignerMoisCourant.length} dossier(s)</div></div>
-    <div class="stat-card" style="border-left:3px solid #3b82f6"><div class="stat-label">CA à signer — ${moisSuivantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue le mois prochain.">i</span></div><div class="stat-value" style="color:#2563eb">${fmtEuro(caASignerSuivant)}</div><div class="stat-sub">${aSignerMoisSuivant.length} dossier(s)</div></div>
+    <div class="stat-card" style="border-bottom-color:#f59e0b"><div class="stat-label">CA à signer — ${moisCourantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue ce mois-ci.">i</span></div><div class="stat-value" style="color:#d97706">${fmtEuro(caASignerCourant)}</div><div class="stat-sub">${aSignerMoisCourant.length} dossier(s)</div></div>
+    <div class="stat-card" style="border-bottom-color:#3b82f6"><div class="stat-label">CA à signer — ${moisSuivantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue le mois prochain.">i</span></div><div class="stat-value" style="color:#2563eb">${fmtEuro(caASignerSuivant)}</div><div class="stat-sub">${aSignerMoisSuivant.length} dossier(s)</div></div>
   `;
 
   const tbody = document.getElementById('dash-tbody');
@@ -9918,13 +9936,13 @@ function buildASignerCards(dosFiltre) {
   const caCeMois = ce_mois.reduce((s,d) => s+(d.ht||0), 0);
   const caMoisSuivant = mois_suivant.reduce((s,d) => s+(d.ht||0), 0);
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">' +
-    '<div class="stat-card" style="border-left:3px solid #f59e0b">' +
-      '<div class="stat-label">CA à signer — ' + moisNomsFull[curMonth] + '</div>' +
+    '<div class="stat-card" style="border-bottom-color:#f59e0b">' +
+      '<div class="stat-label">CA à signer — ' + moisNomsFull[curMonth] + '<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue ce mois-ci. Donne une visibilité sur le CA attendu à court terme.">i</span></div>' +
       '<div class="stat-value" style="color:#d97706">' + fmtEuro(caCeMois) + '</div>' +
       '<div class="stat-sub">' + ce_mois.length + ' dossier(s)</div>' +
     '</div>' +
-    '<div class="stat-card" style="border-left:3px solid #3b82f6">' +
-      '<div class="stat-label">CA à signer — ' + moisNomsFull[nextMonth] + '</div>' +
+    '<div class="stat-card" style="border-bottom-color:#3b82f6">' +
+      '<div class="stat-label">CA à signer — ' + moisNomsFull[nextMonth] + '<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue le mois prochain. Indicateur de pipeline à moyen terme.">i</span></div>' +
       '<div class="stat-value" style="color:#2563eb">' + fmtEuro(caMoisSuivant) + '</div>' +
       '<div class="stat-sub">' + mois_suivant.length + ' dossier(s)</div>' +
     '</div>' +
@@ -9942,18 +9960,22 @@ function buildRatioVentes(last10) {
   return '<span style="font-size:12px;color:var(--text-muted);font-weight:500">1 vente tous les <strong style="color:var(--primary)">' + ratio + ' j</strong></span>';
 }
 function buildStatCards(c1l, c1v, c2l, c2v, c3l, c3v, c4l, c4v) {
+  const tips = {
+    'CA HT TOTAL': 'CA net HT cumulé sur toute la période — après déduction TVA et commissions apporteurs. Reflète le chiffre réellement encaissé.',
+    'VENTES SIGNÉES': 'Nombre total de SSP signés (statut SIGNÉ ou AA SIGNÉ). Les reports et annulations ne sont pas comptés.',
+    'VENTES SIGNEES': 'Nombre total de SSP signés (statut SIGNÉ ou AA SIGNÉ). Les reports et annulations ne sont pas comptés.',
+    'CA NET HT': "CA net HT après déduction TVA et commissions apporteurs — ce que l'agence encaisse réellement.",
+  };
+  const tip = (lbl) => {
+    const t = tips[lbl.toUpperCase().trim()];
+    return t ? '<span class="info-tip" data-tip="' + t + '">i</span>' : '';
+  };
   return '<div class="stats-grid" style="margin-bottom:20px">' +
-    '<div class="stat-card"><div class="stat-label">' + c1l + '</div><div class="stat-value">' + c1v + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">' + c2l + '</div><div class="stat-value">' + c2v + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">' + c3l + '</div><div class="stat-value">' + c3v + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">' + c4l + '</div><div class="stat-value">' + c4v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c1l + tip(c1l) + '</div><div class="stat-value">' + c1v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c2l + tip(c2l) + '</div><div class="stat-value">' + c2v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c3l + tip(c3l) + '</div><div class="stat-value">' + c3v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c4l + tip(c4l) + '</div><div class="stat-value">' + c4v + '</div></div>' +
     '</div>';
-  // Event listeners pour les cartes apporteurs
-  container.querySelectorAll('.ap-card').forEach(el => {
-    el.addEventListener('click', () => openAffairesApporteur(el.dataset.nom, JSON.parse(el.dataset.ids || '[]')));
-    el.addEventListener('mouseover', () => { el.style.borderColor='var(--primary)'; el.style.background='#f0f4f8'; });
-    el.addEventListener('mouseout', () => { el.style.borderColor='var(--border)'; el.style.background='var(--bg)'; });
-  });
 }
 
 // ── Moyenne mensuelle avec comparatif N/N-1 ──
@@ -10332,7 +10354,7 @@ function buildDelaiPyramideSection(containerId, dos) {
 
     // Délai moyen
     '<div>' +
-      '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">⏱ Délai moyen SSP → Acte</div>' +
+      '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">⏱ Délai moyen SSP → Acte<span class="info-tip" data-tip="Nombre de jours moyen entre la date de signature SSP et la date de l\'acte authentique. Vert = ≤ 60 jours, Orange = ≤ 90 jours, Rouge = > 90 jours.">i</span></div>' +
       (delaiMoyen === null
         ? '<div style="color:var(--text-muted);font-size:13px">Aucun acte enregistré</div>'
         : '<div style="display:flex;flex-direction:column;gap:10px">' +
@@ -10357,7 +10379,7 @@ function buildDelaiPyramideSection(containerId, dos) {
 
     // Pyramide des âges
     '<div>' +
-      '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">📊 Dossiers en cours — âge depuis SSP</div>' +
+      '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">📊 Dossiers en cours — âge depuis SSP<span class="info-tip" data-tip="Répartition des dossiers signés sans acte encore, par ancienneté depuis la date SSP. Cliquer sur une barre affiche les dossiers de cette tranche.">i</span></div>' +
       (enCours.length === 0
         ? '<div style="color:var(--text-muted);font-size:13px">Aucun dossier en attente d\'acte</div>'
         : '<div style="display:flex;flex-direction:column;gap:8px">' +
@@ -10720,31 +10742,20 @@ function renderStatsReseau(container) {
     '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🌐 Réseau Booster Immobilier</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards(DB.dossiers) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="stats-table-n"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="stats-table-n1"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-reseau-sel-annee-moy" onchange="refreshStatsMoyenneReseau()" class="filter-select" style="font-size:12px"></select></div><div id="stats-reseau-moyenne" style="padding:16px"></div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="stats-graph-annee" onchange="renderStatsReseauGraphs()" style="font-size:11px;padding:3px 6px" class="filter-select"></select></div><div style="padding:10px"><canvas id="stats-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span></div><div style="padding:10px"><canvas id="stats-chart-nb" height="90"></canvas></div></div>' +
+    '<div class="stats-sep"><span>📊 ' + curYear + '</span></div><table id="stats-table-n"></table>' +
+    '<div class="stats-sep"><span>📊 ' + n1Year + '</span></div><table id="stats-table-n1"></table>' +
+    '<div class="stats-sep"><span>📊 Moyennes mensuelles</span><select id="stats-reseau-sel-annee-moy" onchange="refreshStatsMoyenneReseau()" class="filter-select" style="font-size:12px"></select></div><div id="stats-reseau-moyenne"></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>📈 CA HT / mois</span><select id="stats-graph-annee" onchange="renderStatsReseauGraphs()" style="font-size:11px;padding:3px 6px" class="filter-select"></select></div><canvas id="stats-chart-ca" height="90"></canvas></div>' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>🏠 Nb ventes / mois</span></div><canvas id="stats-chart-nb" height="90"></canvas></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px">' +
-      '<div class="card-header">' +
-        '<span class="card-title">🔀 Flux intercabinet</span>' +
-        '<div style="display:flex;align-items:center;gap:8px">' +
-          '<select id="ic-sel-periode" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px"></select>' +
-          '<select id="ic-sel-metrique" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px">' +
-            '<option value="nb">Nb de ventes</option>' +
-            '<option value="ca">CA HT</option>' +
-          '</select>' +
-        '</div>' +
-      '</div>' +
-      '<div id="ic-content" style="padding:16px"></div>' +
-    '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-reseau-delai" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-reseau-annul" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Records du réseau</span></div><div id="stats-reseau-records" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-reseau-retro" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-reseau-apporteurs" style="padding:16px"></div></div>' +
+    '<div class="stats-sep"><span>🔀 Flux intercabinet</span><div style="display:flex;align-items:center;gap:8px"><select id="ic-sel-periode" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px"></select><select id="ic-sel-metrique" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px"><option value="nb">Nb de ventes</option><option value="ca">CA HT</option></select></div></div>' +
+    '<div id="ic-content"></div>' +
+    '<div class="stats-sep"><span>⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-reseau-delai"></div>' +
+    '<div class="stats-sep"><span>🔴 Annulations post-SSP</span></div><div id="stats-reseau-annul"></div>' +
+    '<div class="stats-sep"><span>🏆 Records du réseau</span></div><div id="stats-reseau-records"></div>' +
+    '<div class="stats-sep"><span>🏷 Rétrocession Booster</span></div><div id="stats-reseau-retro"></div>' +
+    '<div class="stats-sep"><span>🏆 Top apporteurs</span></div><div id="stats-reseau-apporteurs"></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -10830,21 +10841,21 @@ function renderStatsSociete(container, socId) {
     '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏛 ' + (s.forme_juridique?s.forme_juridique+' ':'') + s.nom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards(DB.dossiers.filter(d => agenceNoms.includes(d.agence))) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span><span id="ratio-soc-ventes"></span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-soc-sel-annee-moy" onchange="refreshStatsMoyenneSociete()" class="filter-select" style="font-size:12px"></select></div><div id="stats-soc-moyenne" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee" onchange="refreshFicheSocieteGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all" onchange="refreshFicheSocieteGraphs()"> Toutes</label></div></div><div style="padding:10px"><canvas id="fiche-societe-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all-nb" onchange="refreshFicheSocieteGraphNb()"> Toutes</label></div></div><div style="padding:10px"><canvas id="fiche-societe-chart-nb" height="90"></canvas></div></div>' +
+    '<div class="stats-sep"><span>📋 10 dernières ventes</span><span id="ratio-soc-ventes"></span></div><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div>' +
+    '<div class="stats-sep"><span>📊 Moyennes mensuelles</span><select id="stats-soc-sel-annee-moy" onchange="refreshStatsMoyenneSociete()" class="filter-select" style="font-size:12px"></select></div><div id="stats-soc-moyenne"></div>' +
+    '<div class="stats-sep"><span id="fiche-societe-annee-titre">📊 ' + curYear + '</span></div><table id="fiche-societe-tableau-annee"></table>' +
+    '<div class="stats-sep"><span id="fiche-societe-annee-n1-titre">📊 ' + n1Year + '</span></div><table id="fiche-societe-tableau-n1"></table>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee" onchange="refreshFicheSocieteGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all" onchange="refreshFicheSocieteGraphs()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="fiche-societe-chart-ca" height="90"></canvas></div>' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all-nb" onchange="refreshFicheSocieteGraphNb()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="fiche-societe-chart-nb" height="90"></canvas></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-soc-chart-glissant" height="70"></canvas></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-soc-delai" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-soc-annul" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Records de la société</span></div><div id="stats-soc-records" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-soc-retro" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-soc-top-ap" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="fiche-societe-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
+    '<div class="stats-sep"><span>📈 CA cumulé 12 mois glissants<span class="info-tip" data-tip="Somme glissante du CA HT sur les 12 derniers mois. Chaque point représente le total des 12 mois précédents — permet de lisser les effets de saisonnalité et de voir la tendance de fond.">i</span></span></div><div><canvas id="stats-soc-chart-glissant" height="70"></canvas></div>' +
+    '<div class="stats-sep"><span>⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-soc-delai"></div>' +
+    '<div class="stats-sep"><span>🔴 Annulations post-SSP</span></div><div id="stats-soc-annul"></div>' +
+    '<div class="stats-sep"><span>🏆 Records de la société</span></div><div id="stats-soc-records"></div>' +
+    '<div class="stats-sep"><span>🏷 Rétrocession Booster</span></div><div id="stats-soc-retro"></div>' +
+    '<div class="stats-sep"><span>🏆 Top apporteurs</span></div><div id="stats-soc-top-ap"></div>' +
+    '<div class="stats-sep"><span>👥 Équipe</span></div><div id="fiche-societe-equipe" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -10909,21 +10920,21 @@ function renderStatsAgence(container, agNom) {
     '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dosAgence.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards(DB.dossiers.filter(d => d.agence === agNom)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span><span id="ratio-ag-ventes"></span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-ag-sel-annee-moy" onchange="refreshStatsMoyenneAgence()" class="filter-select" style="font-size:12px"></select></div><div id="stats-ag-moyenne" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="fiche-agence-graph-annee" onchange="refreshFicheAgenceGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all" onchange="refreshFicheAgenceGraphs()"> Toutes</label></div><div style="padding:10px"><canvas id="fiche-agence-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><select id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()"> Toutes</label></div><div style="padding:10px"><canvas id="fiche-agence-chart-nb" height="90"></canvas></div></div>' +
+    '<div class="stats-sep"><span>📋 10 dernières ventes</span><span id="ratio-ag-ventes"></span></div><table><thead><tr><th>Affaire</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div>' +
+    '<div class="stats-sep"><span>📊 Moyennes mensuelles</span><select id="stats-ag-sel-annee-moy" onchange="refreshStatsMoyenneAgence()" class="filter-select" style="font-size:12px"></select></div><div id="stats-ag-moyenne"></div>' +
+    '<div class="stats-sep"><span id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><table id="fiche-agence-tableau-annee"></table>' +
+    '<div class="stats-sep"><span id="fiche-agence-annee-n1-titre">📊 ' + n1Year + '</span></div><table id="fiche-agence-tableau-n1"></table>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-agence-graph-annee" onchange="refreshFicheAgenceGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all" onchange="refreshFicheAgenceGraphs()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="fiche-agence-chart-ca" height="90"></canvas></div>' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="fiche-agence-chart-nb" height="90"></canvas></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-ag-chart-glissant" height="70"></canvas></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-ag-delai" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-ag-annul" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Records agence</span></div><div id="stats-ag-records" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-ag-retro" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-ag-top-ap" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="stats-ag-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
+    '<div class="stats-sep"><span>📈 CA cumulé 12 mois glissants<span class="info-tip" data-tip="Somme glissante du CA HT sur les 12 derniers mois. Chaque point représente le total des 12 mois précédents — permet de lisser les effets de saisonnalité et de voir la tendance de fond.">i</span></span></div><div><canvas id="stats-ag-chart-glissant" height="70"></canvas></div>' +
+    '<div class="stats-sep"><span>⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-ag-delai"></div>' +
+    '<div class="stats-sep"><span>🔴 Annulations post-SSP</span></div><div id="stats-ag-annul"></div>' +
+    '<div class="stats-sep"><span>🏆 Records agence</span></div><div id="stats-ag-records"></div>' +
+    '<div class="stats-sep"><span>🏷 Rétrocession Booster</span></div><div id="stats-ag-retro"></div>' +
+    '<div class="stats-sep"><span>🏆 Top apporteurs</span></div><div id="stats-ag-top-ap"></div>' +
+    '<div class="stats-sep"><span>👥 Équipe<span class="info-tip" data-tip="Cliquez sur un négociateur pour accéder directement à sa fiche personnelle avec ses statistiques détaillées.">i</span></span></div><div id="stats-ag-equipe" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -11021,20 +11032,20 @@ function renderStatsNeg(container, negId) {
     '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + n.agence + ' · ' + (n.poste||'négociateur') + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dossiersVentes.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards((DB.dossierNeg||[]).filter(l=>l.negociateur_id===n.id).map(l=>DB.dossiers.find(x=>x.id===l.dossier_id)).filter(Boolean)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span><span id="ratio-neg-ventes"></span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-annee"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-n1"></table></div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all" onchange="refreshStatsNegGraphs()"> Toutes</label></div></div><div style="padding:10px"><canvas id="stats-neg-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee-nb" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all-nb" onchange="refreshStatsNegGraphs()"> Toutes</label></div></div><div style="padding:10px"><canvas id="stats-neg-chart-nb" height="90"></canvas></div></div>' +
+    '<div class="stats-sep"><span>📋 10 dernières ventes</span><span id="ratio-neg-ventes"></span></div><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div>' +
+    '<div class="stats-sep"><span id="fiche-annee-titre">📊 ' + curYear + '</span></div><table id="fiche-tableau-annee"></table>' +
+    '<div class="stats-sep"><span id="fiche-annee-n1-titre">📊 ' + n1Year + '</span></div><table id="fiche-tableau-n1"></table>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all" onchange="refreshStatsNegGraphs()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="stats-neg-chart-ca" height="90"></canvas></div>' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee-nb" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all-nb" onchange="refreshStatsNegGraphs()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="stats-neg-chart-nb" height="90"></canvas></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-neg-chart-glissant" height="70"></canvas></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>' +
+    '<div class="stats-sep"><span>📈 CA cumulé 12 mois glissants<span class="info-tip" data-tip="Somme glissante du CA HT sur les 12 derniers mois. Chaque point représente le total des 12 mois précédents — permet de lisser les effets de saisonnalité et de voir la tendance de fond.">i</span></span></div><div><canvas id="stats-neg-chart-glissant" height="70"></canvas></div>' +
+    '<div class="stats-sep"><span>📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px"></div>' +
     ((['salarié','responsable','agent-co','alternant'].includes(n.statut_emploi)) ? '<div class="card" id="fiche-remu-section" style="margin-bottom:20px"><div class="card-header"><span class="card-title">💶 Historique des rémunérations</span>' + '</div><div style="overflow-x:auto"><table><thead><tr><th>Période</th><th style="text-align:right">Commissions</th><th style="text-align:right">Solde ant.</th><th style="text-align:right">Débit/Crédit</th><th style="text-align:right">Avance</th><th style="text-align:right">Salaire versé</th><th style="text-align:right">Nouveau solde</th><th style="text-align:right" id="th-prime" style="display:none">Prime agence</th><th style="text-align:right" id="th-remise" style="display:none">Remise</th><th style="text-align:center">Mail</th><th style="text-align:center">Statut</th></tr></thead><tbody id="fiche-remu-tbody"><tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Chargement...</td></tr></tbody></table></div></div>' : '') +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-neg-delai" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-neg-annul" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-neg-retro" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Affaires avec apporteur</span></div><div id="stats-neg-apporteurs" style="padding:16px"></div></div>' +
+    '<div class="stats-sep"><span>⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-neg-delai"></div>' +
+    '<div class="stats-sep"><span>🔴 Annulations post-SSP</span></div><div id="stats-neg-annul"></div>' +
+    '<div class="stats-sep"><span>🏷 Rétrocession Booster</span></div><div id="stats-neg-retro"></div>' +
+    '<div class="stats-sep"><span>🏆 Affaires avec apporteur</span></div><div id="stats-neg-apporteurs"></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -16028,23 +16039,112 @@ async function icRefuser(draftId) {
   icUpdateBadge();
 }
 
+// ── IC Pulse — état global ────────────────────────────────────────────────────
+let _icPulseInterval = null;
+let _icAltInterval   = null;
+let _icPulseState    = false;
+let _icAltState      = false;
+
+function icStopPulse() {
+  if (_icPulseInterval) { clearInterval(_icPulseInterval); _icPulseInterval = null; }
+  if (_icAltInterval)   { clearInterval(_icAltInterval);   _icAltInterval   = null; }
+  _icPulseState = false; _icAltState = false;
+  const inner = document.getElementById('ic-icon-inner');
+  const shuffle = document.getElementById('ic-icon-shuffle');
+  const alert = document.getElementById('ic-icon-alert');
+  if (!inner) return;
+  inner.style.background = '';
+  inner.style.transition = 'background 0.3s';
+  if (shuffle) shuffle.style.display = '';
+  if (alert)   alert.style.display   = 'none';
+}
+
+function icStartPulse(oldestHours) {
+  icStopPulse();
+  const inner   = document.getElementById('ic-icon-inner');
+  const shuffle = document.getElementById('ic-icon-shuffle');
+  const alert   = document.getElementById('ic-icon-alert');
+  if (!inner) return;
+
+  // Couleur selon la tranche de 24h
+  const bgMap = [
+    { h: 0,  bg: 'rgba(239,68,68,0.45)' },
+    { h: 24, bg: 'rgba(220,38,38,0.70)' },
+    { h: 48, bg: 'rgba(185,28,28,0.88)' },
+    { h: 72, bg: 'rgba(153,27,27,1)'    },
+    { h: 96, bg: '#7f1d1d'              },
+  ];
+  let activeBg = bgMap[0].bg;
+  for (const s of bgMap) { if (oldestHours >= s.h) activeBg = s.bg; }
+
+  if (oldestHours >= 96) {
+    // Fond rouge fixe + alternance icônes
+    inner.style.background = activeBg;
+    inner.style.transition = 'none';
+    _icAltInterval = setInterval(() => {
+      _icAltState = !_icAltState;
+      if (shuffle) shuffle.style.display = _icAltState ? 'none' : '';
+      if (alert)   alert.style.display   = _icAltState ? '' : 'none';
+    }, 400);
+  } else {
+    // Pulse doux linéaire 3.0s → 0.3s
+    const period = 3000 - (oldestHours / 96) * (3000 - 300);
+    const half   = period / 2;
+    _icPulseInterval = setInterval(() => {
+      _icPulseState = !_icPulseState;
+      inner.style.background = _icPulseState ? activeBg : '';
+    }, half);
+  }
+}
+
 function icUpdateBadge() {
   const myAgence = icGetMyAgence();
-  const badge = document.getElementById('ic-badge');
-  const navIC = document.getElementById('nav-ic-validation');
+  const badge    = document.getElementById('ic-badge');
   if (!badge || !myAgence) return;
-  const count = (DB.drafts||[]).filter(d => {
+
+  // Dossiers en attente de validation par MON agence
+  const pending = (DB.drafts||[]).filter(d => {
     if (d.statut !== 'en_attente_ic') return false;
     const nd = d.data||{};
     const agences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom);
     if (!agences.includes(myAgence)) return false;
     const val = (DB.draftValidations||[]).find(v=>v.draft_id===d.id&&v.agence===myAgence);
     return val && val.statut==='en_attente';
-  }).length;
-  if (count>0) { badge.textContent=count; badge.style.display='inline-flex'; badge.style.alignItems='center'; badge.style.justifyContent='center'; }
-  else { badge.style.display='none'; }
-  // Ne jamais masquer le nav-ic-validation — setupNav gère la visibilité par rôle
-  // Le badge seul indique le nombre de dossiers en attente
+  });
+
+  const count = pending.length;
+
+  // Badge
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-flex';
+    badge.style.alignItems = 'center';
+    badge.style.justifyContent = 'center';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  // Pulse — basé sur le dossier le plus ancien
+  if (count === 0) {
+    icStopPulse();
+    return;
+  }
+
+  // Trouver l'âge en heures du dossier en attente le plus ancien
+  const now = Date.now();
+  let oldestHours = 0;
+  pending.forEach(d => {
+    const val = (DB.draftValidations||[]).find(v=>v.draft_id===d.id&&v.agence===myAgence);
+    if (val && val.created_at) {
+      const h = (now - new Date(val.created_at).getTime()) / 3600000;
+      if (h > oldestHours) oldestHours = h;
+    } else if (d.created_at) {
+      const h = (now - new Date(d.created_at).getTime()) / 3600000;
+      if (h > oldestHours) oldestHours = h;
+    }
+  });
+
+  icStartPulse(oldestHours);
 }
 
 
