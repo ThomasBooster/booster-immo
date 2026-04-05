@@ -1,9 +1,104 @@
 <!DOCTYPE html>
 <html lang="fr">
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        SCORIM — v1.5.3-test                               ║
+║          Application de suivi des ventes — Booster Immobilier              ║
+║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  STRUCTURE DU FICHIER                                                      ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                            ║
+║  ── CSS ──────────────────────────────────────────────────────────────     ║
+║  L.~48     CSS — AUTH                                                      ║
+║  L.~177    CSS — APP LAYOUT & COMPOSANTS                                   ║
+║                                                                            ║
+║  ── HTML ─────────────────────────────────────────────────────────────     ║
+║  L.~836    AUTH (écran de connexion)                                       ║
+║  L.~892    APP SHELL (sidebar, nav)                                        ║
+║  L.~1059   DASHBOARD                                                       ║
+║  L.~1114   CLASSEMENT                                                      ║
+║  L.~1180   SAISIE / NOUVEAU DOSSIER                                        ║
+║  L.~1402   TOUS LES DOSSIERS                                               ║
+║  L.~1454   PARAMÈTRES                                                      ║
+║  L.~1530   STATISTIQUES                                                    ║
+║  L.~1558   ENCAISSEMENTS                                                   ║
+║  L.~1645   PERFORMANCES                                                    ║
+║  L.~1709   CHATBOT IA                                                      ║
+║  L.~1743   RÉMUNÉRATIONS (négociateurs)                                    ║
+║  L.~1805   CLASSEMENT NÉGOCIATEURS                                         ║
+║  L.~1855   MODAL AJOUT/ÉDITION NÉGOCIATEUR                                 ║
+║  L.~2175   MODAL RÉMUNÉRATION AGENT CO                                     ║
+║  L.~2374   FICHE STATS COLLABORATEUR                                       ║
+║  L.~2475   FICHE STATS SOCIÉTÉ                                             ║
+║  L.~2574   FICHE STATS AGENCE                                              ║
+║  L.~2694   MODAL AJOUT APPORTEUR                                           ║
+║  L.~2742   FEEDBACK                                                        ║
+║  L.~2790   MODAL ÉDITION DOSSIER                                           ║
+║  L.~19097  MODALS (affaires, PE, mails, records)                           ║
+║  L.~19299  MODAL NOUVEAU DOSSIER SSP (formulaire)                          ║
+║  L.~19335  ESPACE ROADMAP ADMIN                                            ║
+║                                                                            ║
+║  ── JAVASCRIPT ────────────────────────────────────────────────────────    ║
+║  L.~3125   SUPABASE CONFIG + HELPERS DB                                    ║
+║  L.~3324   UTILITAIRES (dates, formatage, filtres)                         ║
+║  L.~3446   STATE & VARIABLES GLOBALES                                      ║
+║  L.~3451   AUTH (login, logout, initApp)                                   ║
+║  L.~3793   NAVIGATION / PAGES                                              ║
+║  L.~3834   DASHBOARD                                                       ║
+║  L.~4022   CLASSEMENT (ranking mensuel + annuel)                           ║
+║  L.~4153   SAISIE DOSSIER                                                  ║
+║  L.~4221   APPORTEURS (liste, select, stats, camembert)                    ║
+║  L.~5047   TOUS LES DOSSIERS                                               ║
+║  L.~5251   EDIT / DELETE DOSSIER                                           ║
+║  L.~5578   PARAMÈTRES                                                      ║
+║  L.~5772   RAPPORT PDF                                                     ║
+║  L.~6244   IA — CONTEXTE DONNÉES                                           ║
+║  L.~6314   ENCAISSEMENTS                                                   ║
+║  L.~6576   PERFORMANCES                                                    ║
+║  L.~6730   CHATBOT IA                                                      ║
+║  L.~6800   FICHE STATS COLLABORATEUR                                       ║
+║  L.~7054   HELPER TABLEAU N/N-1 (encaissements + indicateur)               ║
+║  L.~7443   RH — FICHE NÉGOCIATEUR                                          ║
+║  L.~7883   GESTION NÉGOCIATEURS (CRUD)                                     ║
+║  L.~8228   RENTREURS (saisie + édition)                                    ║
+║  L.~8370   FICHE STATS SOCIÉTÉ                                             ║
+║  L.~8597   GESTION RÉSEAU (agences, gérants, sociétés)                    ║
+║  L.~8837   FICHE STATS AGENCE                                              ║
+║  L.~9156   MODALS AFFAIRES (agence, collaborateur, apporteur)              ║
+║  L.~9344   CLASSEMENT NÉGOCIATEURS                                         ║
+║  L.~9787   PAGE STATISTIQUES                                               ║
+║  L.~10107  FLUX INTERCABINET                                               ║
+║  L.~10334  HELPERS STATISTIQUES (délais, pyramide, top apporteurs)         ║
+║  L.~11153  ENVOI DE MAILS                                                  ║
+║  L.~11372  BADGES RECORDS SVG                                              ║
+║  L.~11591  MOTEUR DE RECORDS                                               ║
+║  L.~13129  FEEDBACK (saisie + liste)                                       ║
+║  L.~13737  RÉMUNÉRATIONS (PDF, mail, validation, bilan)                    ║
+║  L.~14420  EFFACER L'ARDOISE                                               ║
+║  L.~14423  OFFRIR SOLDE                                                    ║
+║  L.~15019  ESPACE ROADMAP ADMIN                                            ║
+║  L.~15518  ASSISTANT IA ROADMAP                                            ║
+║  L.~15732  NOUVEAU DOSSIER SSP — Formulaire pas-à-pas (préfixe nd_)       ║
+║  L.~16158  SSP POLLING (alertes temps réel Laurie/Benoît)                  ║
+║  L.~16347  SSP DASHBOARD (dossiers en attente)                             ║
+║                                                                            ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  RÈGLES IMPORTANTES                                                        ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  • RLS obligatoire sur toutes les tables Supabase (policy anon_all)        ║
+║  • ndSaveDraft → ne jamais modifier 'statut', uniquement 'data'+'etape'   ║
+║  • isEditMode basé sur ndEditMode uniquement (pas !!ndDraftId)             ║
+║  • CA stats → isNet() (SIGNÉ + AA SIGNÉ), date = d.date (SSP)             ║
+║  • Intercabinet → déduplication obligatoire partout                        ║
+║  • JSON.stringify(null) = "null" (truthy) → vigilance prefix/conditions    ║
+║  • Pas de fonctions dupliquées — toujours vérifier avant d'en ajouter     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.2</title>
+<title>SCORIM v1.5.3-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -3122,9 +3217,9 @@
 </div>
 
 <script>
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // SUPABASE CONFIG
-// =====================
+// ─────────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://upprurqivgjypumzwftq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcHJ1cnFpdmdqeXB1bXp3ZnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMDIwMTQsImV4cCI6MjA4OTg3ODAxNH0.BN3-KLln4NKsQxIyq1R15NljkcuUbFdTZGKBP4OMX6k';
 // Credentials prod pour Scorim_Dev (feedbacks + roadmap partagés)
@@ -3443,14 +3538,14 @@ function showLoading(show) {
   el.style.display = show ? 'flex' : 'none';
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // STATE
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let currentUser = null;
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // AUTH
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // Connexion rapide TEST — récupère le vrai mot de passe depuis la base PROD
 const PROD_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co';
 const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
@@ -3790,9 +3885,9 @@ function populateFilters() {
   }
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // PAGES
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function showPage(name, navEl) {
   // Bloquer la navigation si un draft est en cours (sauf retour vers nouveau-dossier)
   if (name !== 'nouveau-dossier' && ndDraftId && !sspModeEdition) {
@@ -3831,9 +3926,9 @@ function showPage(name, navEl) {
   if (name === 'stats') { populateStatsSels(); onStatsNiveauChange(); refreshStatsPage(); }
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // DASHBOARD
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function getDossiers(filters = {}) {
   
   let list = DB.dossiers;
@@ -4019,9 +4114,9 @@ function refreshJuridique(moisFilter) {
   </tr>`;
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // RANKING
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let currentRankTab = 'mensuel';
 
 function switchRankTab(tab) {
@@ -4150,9 +4245,9 @@ function refreshRankingAnnuel() {
   </tr>`;
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // SAISIE
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let nbAgences = 1;
 
 function changeNbAgences(delta) {
@@ -4218,9 +4313,9 @@ function getApporteurData() {
   return { hasApporteur: true, nom, pct };
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // APPORTEURS — liste & select
-// =====================
+// ─────────────────────────────────────────────────────────────────
 const APPORTEURS_DEFAUT = ['MeilleursAgents', 'Avest'];
 
 function getApporteursList() {
@@ -4504,9 +4599,9 @@ function renderApporteursList() {
   }).join('');
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // PAGE APPORTEURS — stats
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function refreshApporteurs() {
   try {
   const anneeEl = document.getElementById('filter-annee-apporteurs');
@@ -5044,9 +5139,9 @@ function refreshMyDossiers() {
     </tr>`).join('');
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // TOUS LES DOSSIERS
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function onAnneeDosChange() {
   const annee = document.getElementById('filter-annee-dos')?.value || '';
   const moisEl = document.getElementById('filter-mois-dos');
@@ -5248,9 +5343,9 @@ function refreshDossiers() {
     </tr>`).join('');
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // EDIT / DELETE
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let pendingDeleteId = null;
 
 function openDelete(id) {
@@ -5575,9 +5670,9 @@ function clearSearchDos() {
 
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // PARAMS
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function loadProfile() {
   const u = DB.users.find(u => u.id === currentUser.id);
   if (u) document.getElementById('p-email').value = u.email || '';
@@ -5769,9 +5864,9 @@ function openDeleteUser(id) {
   };
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // RAPPORT PDF
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function populateRapportFilters() {
   const selAnnee = document.getElementById('rapport-annee');
   const selSoc = document.getElementById('rapport-societe');
@@ -6241,9 +6336,9 @@ function buildRankDataRaw(list) {
 }
 
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // IA — CONTEXTE DONNÉES
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function buildDataContext(scope, label) {
   const now = new Date();
   let dossiers = DB.dossiers.filter(d => isNet(d));
@@ -6311,9 +6406,9 @@ async function callClaudeAPI(messages, system) {
   return data.content[0].text;
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // ENCAISSEMENTS
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let currentEncTab = 'historique';
 
 function toggleEncGroup(gid, headerRow) {
@@ -6573,9 +6668,9 @@ function refreshEncPrevisionnel() {
   }).join('');
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // PERFORMANCES
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let currentPerfTab = 'histo';
 
 function initPerformances() {
@@ -6727,9 +6822,9 @@ function formatAIText(text) {
   return '<p style="margin:0 0 10px;font-family:var(--font-sans,inherit);line-height:1.75;font-size:14px;color:var(--text-primary,#1e293b)">' + html + '</p>';
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // CHATBOT IA
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let chatHistory = [];
 
 async function sendChatMessage() {
@@ -6797,9 +6892,9 @@ async function processChat(msg) {
   input.focus();
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // FICHE STATS COLLABORATEUR
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let ficheCollabId = null;
 let ficheCollabFromPage = 'negociateurs';
 
@@ -7051,9 +7146,9 @@ function refreshFicheMoyenne() {
 }
 
 
-// ============================================================
+// ─────────────────────────────────────────────────────────────────
 // HELPER TABLEAU N/N-1 — lignes encaissements + indicateur
-// ============================================================
+// ─────────────────────────────────────────────────────────────────
 function buildTableauRows(dossiersAnnee, allDossiers, annee, caKey, nbKey, clickFn, isN1, negosFiltre) {
   const now = new Date();
   const curMois = now.getMonth();
@@ -7440,9 +7535,9 @@ function checkAlertePEGlobale() {
   }).join('');
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // RH — FICHE NÉGOCIATEUR
-// =====================
+// ─────────────────────────────────────────────────────────────────
 
 const CHECKLIST_KEYS = ['mutuelle', 'document-unique', 'assurance-voiture', 'medecine', 'cci', 'cci-co', 'cci-alt', 'rcp', 'pi', 'rib'];
 
@@ -7880,9 +7975,9 @@ function collectNegociateursEdit(agencesduGroupe) {
   return result;
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // GESTION NÉGOCIATEURS (CRUD)
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function openAddNegociateur() {
   document.getElementById('modal-neg-title').textContent = 'Ajouter un négociateur';
   resetNegRHFields();
@@ -8225,9 +8320,9 @@ function renderNegociateursList() {
   }).join('');
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // RENTREURS — SAISIE
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let rentreurLignesSaisie = []; // [{agence, negId, pct}]
 
 function renderRentreursSaisie() {
@@ -8299,9 +8394,9 @@ function collectRentreursSaisie(parts) {
     });
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // RENTREURS — ÉDITION
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let rentreurLignesEdit = [];
 
 function renderRentreursEdit(rentRows, agencesGroupe) {
@@ -8367,9 +8462,9 @@ function onRentreurEditNeg(idx, val) {
 
 
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // FICHE STATS SOCIÉTÉ
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let ficheSocieteId = null;
 let ficheSocieteFromPage = 'ranking';
 let ficheSocieteChartCA = null;
@@ -8594,9 +8689,9 @@ function refreshFicheSocieteGerants() {
 }
 
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // GESTION RÉSEAU
-// =====================
+// ─────────────────────────────────────────────────────────────────
 
 
 async function toggleAgenceActif(agenceId, estActif) {
@@ -8834,9 +8929,9 @@ function initReseauSection() {
 }
 
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // FICHE STATS AGENCE
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let ficheAgenceNom = null;
 let ficheAgenceFromPage = 'ranking';
 let ficheAgenceChartCA = null;
@@ -9153,9 +9248,9 @@ function refreshFicheAgenceEquipe() {
   }).join('');
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // AFFAIRES AGENCE (modal)
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function openAffairesAgence() {
   const agence = ficheAgenceNom;
   if (!agence) return;
@@ -9213,9 +9308,9 @@ function refreshAffairesAgence() {
 }
 
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // AFFAIRES COLLABORATEUR
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function openAffairesCollab() {
   const n = DB.negociateurs.find(x => x.id === ficheCollabId);
   if (!n) return;
@@ -9341,9 +9436,9 @@ function refreshAffairesCollab() {
   }).join('');
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // CLASSEMENT NÉGOCIATEURS
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let currentNegTab = 'mensuel';
 
 function initNegClassement() {
@@ -9718,9 +9813,9 @@ function showToast(msg, type = '') {
 // Allow pressing Enter in auth
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // AFFAIRES APPORTEUR (modal)
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let _modalApporteurDos = [];
 
 function openAffairesApporteur(nom, dosIds) {
@@ -9784,9 +9879,9 @@ function filterModalApporteur() {
 }
 
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // PAGE STATISTIQUES
-// =====================
+// ─────────────────────────────────────────────────────────────────
 
 function canSeeReseau() {
   return ['admin','saisie','agence','responsable'].includes(currentUser.role);
@@ -10104,9 +10199,9 @@ function buildAndRenderStatsTableau(dos, annee, tableId, header, isN1, totauxN1)
   return { totalCA, totalNb };
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // FLUX INTERCABINET
-// =====================
+// ─────────────────────────────────────────────────────────────────
 function refreshIntercabinet() {
   const container = document.getElementById('ic-content');
   if (!container) return;
@@ -10331,9 +10426,9 @@ function refreshIntercabinet() {
 }
 
 
-// =============================================
+// ─────────────────────────────────────────────────────────────────
 // HELPER : Délai moyen SSP → Acte + Pyramide
-// =============================================
+// ─────────────────────────────────────────────────────────────────
 function buildDelaiPyramideSection(containerId, dos) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -10424,9 +10519,9 @@ function buildDelaiPyramideSection(containerId, dos) {
     '</div>';
 }
 
-// =============================================
+// ─────────────────────────────────────────────────────────────────
 // HELPER : Top apporteurs enrichi
-// =============================================
+// ─────────────────────────────────────────────────────────────────
 function buildTopApporteursSection(containerId, dos) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -11150,9 +11245,9 @@ function refreshStatsNegGraphs() {
 }
 
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // ENVOI DE MAILS
-// =====================
+// ─────────────────────────────────────────────────────────────────
 const SEND_EMAIL_URL = 'https://upprurqivgjypumzwftq.supabase.co/functions/v1/send-email';
 
 async function sendEmail(type, to, data) {
@@ -11369,9 +11464,9 @@ async function sendAlertesCCI() {
 }
 
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // BADGES RECORDS SVG
-// =====================
+// ─────────────────────────────────────────────────────────────────
 const BADGE_DEFS = {
   // ── Individuels ──
   indiv_ca_annuel: {
@@ -11588,9 +11683,9 @@ function badgeSvgSmall(key) {
   return fn.length > 0 ? fn() : fn();
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // MOTEUR DE RECORDS
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // Structure : DB.records = { key: { value, negoId, agence, date, label } }
 // Keys: indiv_ca_annuel, indiv_nb_annuel, indiv_ca_mensuel, indiv_nb_mensuel
 //       agence_ca_annuel, agence_nb_annuel, agence_ca_mensuel, agence_nb_mensuel
@@ -13856,128 +13951,6 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
   return headerHTML + tableHTML + twoColHTML + bilanHTML + signatureHTML;
 }
 
-async function imprimerRelevePDF() {
-  if (remuLignes.length === 0) { showToast('Aucune donnée à imprimer', 'error'); return; }
-  const mois = parseInt(document.getElementById('remu-mois').value);
-  const annee = parseInt(document.getElementById('remu-annee').value);
-  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const nomFichier = 'releve_commissions_' + (remuCurrentNeg.nom||'').replace(/\s+/g,'_') + '_' + moisNoms[mois].toLowerCase() + annee + '.pdf';
-  try {
-    const pdfBase64 = await genererPDFBase64(mois, annee);
-    const byteChars = atob(pdfBase64);
-    const byteNums = new Array(byteChars.length);
-    for (let i=0; i<byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
-    const blob = new Blob([new Uint8Array(byteNums)], {type:'application/pdf'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = nomFichier; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  } catch(e) {
-    showToast('Erreur PDF : ' + e.message, 'error');
-  }
-}
-
-async function genererPDFBase64(mois, annee) {
-  const container = document.getElementById('remu-releve-print');
-  const isSalarieRemu = remuCurrentNeg && ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
-  const isAgentCoRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'agent-co';
-  const isAlternantRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'alternant';
-  // Capturer les valeurs du DOM AVANT la génération (la modale peut être cachée ensuite)
-  if (remuCurrentNeg) {
-    const _el = document.getElementById('remu-prime-exceptionnelle');
-    const _elC = document.getElementById('remu-prime-commentaire');
-    if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
-    if (!window._remuCommentaires) window._remuCommentaires = {};
-    if (_el) window._remuPrimesExcept[remuCurrentNeg.id] = parseFloat(_el.value) || 0;
-    if (_elC) window._remuCommentaires[remuCurrentNeg.id] = _elC.value || '';
-  }
-  const html = isSalarieRemu ? buildBulletinSalarieHTML(mois, annee, true)
-    : (isAlternantRemu ? buildBulletinAlternantHTML(mois, annee, true)
-    : buildReleveHTML(mois, annee, true));
-  container.innerHTML = html;
-  container.style.display = 'block';
-  container.style.position = 'fixed';
-  container.style.top = '-9999px';
-  container.style.left = '0';
-  container.style.width = '210mm';
-  container.style.background = 'white';
-  container.style.padding = '20px';
-  await new Promise(r => setTimeout(r, 200));
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-  return new Promise((resolve, reject) => {
-    doc.html(container, {
-      callback: (d) => {
-        container.style.display = 'none';
-        resolve(d.output('datauristring').split(',')[1]);
-      },
-      x: 10, y: 10, width: 190, windowWidth: 794,
-      error: (e) => { container.style.display = 'none'; reject(e); }
-    });
-  });
-}
-
-async function envoyerReleveMail() {
-  if (remuLignes.length === 0) { showToast('Aucune donnée', 'error'); return; }
-  const btn = document.getElementById('remu-btn-mail');
-  if (!btn) return;
-  btn.disabled = true; btn.textContent = '⏳ Envoi...';
-  const mois = parseInt(document.getElementById('remu-mois').value);
-  const annee = parseInt(document.getElementById('remu-annee').value);
-  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const isSalarieRemu = ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
-  const isAlternantRemu = remuCurrentNeg.statut_emploi === 'alternant';
-  const templateType = isSalarieRemu ? 'bulletin_salarie' : (isAlternantRemu ? 'bulletin_alternant' : 'releve_commissions');
-  try {
-    const pdfBase64 = await genererPDFBase64(mois, annee);
-    const nomFichier = 'releve_commissions_' + (remuCurrentNeg.nom||'').replace(/\s+/g,'_') + '_' + moisNoms[mois].toLowerCase() + annee + '.pdf';
-    const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
-    const commissionsTotal = remuLignes.reduce((s,l)=>s+l.commission,0) + credit;
-    const primeExcept = (window._remuPrimesExcept?.[remuCurrentNeg.id] || 0);
-    const sousTotal = remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0);
-    const salaireEmail = commissionsTotal;
-    const totalEmail = commissionsTotal + primeExcept;
-    await sendEmail(templateType, remuCurrentNeg.email || '', {
-      nom: remuCurrentNeg.nom,
-      agence: remuCurrentNeg.agence,
-      mois: moisNoms[mois],
-      annee: String(annee),
-      commissions: fmtEuro(sousTotal),
-      salaire_a_verser: fmtEuro(salaireEmail),
-      total_a_verser: fmtEuro(totalEmail),
-      pdf_base64: pdfBase64,
-      pdf_filename: nomFichier
-    });
-    remuMailEnvoye = true;
-    document.getElementById('remu-mail-sent-badge').style.display = 'block';
-    showToast('Mail envoyé ✓', 'success');
-  } catch(e) {
-    showToast('Erreur envoi mail : ' + e.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '📧 Envoyer par mail';
-  }
-}
-
-async function annulerValidationRemuneration() {
-  if (!remuCurrentNeg) return;
-  const mois = parseInt(document.getElementById('remu-mois').value);
-  const annee = parseInt(document.getElementById('remu-annee').value);
-  const ok = confirm('Annuler la validation de ' + remuCurrentNeg.nom + ' pour ' + mois + '/' + annee + ' ?');
-  if (!ok) return;
-  try {
-    await sbDelete('remuneration_validations', 'negociateur_id=eq.' + remuCurrentNeg.id + '&mois=eq.' + mois + '&annee=eq.' + annee);
-    remuValide = false;
-    const badge = document.getElementById('remu-statut-badge');
-    if (badge) badge.style.display = 'none';
-    const btnValider = document.getElementById('remu-btn-valider');
-    btnValider.disabled = false; btnValider.style.opacity = '';
-    const btnAnnuler = document.getElementById('remu-btn-annuler-validation');
-    if (btnAnnuler) btnAnnuler.style.display = 'none';
-    showToast('Validation annulée ✓', 'success');
-  } catch(e) { showToast('Erreur annulation', 'error'); }
-}
-
-
 function recalcBilanRemu() {
   recalcRemuTotal();
 }
@@ -14661,12 +14634,12 @@ async function envoyerReleveMail() {
   }
 }
 
-// =====================
+// ─────────────────────────────────────────────────────────────────
 // EFFACER L'ARDOISE
-// =====================
-// =====================
+// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // OFFRIR SOLDE
-// =====================
+// ─────────────────────────────────────────────────────────────────
 let offrirSoldeActuel = 0;
 let offrirSoldeContexte = 'avant'; // 'avant' ou 'apres'
 
@@ -18096,34 +18069,6 @@ function ndS6(){
     ${ndGrp(`${ndLbl('Notaire vendeur')}${mkNotaire('nd-not-v','nd-not-v-dl','notaireV')}`)}
     ${ndGrp(`${ndLbl('Notaire acquéreur')}${mkNotaire('nd-not-a','nd-not-a-dl','notaireA')}`)}
   `);
-}
-
-async function ndCreerNotaire(inputId, stateKey){
-  const el=document.getElementById(inputId);
-  const nom=(el?el.value:'').trim();
-  if(!nom){ showToast('Tapez un nom avant de créer','error'); return; }
-  // Mettre à jour le state
-  ndS[stateKey]=nom;
-  // Vérifier si déjà existant
-  const exists=(DB.notaires||[]).some(n=>(n.nom||n)===nom);
-  if(exists){
-    ndShowEntryOk(inputId, '"'+nom+'" est déjà dans la liste');
-    return;
-  }
-  // Ajouter immédiatement à DB
-  const tmpObj={nom};
-  DB.notaires.push(tmpObj);
-  // Rafraîchir les datalists
-  ['nd-not-v-dl','nd-not-a-dl'].forEach(dlId=>{
-    const dl=document.getElementById(dlId);
-    if(dl) dl.innerHTML=DB.notaires.map(n=>`<option value="${n.nom||n}">`).join('');
-  });
-  ndShowEntryOk(inputId, '✓ Notaire "'+nom+'" créé et enregistré');
-  // Persistance Supabase
-  try{
-    const res=await sbInsert('notaires',{nom});
-    if(res&&res[0]) Object.assign(tmpObj,res[0]);
-  }catch(e){ console.warn('Erreur notaire:',e); showToast('Erreur sauvegarde notaire','error'); }
 }
 
 function ndS7(){
