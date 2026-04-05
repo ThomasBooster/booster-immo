@@ -5954,7 +5954,7 @@ async function genererRapportPDF() {
   const agences = agencesRapport.length > 0 ? agencesRapport : AGENCES;
   const annee = mois.split(' ')[1];
   const moisDeLannee = getMoisList().filter(m => m.endsWith(annee));
-  const fmtE = v => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(Math.round(v));
+  const fmtE = v => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', minimumFractionDigits:2, maximumFractionDigits:2 }).format(Math.round(v));
 
   document.getElementById('rapport-status').innerHTML =
     '<div style="padding:10px 14px;background:#fef3c7;border-radius:8px;color:#92400e;font-size:13px;font-weight:600">⏳ Chargement de la police...</div>';
@@ -9585,7 +9585,7 @@ function fmtCount(n) {
 }
 
 function fmtEuro(n) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 function fmtDate(d) {
   if (!d) return '—';
@@ -12488,7 +12488,7 @@ function sfSaveCurrentStep() {
       break;
     case 2:
       sfData.ttc = parseFloat(document.getElementById('sf-ttc')?.value) || 0;
-      sfData.ht = Math.round(sfData.ttc / 1.2);
+      sfData.ht = Math.round(sfData.ttc / 1.2 * 100) / 100;
       break;
     case 3:
       sfData.ssp = document.getElementById('sf-ssp')?.value || '';
@@ -12673,9 +12673,9 @@ function sfCalcHt() {
   const el = document.getElementById('sf-ttc');
   if (!el) return;
   const ttc = parseFloat(el.value) || 0;
-  sfData.ttc = ttc; sfData.ht = Math.round(ttc / 1.2);
+  sfData.ttc = ttc; sfData.ht = Math.round(ttc / 1.2 * 100) / 100;
   const disp = document.getElementById('sf-ht-disp');
-  if (disp) disp.value = sfData.ht > 0 ? sfData.ht.toLocaleString('fr-FR') + ' €' : '';
+  if (disp) disp.value = sfData.ht > 0 ? sfData.ht.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €' : '';
 }
 
 // ── ÉTAPE 3 : chips statut ──
@@ -12880,7 +12880,7 @@ function sfCheckAgPct() {
   if (diff > 0.01) { w.style.color = tot > 100 ? '#dc2626' : '#d97706'; w.textContent = tot > 100 ? '⚠️ Total ' + tot.toFixed(1) + '% — dépasse 100%' : 'ℹ️ Total ' + tot.toFixed(1) + '% — reste ' + (100 - tot).toFixed(1) + '%'; }
   if (sfData.ht) for (let i = 0; i < sfNbAg; i++) {
     const pct = parseFloat(document.getElementById('sf-ag-pct-' + i)?.value) || 0;
-    const el = document.getElementById('sf-ag-ht-' + i); if (el) el.textContent = pct > 0 ? Math.round(sfData.ht * pct / 100).toLocaleString('fr-FR') + ' € HT' : '';
+    const el = document.getElementById('sf-ag-ht-' + i); if (el) el.textContent = pct > 0 ? (Math.round(sfData.ht * pct / 100 * 100) / 100).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' € HT' : '';
   }
 }
 
