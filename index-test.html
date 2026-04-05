@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.6-test                               ║
+║                        SCORIM — v1.5.7-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -98,7 +98,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.6-test</title>
+<title>SCORIM v1.5.7-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -979,7 +979,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.6-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.7-test</div>
     </div>
   </div>
 </div>
@@ -1131,7 +1131,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.6-test</div>
+        <div class="sidebar-version">v1.5.7-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -16021,35 +16021,54 @@ async function icRefresh() {
   icUpdateBadge();
 }
 
+function icGetMyAgences() {
+  // Retourne la liste des agences pour lesquelles l'utilisateur peut valider des IC
+  if (currentUser.role === 'gerant') {
+    const agenceUser = (DB.agences||[]).find(a => a.nom === currentUser.agence);
+    if (agenceUser && agenceUser.societe_id) {
+      return (DB.agences||[]).filter(a => a.societe_id === agenceUser.societe_id && a.actif !== false).map(a => a.nom);
+    }
+  }
+  return currentUser.agence ? [currentUser.agence] : [];
+}
+// Compatibilité : retourne la première agence (pour les cas mono-agence)
 function icGetMyAgence() {
-  return currentUser.agence || '';
+  return icGetMyAgences()[0] || '';
 }
 
 function icRender() {
   const list = document.getElementById('ic-list');
   if (!list) return;
-  const myAgence = icGetMyAgence();
-  if (!myAgence) { list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Aucune agence associée à votre compte.</div>'; return; }
+  const myAgences = icGetMyAgences();
+  if (!myAgences.length) { list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Aucune agence associée à votre compte.</div>'; return; }
 
-  // Drafts IC qui concernent mon agence
+  // Drafts IC qui concernent au moins une de mes agences
   const icDrafts = (DB.drafts||[]).filter(d => {
     if (d.statut !== 'en_attente_ic') return false;
     const nd = d.data || {};
     const agences = (nd.agences||[]).slice(0, nd.nbAgences||1).map(a=>a.nom);
-    return agences.includes(myAgence);
+    return agences.some(ag => myAgences.includes(ag));
   });
+
+  // Agence pertinente pour ce draft (la mienne parmi celles du draft)
+  const myAgenceForDraft = d => {
+    const nd = d.data || {};
+    const agences = (nd.agences||[]).slice(0, nd.nbAgences||1).map(a=>a.nom);
+    return agences.find(ag => myAgences.includes(ag)) || myAgences[0];
+  };
 
   // Bloc 1 : à valider par moi (ma ligne = en_attente)
   const aValider = icDrafts.filter(d => {
-    const val = (DB.draftValidations||[]).find(v => v.draft_id==d.id && v.agence===myAgence);
+    const ag = myAgenceForDraft(d);
+    const val = (DB.draftValidations||[]).find(v => v.draft_id==d.id && v.agence===ag);
     return val && val.statut==='en_attente';
   });
 
   // Bloc 2 : j'ai validé (ou j'ai soumis), en attente des autres agences
   const enAttente = icDrafts.filter(d => {
-    const val = (DB.draftValidations||[]).find(v => v.draft_id==d.id && v.agence===myAgence);
+    const ag = myAgenceForDraft(d);
+    const val = (DB.draftValidations||[]).find(v => v.draft_id==d.id && v.agence===ag);
     if (!val || val.statut==='refuse') return false;
-    // J'ai validé ma partie, mais pas toutes les autres
     const allVals = (DB.draftValidations||[]).filter(v=>v.draft_id==d.id);
     const allOk = allVals.length>0 && allVals.every(v=>v.statut==='valide');
     return val.statut==='valide' && !allOk;
@@ -16062,18 +16081,18 @@ function icRender() {
 
   if (aValider.length > 0) {
     html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #E24B4A">⚠️ À valider (${aValider.length})</div>`;
-    html += aValider.map(d => icCard(d, myAgence, true)).join('');
+    html += aValider.map(d => icCard(d, myAgenceForDraft(d), true)).join('');
   }
 
   if (enAttente.length > 0) {
     html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:${aValider.length>0?'24px':0} 0 10px;padding-bottom:6px;border-bottom:2px solid var(--border)">⏳ En attente des autres agences (${enAttente.length})</div>`;
-    html += enAttente.map(d => icCard(d, myAgence, false)).join('');
+    html += enAttente.map(d => icCard(d, myAgenceForDraft(d), false)).join('');
   }
 
   // Bloc 3 : dossiers refusés dont je suis l'agence initiale
   const refuses = (DB.drafts||[]).filter(d => {
     if (d.statut !== 'refuse') return false;
-    return d.agence === myAgence;
+    return myAgences.includes(d.agence);
   });
 
   if (refuses.length > 0) {
@@ -16230,7 +16249,11 @@ function icCard(d, myAgence, canAct) {
 }
 
 async function icValider(draftId) {
-  const myAgence = icGetMyAgence();
+  const myAgences = icGetMyAgences();
+  const draft = (DB.drafts||[]).find(d=>d.id==draftId);
+  const nd = draft?.data||{};
+  const draftAgences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom);
+  const myAgence = draftAgences.find(ag=>myAgences.includes(ag)) || icGetMyAgence();
   try {
     // Update ma ligne de validation
     await sbUpdate('draft_validations', `draft_id=eq.${draftId}&agence=eq.${encodeURIComponent(myAgence)}`, { statut: 'valide', updated_at: new Date().toISOString() });
@@ -16261,7 +16284,11 @@ async function icValider(draftId) {
 }
 
 async function icRefuser(draftId) {
-  const myAgence = icGetMyAgence();
+  const myAgences = icGetMyAgences();
+  const draft = (DB.drafts||[]).find(d=>d.id==draftId);
+  const nd = draft?.data||{};
+  const draftAgences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom);
+  const myAgence = draftAgences.find(ag=>myAgences.includes(ag)) || icGetMyAgence();
   const input = document.getElementById('ic-refus-'+draftId);
   const commentaire = input ? input.value.trim() : '';
   if (!commentaire) { showToast('Saisissez un motif de refus.', 'error'); if(input) input.focus(); return; }
@@ -16351,19 +16378,21 @@ function icStartPulse(oldestHours) {
 }
 
 function icUpdateBadge() {
-  const myAgence = icGetMyAgence();
+  const myAgences = icGetMyAgences();
   const badge = document.getElementById('ic-badge');
   const navIC = document.getElementById('nav-ic-validation');
-  if (!badge || !myAgence) return;
+  if (!badge || !myAgences.length) return;
 
-  // Drafts IC en attente de MA validation
+  // Drafts IC en attente de MA validation (pour au moins une de mes agences)
   const pendingDrafts = (DB.drafts||[]).filter(d => {
     if (d.statut !== 'en_attente_ic') return false;
     const nd = d.data||{};
     const agences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom);
-    if (!agences.includes(myAgence)) return false;
-    const val = (DB.draftValidations||[]).find(v=>v.draft_id===d.id&&v.agence===myAgence);
-    return val && val.statut==='en_attente';
+    return agences.some(ag => {
+      if (!myAgences.includes(ag)) return false;
+      const val = (DB.draftValidations||[]).find(v=>v.draft_id===d.id&&v.agence===ag);
+      return val && val.statut==='en_attente';
+    });
   });
 
   const count = pendingDrafts.length;
@@ -16372,7 +16401,6 @@ function icUpdateBadge() {
     badge.style.display = 'inline-flex';
     badge.style.alignItems = 'center';
     badge.style.justifyContent = 'center';
-    // Ancienneté du draft IC le plus vieux en attente (depuis sa création)
     const now = Date.now();
     const oldestHours = pendingDrafts.reduce((max, d) => {
       const h = d.created_at ? (now - new Date(d.created_at).getTime()) / 3600000 : 0;
@@ -16384,11 +16412,11 @@ function icUpdateBadge() {
     icStopPulse();
   }
 
-  // Afficher/masquer le nav IC selon présence de drafts IC pour cette agence
+  // Afficher/masquer le nav IC selon présence de drafts IC pour mes agences
   const total = (DB.drafts||[]).filter(d => {
     if (d.statut !== 'en_attente_ic') return false;
     const nd = d.data||{};
-    return (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).includes(myAgence);
+    return (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).some(ag => myAgences.includes(ag));
   }).length;
   if (navIC) navIC.style.display = total > 0 ? 'flex' : 'none';
 }
