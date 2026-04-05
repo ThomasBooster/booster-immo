@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.29</title>
+<title>SCORIM v1.5.30</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.29</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.30</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.29</div>
+        <div class="sidebar-version">v1.5.30</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -13682,11 +13682,9 @@ function buildReleveHTML(mois, annee, withPrintStyle) {
 
   if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
   if (!window._remuCommentaires) window._remuCommentaires = {};
-  // Lire depuis le DOM en priorité (PDF peut être imprimé avant validation)
-  const _primeInputEl = document.getElementById('remu-prime-exceptionnelle');
-  const _commentInputEl = document.getElementById('remu-prime-commentaire');
-  const primeExcept = _primeInputEl ? (parseFloat(_primeInputEl.value) || 0) : (remuCurrentNeg ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0);
-  const primeCommentPDF = _commentInputEl ? (_commentInputEl.value || '') : ((window._remuCommentaires && remuCurrentNeg) ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '');
+  // Lire depuis window._remuPrimesExcept (capturé juste avant la génération)
+  const primeExcept = (window._remuPrimesExcept && remuCurrentNeg) ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0;
+  const primeCommentPDF = (window._remuCommentaires && remuCurrentNeg) ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
 
   const totalsHTML =
     '<div class="totals">' +
@@ -13741,11 +13739,9 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
   const primeMontantPDF = primeLignePDF ? primeLignePDF.commission : 0;
   if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
   if (!window._remuCommentaires) window._remuCommentaires = {};
-  // Lire depuis le DOM en priorité (PDF peut être imprimé avant validation)
-  const _primeInputEl = document.getElementById('remu-prime-exceptionnelle');
-  const _commentInputEl = document.getElementById('remu-prime-commentaire');
-  const primeExcept = _primeInputEl ? (parseFloat(_primeInputEl.value) || 0) : (remuCurrentNeg ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0);
-  const primeCommentPDF = _commentInputEl ? (_commentInputEl.value || '') : ((window._remuCommentaires && remuCurrentNeg) ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '');
+  // Lire depuis window._remuPrimesExcept (capturé juste avant la génération)
+  const primeExcept = (window._remuPrimesExcept && remuCurrentNeg) ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0;
+  const primeCommentPDF = (window._remuCommentaires && remuCurrentNeg) ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
   const commissionsSansPrimePDF = commissionsTotal - primeMontantPDF;
   const soldeAntEffectifPDF = -Math.abs(soldeInitial) + montantNonRecupPDF;
   const debitCreditSansPrime = commissionsSansPrimePDF + soldeAntEffectifPDF;
@@ -13871,6 +13867,15 @@ async function genererPDFBase64(mois, annee) {
   const isSalarieRemu = remuCurrentNeg && ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
   const isAgentCoRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'agent-co';
   const isAlternantRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'alternant';
+  // Capturer les valeurs du DOM AVANT la génération (la modale peut être cachée ensuite)
+  if (remuCurrentNeg) {
+    const _el = document.getElementById('remu-prime-exceptionnelle');
+    const _elC = document.getElementById('remu-prime-commentaire');
+    if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+    if (!window._remuCommentaires) window._remuCommentaires = {};
+    if (_el) window._remuPrimesExcept[remuCurrentNeg.id] = parseFloat(_el.value) || 0;
+    if (_elC) window._remuCommentaires[remuCurrentNeg.id] = _elC.value || '';
+  }
   const html = isSalarieRemu ? buildBulletinSalarieHTML(mois, annee, true)
     : (isAlternantRemu ? buildBulletinAlternantHTML(mois, annee, true)
     : buildReleveHTML(mois, annee, true));
