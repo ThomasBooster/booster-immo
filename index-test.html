@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.26</title>
+<title>SCORIM v1.5.27</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.26</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.27</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.26</div>
+        <div class="sidebar-version">v1.5.27</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -13710,7 +13710,8 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
   const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
   const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
   const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
-  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
+  // Exclure la prime agence du total des commissions perso
+  const sousTotal = remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0);
   const commissionsTotal = sousTotal + credit;
   const avance = parseFloat(neg.avance_commission) || 0;
   const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
@@ -13957,7 +13958,8 @@ function recalcBilanRemu() {
 
 function recalcRemuTotal() {
   const totalFrais = remuLignes.reduce((s,l)=>s+(l.fraisJuridiques||0),0);
-  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
+  // Exclure la prime agence du sous-total affiché (commissions perso uniquement)
+  const sousTotal = remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0);
   const fraisEl = document.getElementById('remu-total-frais');
   if (fraisEl) fraisEl.textContent = totalFrais > 0 ? '- ' + fmtEuro(totalFrais) : '0 €';
   document.getElementById('remu-sous-total').textContent = fmtEuro(sousTotal);
@@ -14158,7 +14160,7 @@ function buildBulletinAlternantHTML(mois, annee, withPrintStyle) {
   const tauxRentree = tauxSortie / 2;
 
   const lignesSortie = remuLignes.filter(l => l.type === 'Sortie');
-  const lignesRentree = remuLignes.filter(l => l.type === 'Entree');
+  const lignesRentree = remuLignes.filter(l => l.type === 'Entrée');
   const commSortie = lignesSortie.reduce((s,l)=>s+l.commission,0);
   const commRentree = lignesRentree.reduce((s,l)=>s+l.commission,0);
   const commissionsTotal = commSortie + commRentree + credit;
@@ -14364,7 +14366,7 @@ function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
         '<div class="section-title">Calcul commissions perso</div>' +
         '<table style="font-size:11px">' +
           '<tr><td style="border:none;padding:3px 0;color:#666">Commissions sortie</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(lignesPerso.filter(l=>l.type==='Sortie').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
-          '<tr><td style="border:none;padding:3px 0;color:#666">Commissions rentree</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(lignesPerso.filter(l=>l.type==='Entree').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
+          '<tr><td style="border:none;padding:3px 0;color:#666">Commissions rentree</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(lignesPerso.filter(l=>l.type==='Entrée').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
           (credit>0 ? '<tr><td style="border:none;padding:3px 0;color:#666">Credit courtier</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">+ '+fmtEuro(credit)+'</td></tr>' : '') +
           '<tr style="border-top:1px solid #ccc"><td style="padding:4px 0;font-weight:700">Total commissions perso</td><td style="padding:4px 0;text-align:right;font-weight:700;color:#2D455A">' + fmtEuro(commissionsPerso) + '</td></tr>' +
         '</table>' +
