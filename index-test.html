@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.31</title>
+<title>SCORIM v1.5.32</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.31</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.32</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.31</div>
+        <div class="sidebar-version">v1.5.32</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -14175,7 +14175,12 @@ function buildBulletinAlternantHTML(mois, annee, withPrintStyle) {
   const commSortie = lignesSortie.reduce((s,l)=>s+l.commission,0);
   const commRentree = lignesRentree.reduce((s,l)=>s+l.commission,0);
   const commissionsTotal = commSortie + commRentree + credit;
-  const totalAVerser = commissionsTotal + fixe;
+  // Prime exceptionnelle — lue depuis le stockage (capturé avant génération)
+  if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+  if (!window._remuCommentaires) window._remuCommentaires = {};
+  const primeExceptAlt = remuCurrentNeg ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0;
+  const primeCommentAlt = remuCurrentNeg ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
+  const totalAVerser = commissionsTotal + fixe + primeExceptAlt;
 
   const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#f5f5f5;font-weight:700;font-size:10px}' +
     '.header{display:flex;justify-content:space-between;margin-bottom:20px}.title{font-size:16px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}' +
@@ -14257,7 +14262,8 @@ function buildBulletinAlternantHTML(mois, annee, withPrintStyle) {
       (credit > 0 ? '<div class="bilan-row"><span>Credit courtier</span><span style="font-weight:700">+ ' + fmtEuro(credit) + '</span></div>' : '') +
       '<div class="bilan-row"><span>Total commissions</span><span style="font-weight:700;color:#2D455A">= ' + fmtEuro(commissionsTotal) + '</span></div>' +
       '<div class="bilan-row" style="border-bottom:none"><span>Remuneration fixe mensuelle</span><span>' + fmtEuro(fixe) + '</span></div>' +
-      '<div class="bilan-highlight-green"><span>Total a verser</span><span>' + fmtEuro(totalAVerser) + '</span></div>' +
+      (primeExceptAlt > 0 ? '<div class="bilan-row"><span>Prime exceptionnelle' + (primeCommentAlt ? ' (' + primeCommentAlt + ')' : '') + '</span><span style="font-weight:700;color:#0369a1">+ ' + fmtEuro(primeExceptAlt) + '</span></div>' : '') +
+      '<div class="bilan-highlight-green bilan-total-bold"><span>💰 TOTAL A VERSER</span><span>' + fmtEuro(totalAVerser) + '</span></div>' +
     '</div>';
 
   const signatureHTML = '<div class="signature">' +
