@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.4-test                               ║
+║                        SCORIM — v1.5.5-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -98,7 +98,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.4-test</title>
+<title>SCORIM v1.5.5-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -979,7 +979,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.4-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5-test</div>
     </div>
   </div>
 </div>
@@ -1131,7 +1131,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.4-test</div>
+        <div class="sidebar-version">v1.5.5-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -16353,23 +16353,42 @@ function icUpdateBadge() {
   const badge = document.getElementById('ic-badge');
   const navIC = document.getElementById('nav-ic-validation');
   if (!badge || !myAgence) return;
-  const count = (DB.drafts||[]).filter(d => {
+
+  // Drafts IC en attente de MA validation
+  const pendingDrafts = (DB.drafts||[]).filter(d => {
     if (d.statut !== 'en_attente_ic') return false;
     const nd = d.data||{};
     const agences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom);
     if (!agences.includes(myAgence)) return false;
     const val = (DB.draftValidations||[]).find(v=>v.draft_id===d.id&&v.agence===myAgence);
     return val && val.statut==='en_attente';
-  }).length;
-  if (count>0) { badge.textContent=count; badge.style.display='inline-flex'; badge.style.alignItems='center'; badge.style.justifyContent='center'; }
-  else { badge.style.display='none'; }
-  // Afficher/masquer le nav selon s'il y a des IC
-  const total = (DB.drafts||[]).filter(d=>{
-    if(d.statut!=='en_attente_ic') return false;
-    const nd=d.data||{};
+  });
+
+  const count = pendingDrafts.length;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-flex';
+    badge.style.alignItems = 'center';
+    badge.style.justifyContent = 'center';
+    // Ancienneté du draft IC le plus vieux en attente (depuis sa création)
+    const now = Date.now();
+    const oldestHours = pendingDrafts.reduce((max, d) => {
+      const h = d.created_at ? (now - new Date(d.created_at).getTime()) / 3600000 : 0;
+      return Math.max(max, h);
+    }, 0);
+    icStartPulse(oldestHours);
+  } else {
+    badge.style.display = 'none';
+    icStopPulse();
+  }
+
+  // Afficher/masquer le nav IC selon présence de drafts IC pour cette agence
+  const total = (DB.drafts||[]).filter(d => {
+    if (d.statut !== 'en_attente_ic') return false;
+    const nd = d.data||{};
     return (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).includes(myAgence);
   }).length;
-  if (navIC) navIC.style.display = total>0 ? 'flex' : 'none';
+  if (navIC) navIC.style.display = total > 0 ? 'flex' : 'none';
 }
 
 
@@ -17135,11 +17154,9 @@ function sspStartPulse(oldestHours) {
 }
 
 function sspUpdateBadge() {
-  const allDrafts = DB.drafts || [];
-  const pending = allDrafts.filter(d => d.statut === 'en_attente');
-  console.log('[SSP] sspUpdateBadge — drafts total:', allDrafts.length, '| en_attente:', pending.length, '| statuts:', [...new Set(allDrafts.map(d=>d.statut))]);
+  const pending = (DB.drafts || []).filter(d => d.statut === 'en_attente');
   const badge = document.getElementById('ssp-badge');
-  if (!badge) { console.warn('[SSP] badge element introuvable'); return; }
+  if (!badge) return;
   if (pending.length > 0) {
     badge.textContent = pending.length;
     badge.style.display = 'inline-block';
@@ -17148,7 +17165,6 @@ function sspUpdateBadge() {
       const h = d.created_at ? (now - new Date(d.created_at).getTime()) / 3600000 : 0;
       return Math.max(max, h);
     }, 0);
-    console.log('[SSP] oldestHours:', oldestHours.toFixed(1), '→ sspStartPulse');
     sspStartPulse(oldestHours);
   } else {
     badge.style.display = 'none';
