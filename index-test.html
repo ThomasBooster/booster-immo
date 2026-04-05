@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.8-test                               ║
+║                        SCORIM — v1.5.9-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -98,7 +98,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.8-test</title>
+<title>SCORIM v1.5.9-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -979,7 +979,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.8-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.9-test</div>
     </div>
   </div>
 </div>
@@ -1131,7 +1131,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.8-test</div>
+        <div class="sidebar-version">v1.5.9-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -16024,22 +16024,15 @@ async function icRefresh() {
 function icGetMyAgences() {
   if (currentUser.role === 'gerant') {
     const agenceUser = (DB.agences||[]).find(a => a.nom === currentUser.agence);
-    console.log('[IC] gerant — currentUser.agence:', currentUser.agence, '| agenceUser:', agenceUser, '| societe_id:', agenceUser?.societe_id);
     if (agenceUser && agenceUser.societe_id) {
-      const result = (DB.agences||[]).filter(a => a.societe_id === agenceUser.societe_id && a.actif !== false).map(a => a.nom);
-      console.log('[IC] agences gerant (via agenceUser):', result);
-      return result;
+      return (DB.agences||[]).filter(a => a.societe_id === agenceUser.societe_id && a.actif !== false).map(a => a.nom);
     }
     // Fallback : chercher dans DB.gerants par nom
     const gerantRow = (DB.gerants||[]).find(g => g.nom === currentUser.nom);
-    console.log('[IC] fallback gerantRow:', gerantRow);
     if (gerantRow && gerantRow.societe_id) {
-      const result = (DB.agences||[]).filter(a => a.societe_id === gerantRow.societe_id && a.actif !== false).map(a => a.nom);
-      console.log('[IC] agences gerant (via DB.gerants):', result);
-      return result;
+      return (DB.agences||[]).filter(a => a.societe_id === gerantRow.societe_id && a.actif !== false).map(a => a.nom);
     }
   }
-  console.log('[IC] fallback agence unique:', currentUser.agence);
   return currentUser.agence ? [currentUser.agence] : [];
 }
 // Compatibilité : retourne la première agence (pour les cas mono-agence)
@@ -16394,16 +16387,19 @@ function icUpdateBadge() {
   const navIC = document.getElementById('nav-ic-validation');
   if (!badge || !myAgences.length) return;
 
-  // Drafts IC en attente de MA validation (pour au moins une de mes agences)
+  // Drafts IC en attente de MA validation + drafts refusés dont je suis l'agence initiale
   const pendingDrafts = (DB.drafts||[]).filter(d => {
-    if (d.statut !== 'en_attente_ic') return false;
-    const nd = d.data||{};
-    const agences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom);
-    return agences.some(ag => {
-      if (!myAgences.includes(ag)) return false;
-      const val = (DB.draftValidations||[]).find(v=>v.draft_id===d.id&&v.agence===ag);
-      return val && val.statut==='en_attente';
-    });
+    if (d.statut === 'en_attente_ic') {
+      const nd = d.data||{};
+      const agences = (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom);
+      return agences.some(ag => {
+        if (!myAgences.includes(ag)) return false;
+        const val = (DB.draftValidations||[]).find(v=>v.draft_id===d.id&&v.agence===ag);
+        return val && val.statut==='en_attente';
+      });
+    }
+    if (d.statut === 'refuse') return myAgences.includes(d.agence);
+    return false;
   });
 
   const count = pendingDrafts.length;
@@ -16423,11 +16419,14 @@ function icUpdateBadge() {
     icStopPulse();
   }
 
-  // Afficher/masquer le nav IC selon présence de drafts IC pour mes agences
+  // Afficher/masquer le nav IC selon présence de drafts IC ou refusés pour mes agences
   const total = (DB.drafts||[]).filter(d => {
-    if (d.statut !== 'en_attente_ic') return false;
-    const nd = d.data||{};
-    return (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).some(ag => myAgences.includes(ag));
+    if (d.statut === 'en_attente_ic') {
+      const nd = d.data||{};
+      return (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).some(ag => myAgences.includes(ag));
+    }
+    if (d.statut === 'refuse') return myAgences.includes(d.agence);
+    return false;
   }).length;
   if (navIC) navIC.style.display = total > 0 ? 'flex' : 'none';
 }
