@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.22</title>
+<title>SCORIM v1.5.23</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.22</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.23</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.22</div>
+        <div class="sidebar-version">v1.5.23</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -13780,11 +13780,20 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
     '</div>' +
     '<div>' +
       '<div class="section-title">Bareme applique</div>' +
-      '<table class="bareme-table">' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t1_taux||12) ? 'bareme-active' : '') + '"><td>Tranche 1</td><td>0 – ' + (bareme.t1_max||7500).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t1_taux||12) + '%' + (parseFloat(pctApplique)==(bareme.t1_taux||12) ? ' ←' : '') + '</td></tr>' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? 'bareme-active' : '') + '"><td>Tranche 2</td><td>' + ((bareme.t1_max||7500)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t2_max||15000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t2_taux||14) + '%' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? ' ←' : '') + '</td></tr>' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? 'bareme-active' : '') + '"><td>Tranche 3</td><td>' + ((bareme.t2_max||15000)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t3_taux||16) + '%' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? ' ←' : '') + '</td></tr>' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? 'bareme-active' : '') + '"><td>Tranche 4</td><td>> ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t4_taux||18) + '%' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? ' ←' : '') + '</td></tr>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:10px">' +
+        (function(){
+          const rows = [
+            { label:'Tranche 1', range:'0 – '+(bareme.t1_max||7500).toLocaleString('fr-FR')+' €', taux:bareme.t1_taux||12 },
+            { label:'Tranche 2', range:((bareme.t1_max||7500)+1).toLocaleString('fr-FR')+' – '+(bareme.t2_max||15000).toLocaleString('fr-FR')+' €', taux:bareme.t2_taux||14 },
+            { label:'Tranche 3', range:((bareme.t2_max||15000)+1).toLocaleString('fr-FR')+' – '+(bareme.t3_max||25000).toLocaleString('fr-FR')+' €', taux:bareme.t3_taux||16 },
+            { label:'Tranche 4', range:'> '+(bareme.t3_max||25000).toLocaleString('fr-FR')+' €', taux:bareme.t4_taux||18 }
+          ];
+          return rows.map(r => {
+            const active = parseFloat(pctApplique) === r.taux;
+            const bg = active ? 'background:#dbeafe;color:#1d4ed8;font-weight:700' : '';
+            return '<tr style="' + bg + '"><td style="padding:3px 6px;border:1px solid #ccc">' + r.label + '</td><td style="padding:3px 6px;border:1px solid #ccc">' + r.range + '</td><td style="padding:3px 6px;border:1px solid #ccc;text-align:right">' + r.taux + '%' + (active ? ' ←' : '') + '</td></tr>';
+          }).join('');
+        })() +
       '</table>' +
     '</div>' +
   '</div>';
