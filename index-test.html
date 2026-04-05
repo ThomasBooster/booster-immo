@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.23</title>
+<title>SCORIM v1.5.24</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.23</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.24</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.23</div>
+        <div class="sidebar-version">v1.5.24</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -13388,6 +13388,7 @@ async function calculerRemuneration() {
         fraisJuridiques: l.fraisJuridiques,
         baseCalc: l.baseCalc,
         taux: tauxFinal,
+        tauxBase: tauxSortie,
         commission: l.baseCalc * tauxFinal,
         pctCa: l.pctCa
       });
@@ -13710,8 +13711,12 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
   const negCP = neg.code_postal || '';
   const negVille = neg.ville || '';
   const bareme = neg.bareme_commissions || {t1_max:7500,t1_taux:12,t2_max:15000,t2_taux:14,t3_max:25000,t3_taux:16,t4_taux:18};
-  const tauxApplique = remuLignes.find(l=>l.type==='Sortie')?.taux || 0;
-  const pctApplique = (tauxApplique*100).toFixed(1);
+  const ligneSortie = remuLignes.find(l=>l.type==='Sortie');
+  const tauxApplique = ligneSortie?.taux || 0;
+  // Pour le barème, utiliser le taux de base (sans bonus rentrée)
+  const tauxBaseBareme = ligneSortie?.tauxBase || tauxApplique;
+  const pctApplique = (tauxBaseBareme*100).toFixed(1);
+  const pctFinal = (tauxApplique*100).toFixed(2);
 
   // Calculs bilan
   const partNonRecupPDF = (neg.part_non_recup !== null && neg.part_non_recup !== undefined) ? parseFloat(neg.part_non_recup) / 100 : 0;
