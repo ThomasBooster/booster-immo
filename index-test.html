@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.30</title>
+<title>SCORIM v1.5.31</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.30</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.31</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.30</div>
+        <div class="sidebar-version">v1.5.31</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -14301,7 +14301,12 @@ function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
   const debitCredit = commissionsPerso + soldeAnt;
   const salaireAVerser = debitCredit >= avance ? debitCredit : avance;
   const nouveauSolde = debitCredit >= avance ? 0 : -(avance - debitCredit);
-  const totalAVerser = salaireAVerser + primeMontant;
+  // Prime exceptionnelle — lue depuis le stockage (capturé avant génération PDF)
+  if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+  if (!window._remuCommentaires) window._remuCommentaires = {};
+  const primeExceptResp = remuCurrentNeg ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0;
+  const primeCommentResp = remuCurrentNeg ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
+  const totalAVerser = salaireAVerser + primeMontant + primeExceptResp;
 
   // Barème
   const bareme = neg.bareme_commissions || {t1_max:7500,t1_taux:12,t2_max:15000,t2_taux:14,t3_max:25000,t3_taux:16,t4_taux:18};
@@ -14430,7 +14435,8 @@ function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
       '<div class="bilan-row" style="border-bottom:none"><span>Avance sur commission</span><span>' + fmtEuro(avance) + '</span></div>' +
       '<div class="bilan-highlight-green"><span>Avance a verser</span><span>' + fmtEuro(salaireAVerser) + '</span></div>' +
       (primeMontant>0 ? '<div class="bilan-highlight-purple"><span>Prime CA agence (' + primePct + '%)</span><span>+ ' + fmtEuro(primeMontant) + '</span></div>' : '') +
-      (primeMontant>0 ? '<div class="bilan-highlight-blue"><span>Total a verser</span><span>' + fmtEuro(totalAVerser) + '</span></div>' : '') +
+      (primeExceptResp>0 ? '<div class="bilan-row" style="border-bottom:1px solid #eee"><span>Prime exceptionnelle' + (primeCommentResp ? ' (' + primeCommentResp + ')' : '') + '</span><span style="font-weight:700;color:#0369a1">+ ' + fmtEuro(primeExceptResp) + '</span></div>' : '') +
+      ((primeMontant>0 || primeExceptResp>0) ? '<div class="bilan-highlight-blue"><span>💰 Total a verser</span><span>' + fmtEuro(totalAVerser) + '</span></div>' : '') +
       '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSolde<0 ? '- '+fmtEuro(Math.abs(nouveauSolde)) : '0 €') + '</span></div>' +
     '</div>';
 
@@ -14465,6 +14471,15 @@ async function imprimerRelevePDF() {
 
 async function genererPDFBase64(mois, annee) {
   const { jsPDF } = window.jspdf;
+  // Capturer prime/commentaire depuis le DOM avant génération
+  if (remuCurrentNeg) {
+    const _elPR = document.getElementById('remu-prime-exceptionnelle');
+    const _elCR = document.getElementById('remu-prime-commentaire');
+    if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+    if (!window._remuCommentaires) window._remuCommentaires = {};
+    if (_elPR) window._remuPrimesExcept[remuCurrentNeg.id] = parseFloat(_elPR.value) || 0;
+    if (_elCR) window._remuCommentaires[remuCurrentNeg.id] = _elCR.value || '';
+  }
   const isResponsableRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'responsable';
   const isSalarieRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'salarié';
   const isAlternantRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'alternant';
