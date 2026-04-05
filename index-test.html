@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.21</title>
+<title>SCORIM v1.5.22</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.21</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.22</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.21</div>
+        <div class="sidebar-version">v1.5.22</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -13797,8 +13797,8 @@ function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
       '<div class="bilan-row"><span>Avance sur commission mensuelle</span><span>' + fmtEuro(avance) + '</span></div>' +
       (primeMontantPDF > 0 ? '<div class="bilan-row"><span>Prime CA agence (' + (parseFloat(neg.prime_agence_pct)||0) + '%)</span><span style="font-weight:700;color:#7c3aed">+ ' + fmtEuro(primeMontantPDF) + '</span></div>' : '') +
       (primeExcept > 0 ? '<div class="bilan-row"><span>Prime exceptionnelle' + (primeCommentPDF ? ' (' + primeCommentPDF + ')' : '') + '</span><span style="font-weight:700;color:#0369a1">+ ' + fmtEuro(primeExcept) + '</span></div>' : '') +
-      ((primeMontantPDF > 0 || primeExcept > 0) ? '<div class="bilan-row" style="border-bottom:none"><span>Total a verser</span><span style="font-weight:700;color:#16a34a">= ' + fmtEuro(totalAVerserPDF) + '</span></div>' : '<div class="bilan-row" style="border-bottom:none"></div>') +
-      '<div class="bilan-highlight-green bilan-total-bold"><span>' + ((primeMontantPDF > 0 || primeExcept > 0) ? 'Dont avance a verser' : '💰 TOTAL A VERSER') + '</span><span>' + fmtEuro(salaireAVerserFinal) + '</span></div>' +
+      '<div class="bilan-highlight-green bilan-total-bold"><span>💰 TOTAL A VERSER</span><span>' + fmtEuro(totalAVerserPDF) + '</span></div>' +
+      ((primeMontantPDF > 0 || primeExcept > 0) ? '<div class="bilan-row" style="border-bottom:none;color:#555;font-size:10px"><span>Dont avance sur commission</span><span>' + fmtEuro(salaireAVerserFinal) + '</span></div>' : '') +
       '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSoldeFinal<0 ? '- '+fmtEuro(Math.abs(nouveauSoldeFinal)) : '0 €') + '</span></div>' +
     '</div>';
 
