@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.32</title>
+<title>SCORIM v1.5.33</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.32</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.33</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.32</div>
+        <div class="sidebar-version">v1.5.33</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -13461,14 +13461,16 @@ async function calculerRemuneration() {
       }
       const linkRent = (DB.dossierRent || []).find(l => l.dossier_id === d.id && l.negociateur_id === remuCurrentNeg.id);
       if (linkRent && linkRent.ca_rentree > 0) {
+        // Pour responsable/salarié : taux rentrée = tauxFinal / 2 (pas taux_retrocession_sortie)
+        const tauxRentreeEffectif = (isAlt || tauxRentreeAlt > 0) ? tauxRentreeAlt : tauxFinal / 2;
         remuLignes.push({
           dossier: d,
           type: 'Entrée',
           ht: linkRent.ca_rentree,
           fraisJuridiques: 0,
           baseCalc: linkRent.ca_rentree,
-          taux: tauxRentreeAlt,
-          commission: linkRent.ca_rentree * tauxRentreeAlt,
+          taux: tauxRentreeEffectif,
+          commission: linkRent.ca_rentree * tauxRentreeEffectif,
           pctCa: null
         });
       }
@@ -13597,7 +13599,20 @@ function renderRemuResultats(mois, annee) {
     '</div>' +
     '<div style="display:flex;justify-content:space-between;padding:10px 0">' +
       '<span style="font-size:13px;font-weight:700">Taux sortie / rentrée</span>' +
-      '<span style="font-size:12px;color:var(--text-muted)">' + (remuCurrentNeg.taux_retrocession_sortie||0) + '% / ' + (remuCurrentNeg.taux_retrocession_rentree||0) + '%</span>' +
+      (function() {
+        const isSalResp = ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+        if (isSalResp) {
+          const lSortie = remuLignes.find(l => l.type === 'Sortie' && !l.isPrimeAgence);
+          const tauxS = lSortie ? Math.round(lSortie.taux * 10000) / 100 : 0;
+          const lEntree = remuLignes.find(l => l.type === 'Entrée');
+          // Pour rentrée : si taux stocké, l'utiliser ; sinon calculer depuis taux sortie
+          let tauxR = lEntree ? Math.round(lEntree.taux * 10000) / 100 : 0;
+          if (tauxR === 0 && lEntree && lSortie) tauxR = Math.round((lSortie.taux / 2) * 10000) / 100;
+          const tauxRLabel = tauxR > 0 ? tauxR + '%' : (lEntree ? '(barème/2)' : '—');
+          return '<span style="font-size:12px;color:var(--text-muted)">' + (tauxS > 0 ? tauxS + '%' : '—') + ' / ' + tauxRLabel + '</span>';
+        }
+        return '<span style="font-size:12px;color:var(--text-muted)">' + (remuCurrentNeg.taux_retrocession_sortie||0) + '% / ' + (remuCurrentNeg.taux_retrocession_rentree||0) + '%</span>';
+      })() +
     '</div>';
 }
 
