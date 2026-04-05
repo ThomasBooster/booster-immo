@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.19</title>
+<title>SCORIM v1.5.20</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.19</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.20</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.19</div>
+        <div class="sidebar-version">v1.5.20</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -13968,11 +13968,7 @@ function recalcRemuTotal() {
     document.getElementById('remu-bilan-salaire').textContent = fmtEuro(totalAlt);
     const pzAlt = document.getElementById('remu-bilan-prime-zone'); if (pzAlt) pzAlt.style.display = 'none';
     const tzAlt = document.getElementById('remu-bilan-total-zone');
-    if (primeExceptAlt > 0) {
-      if (tzAlt) { tzAlt.style.display = ''; document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAltFinal); }
-    } else {
-      if (tzAlt) tzAlt.style.display = 'none';
-    }
+    if (tzAlt) { tzAlt.style.display = ''; document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAltFinal); }
     const nvSoldeElAlt = document.getElementById('remu-bilan-nouveau-solde');
     nvSoldeElAlt.textContent = '—'; nvSoldeElAlt.style.color = 'var(--text-muted)';
     // Adapter les libellés
@@ -14051,13 +14047,9 @@ function recalcRemuTotal() {
     } else {
       if (primeZone) primeZone.style.display = 'none';
     }
-    // Afficher le total si prime agence OU prime exceptionnelle
-    if (primeExcept > 0 || primeMontantCalc > 0) {
-      if (totalZone) totalZone.style.display = '';
-      document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAVerser);
-    } else {
-      if (totalZone) totalZone.style.display = 'none';
-    }
+    // Toujours afficher le total (il se met à jour en temps réel)
+    if (totalZone) totalZone.style.display = '';
+    document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAVerser);
     const nvSoldeEl = document.getElementById('remu-bilan-nouveau-solde');
     if (remiseDejaMois > 0) {
       const soldeAvantRemise = -(avance - debitCredit);
@@ -14113,76 +14105,7 @@ function openRemuDossier(dossierId) {
   document.getElementById('modal-remu-dossier').classList.add('open');
 }
 
-function buildReleveHTML(mois, annee, withPrintStyle) {
-  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const neg = remuCurrentNeg;
-  const agObj = DB.agences.find(a => a.nom === neg.agence);
-  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
-  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
-  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
-  const totalNet = sousTotal + credit;
-  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
 
-  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:12px;color:#000} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ccc;padding:6px 10px} th{background:#f5f5f5;font-weight:700} .header{display:flex;justify-content:space-between;margin-bottom:24px} .title{font-size:18px;font-weight:700;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:16px} .totals{margin-top:16px;text-align:right} .totals div{margin:4px 0} .total-net{font-size:14px;font-weight:700} .signature{margin-top:40px;border-top:1px solid #ccc;padding-top:16px} @media print{button{display:none}}</style>' : '';
-
-  // En-tête agence
-  const agAdresse = agObj ? (agObj.adresse || '') : '';
-  const agCP = agObj ? (agObj.code_postal || '') : '';
-  const agVille = agObj ? (agObj.ville || '') : '';
-  const siret = socObj?.siret || '';
-  // En-tête collab
-  const negAdresse1 = neg.adresse1 || '';
-  const negAdresse2 = neg.adresse2 || '';
-  const negCP = neg.code_postal || '';
-  const negVille = neg.ville || '';
-  const negRCS = neg.numero_rcs ? ('RCS ' + (neg.ville_rcs || '') + ' ' + neg.numero_rcs).trim() : '';
-
-  return printStyle + '<div class="header">' +
-    '<div>' +
-      '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'BOOSTER IMMOBILIER') + '</div>' +
-      '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
-      (agAdresse ? '<div style="font-size:11px;color:#555">' + agAdresse + '</div>' : '') +
-      (agCP || agVille ? '<div style="font-size:11px;color:#555">' + [agCP, agVille].filter(Boolean).join(' ') + '</div>' : '') +
-      (siret ? '<div style="font-size:11px;color:#555">SIRET : ' + siret + '</div>' : '') +
-    '</div>' +
-    '<div style="text-align:right">' +
-      '<div style="font-weight:700">' + (neg.nom || '—') + '</div>' +
-      (negAdresse1 ? '<div style="font-size:11px;color:#555">' + negAdresse1 + '</div>' : '') +
-      (negAdresse2 ? '<div style="font-size:11px;color:#555">' + negAdresse2 + '</div>' : '') +
-      (negCP || negVille ? '<div style="font-size:11px;color:#555">' + [negCP, negVille].filter(Boolean).join(' ') + '</div>' : '') +
-      (negRCS ? '<div style="font-size:11px;color:#555">' + negRCS + '</div>' : '') +
-      '<div style="font-size:11px;color:#666;margin-top:6px">Toulouse, le ' + today + '</div>' +
-    '</div>' +
-  '</div>' +
-  '<div class="title">RELEVÉ DE COMMISSIONS DÛES</div>' +
-  '<p style="margin-bottom:16px">Objet : Montant des commissions revenant à <strong>' + neg.nom + '</strong> pour le mois de <strong>' + moisNoms[mois] + ' ' + annee + '</strong></p>' +
-  '<table>' +
-    '<thead><tr><th>Date</th><th>Affaire</th><th>Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base calcul</th><th>Statut</th><th>Taux</th><th>Commission</th></tr></thead>' +
-    '<tbody>' +
-      remuLignes.map(l =>
-        '<tr>' +
-          '<td>' + (l.isPrimeAgence ? '<em style="color:var(--text-muted);font-size:11px">Prime mensuelle</em>' : fmtDate(l.dossier.dateActe)) + '</td>' +
-          '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' (' + l.pctCa + '%)' : '') + '</td>' +
-          '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
-          '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques > 0 ? '- ' + fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
-          '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
-          '<td>' + l.type + '</td>' +
-          '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
-        '</tr>'
-      ).join('') +
-    '</tbody>' +
-  '</table>' +
-  '<div class="totals">' +
-    '<div>Frais juridiques déduits : <strong style="color:#dc2626">- ' + fmtEuro(remuLignes.reduce((s,l)=>s+(l.fraisJuridiques||0),0)) + '</strong></div>' +
-    '<div>Sous-total commissions : <strong>' + fmtEuro(sousTotal) + '</strong></div>' +
-    (credit > 0 ? '<div>Crédit courtier : <strong>+ ' + fmtEuro(credit) + '</strong></div>' : '') +
-    '<div class="total-net" style="margin-top:8px;font-size:14px">Total Hors Taxes : <strong>' + fmtEuro(totalNet) + '</strong></div>' +
-  '</div>' +
-  '<div class="signature">' +
-    '<div>Reçu en main propre le : _______________</div>' +
-    '<div style="margin-top:16px">Signature : _______________</div>' +
-  '</div>';
-}
 
 function buildBulletinAlternantHTML(mois, annee, withPrintStyle) {
   const moisNoms = ['','Janvier','Fev','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
@@ -14475,136 +14398,7 @@ function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
   return headerHTML + partie1HTML + partie2HTML + bilanHTML + signatureHTML;
 }
 
-function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
-  const moisNoms = ['','Janvier','Fev','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
-  const neg = remuCurrentNeg;
-  const agObj = DB.agences.find(a => a.nom === neg.agence);
-  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
-  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
-  const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
-  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
-  const commissionsTotal = sousTotal + credit;
-  const soldeAnt = -Math.abs(soldeInitial);
-  const debitCredit = commissionsTotal + soldeAnt;
-  const avance = parseFloat(neg.avance_commission) || 0;
-  const salaireAVerser = debitCredit >= avance ? debitCredit : avance;
-  const nouveauSolde = debitCredit >= avance ? 0 : -(avance - debitCredit);
-  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
-  const agAdresse = agObj?.adresse || '';
-  const agCP = agObj?.code_postal || '';
-  const agVille = agObj?.ville || '';
-  const siret = socObj?.siret || '';
-  const negAdresse1 = neg.adresse1 || '';
-  const negAdresse2 = neg.adresse2 || '';
-  const negCP = neg.code_postal || '';
-  const negVille = neg.ville || '';
-  const bareme = neg.bareme_commissions || {t1_max:7500,t1_taux:12,t2_max:15000,t2_taux:14,t3_max:25000,t3_taux:16,t4_taux:18};
-  const tauxApplique = remuLignes.find(l=>l.type==='Sortie')?.taux || 0;
-  const pctApplique = (tauxApplique*100).toFixed(1);
 
-  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#f5f5f5;font-weight:700;font-size:10px}' +
-    '.header{display:flex;justify-content:space-between;margin-bottom:20px}.title{font-size:16px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}' +
-    '.section-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#666;margin:14px 0 6px;letter-spacing:.05em}' +
-    '.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}' +
-    '.bilan{background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:12px;margin-bottom:14px}' +
-    '.bilan-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:11px}' +
-    '.bilan-highlight-green{background:#f0fdf4;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#15803d;font-size:13px}' +
-    '.bilan-highlight-amber{background:#fef3c7;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#d97706;font-size:13px}' +
-    '.bareme-table td{font-size:10px;padding:3px 6px}.bareme-active{background:#dbeafe;color:#1d4ed8;font-weight:700}' +
-    '.signature{margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px}' +
-    '@media print{button{display:none}}</style>' : '';
-
-  const headerHTML = printStyle +
-    '<div class="header">' +
-      '<div>' +
-        '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'BOOSTER IMMOBILIER') + '</div>' +
-        '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
-        (agAdresse ? '<div style="font-size:10px;color:#555">' + agAdresse + '</div>' : '') +
-        (agCP||agVille ? '<div style="font-size:10px;color:#555">' + [agCP,agVille].filter(Boolean).join(' ') + '</div>' : '') +
-        (siret ? '<div style="font-size:10px;color:#555">SIRET : ' + siret + '</div>' : '') +
-      '</div>' +
-      '<div style="text-align:right">' +
-        '<div style="font-weight:700">' + (neg.nom||'—') + '</div>' +
-        (negAdresse1 ? '<div style="font-size:10px;color:#555">' + negAdresse1 + '</div>' : '') +
-        (negAdresse2 ? '<div style="font-size:10px;color:#555">' + negAdresse2 + '</div>' : '') +
-        (negCP||negVille ? '<div style="font-size:10px;color:#555">' + [negCP,negVille].filter(Boolean).join(' ') + '</div>' : '') +
-        '<div style="font-size:10px;color:#666;margin-top:4px">Toulouse, le ' + today + '</div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="title">ETAT DE COMMISSIONS — ' + moisNoms[mois].toUpperCase() + ' ' + annee + '</div>' +
-    '<p style="margin-bottom:14px;font-size:11px">Commissions revenant a <strong>' + neg.nom + '</strong> pour le mois de <strong>' + moisNoms[mois] + ' ' + annee + '</strong></p>';
-
-  // Tableau affaires (police 10px)
-  const tableHTML =
-    '<div class="section-title">Affaires traitees</div>' +
-    '<table style="font-size:10px;margin-bottom:14px">' +
-      '<thead><tr><th>Date</th><th>Affaire</th><th style="text-align:right">Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base</th><th>Type</th><th style="text-align:right">Commission</th></tr></thead>' +
-      '<tbody>' +
-      remuLignes.map(l =>
-        '<tr>' +
-          '<td>' + (l.isPrimeAgence ? '<em>Prime mensuelle</em>' : fmtDate(l.dossier.dateActe)) + '</td>' +
-          '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' ('+l.pctCa+'%)' : '') + '</td>' +
-          '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
-          '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques>0 ? '- '+fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
-          '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
-          '<td>' + l.type + '</td>' +
-          '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
-        '</tr>'
-      ).join('') +
-      '</tbody>' +
-    '</table>';
-
-  // Deux colonnes : calcul commissions + barème
-  const twoColHTML = '<div class="two-col">' +
-    '<div>' +
-      '<div class="section-title">Calcul des commissions</div>' +
-      '<table style="font-size:11px">' +
-        '<tr><td style="border:none;padding:3px 0;color:#666">Commissions sortie</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(remuLignes.filter(l=>l.type==='Sortie').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
-        '<tr><td style="border:none;padding:3px 0;color:#666">Commissions rentree</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(remuLignes.filter(l=>l.type==='Entree').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
-        (credit>0 ? '<tr><td style="border:none;padding:3px 0;color:#666">Credit courtier</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">+ '+fmtEuro(credit)+'</td></tr>' : '') +
-        '<tr style="border-top:1px solid #ccc"><td style="padding:4px 0;font-weight:700">Total commissions</td><td style="padding:4px 0;text-align:right;font-weight:700;color:#2D455A">' + fmtEuro(commissionsTotal) + '</td></tr>' +
-      '</table>' +
-    '</div>' +
-    '<div>' +
-      '<div class="section-title">Bareme applique</div>' +
-      '<table class="bareme-table">' +
-        '<tr class="' + (pctApplique==(bareme.t1_taux||12)+'.0' ? 'bareme-active' : '') + '"><td>Tranche 1</td><td>0 – ' + (bareme.t1_max||7500).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t1_taux||12) + '%' + (pctApplique==(bareme.t1_taux||12)+'.0' ? ' ←' : '') + '</td></tr>' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? 'bareme-active' : '') + '"><td>Tranche 2</td><td>' + ((bareme.t1_max||7500)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t2_max||15000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t2_taux||14) + '%' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? ' &larr;' : '') + '</td></tr>' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? 'bareme-active' : '') + '"><td>Tranche 3</td><td>' + ((bareme.t2_max||15000)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t3_taux||16) + '%' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? ' &larr;' : '') + '</td></tr>' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? 'bareme-active' : '') + '"><td>Tranche 4</td><td>&gt; ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t4_taux||18) + '%' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? ' &larr;' : '') + '</td></tr>' +
-      '</table>' +
-    '</div>' +
-  '</div>';
-
-  // Calculs spécifiques responsable
-  const primeLignePDF = remuLignes.find(l => l.isPrimeAgence);
-  const primeMontantPDF = primeLignePDF ? primeLignePDF.commission : 0;
-  const commissionsSansPrimePDF = commissionsTotal - primeMontantPDF;
-  const debitCreditSansPrime = commissionsSansPrimePDF + soldeAnt;
-  const salaireAVerserFinal = debitCreditSansPrime >= avance ? debitCreditSansPrime : avance;
-  const nouveauSoldeFinal = debitCreditSansPrime >= avance ? 0 : -(avance - debitCreditSansPrime);
-  const totalAVerserPDF = salaireAVerserFinal + primeMontantPDF;
-
-  // Bilan du mois
-  const bilanHTML = '<div class="section-title">Bilan du mois</div>' +
-    '<div class="bilan">' +
-      '<div class="bilan-row"><span>Commissions generees</span><span style="font-weight:700">+ ' + fmtEuro(commissionsSansPrimePDF) + '</span></div>' +
-      '<div class="bilan-row"><span>Solde anterieur (dette)</span><span style="font-weight:700;color:#dc2626">- ' + fmtEuro(Math.abs(soldeInitial)) + (montantNonRecupPDF > 0 ? ' <span style="font-size:10px;color:#16a34a">(dont ' + fmtEuro(montantNonRecupPDF) + ' offerts)</span>' : '') + '</span></div>' +
-      '<div class="bilan-row"><span>Debit / Credit du mois</span><span style="font-weight:700;color:' + (debitCreditSansPrime>=0?'#16a34a':'#dc2626') + '">' + (debitCreditSansPrime>=0?'+ ':'- ') + fmtEuro(Math.abs(debitCreditSansPrime)) + '</span></div>' +
-      '<div class="bilan-row"><span>Avance sur commission mensuelle</span><span>' + fmtEuro(avance) + '</span></div>' +
-      (primeMontantPDF > 0 ? '<div class="bilan-row"><span>Prime CA agence (' + (parseFloat(neg.prime_agence_pct)||0) + '%)</span><span style="font-weight:700;color:#7c3aed">+ ' + fmtEuro(primeMontantPDF) + '</span></div>' : '') +
-      (primeMontantPDF > 0 ? '<div class="bilan-row" style="border-bottom:none"><span>Total a verser</span><span style="font-weight:700;color:#16a34a">= ' + fmtEuro(totalAVerserPDF) + '</span></div>' : '<div class="bilan-row" style="border-bottom:none"></div>') +
-      '<div class="bilan-highlight-green"><span>' + (primeMontantPDF > 0 ? 'Dont avance a verser' : 'Salaire brut a verser') + '</span><span>' + fmtEuro(salaireAVerserFinal) + '</span></div>' +
-      '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSoldeFinal<0 ? '- '+fmtEuro(Math.abs(nouveauSoldeFinal)) : '0 €') + '</span></div>' +
-    '</div>';
-
-  const signatureHTML = '<div class="signature">' +
-    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Recu en main propre le :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
-    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Signature :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
-  '</div>';
-
-  return headerHTML + tableHTML + twoColHTML + bilanHTML + signatureHTML;
-}
 
 async function imprimerRelevePDF() {
   if (remuLignes.length === 0) { showToast('Aucune donnée à imprimer', 'error'); return; }
