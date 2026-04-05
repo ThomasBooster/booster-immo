@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.5</title>
+<title>SCORIM v1.5.2</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -306,6 +306,10 @@
     color: white;
   }
 
+  /* Sections stats sans cadre */
+  .stats-sep { font-family:DM Sans,sans-serif; font-weight:700; font-size:13px; color:var(--primary); padding:6px 0 8px; border-bottom:2px solid var(--primary); margin:20px 0 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .stats-sep-inner { display:flex; align-items:center; gap:10px; }
+
   /* Footer */
   .sidebar-footer {
     padding:8px 0 12px;
@@ -422,19 +426,9 @@
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
   }
   .stat-card {
-    background: white;
-    border-radius: 14px;
-    padding: 20px;
-    border: 1px solid var(--border);
+    padding: 16px 20px 16px 0;
     position: relative;
-    overflow: hidden;
-  }
-  .stat-card::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-bottom: 2px solid var(--border);
   }
   .stat-label {
     font-size: 11px;
@@ -795,6 +789,9 @@
     pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 9999;
   }
   .info-tip:hover::after, .info-tip:hover::before { opacity: 1; }
+  input#remu-prime-exceptionnelle::-webkit-inner-spin-button,
+  input#remu-prime-exceptionnelle::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
   .tr-clickable:hover { background: var(--color-background-secondary, #f8fafc) !important; transition: background .1s; }
   /* Nav items masqués par défaut, setupNav() les affiche selon le rôle */
   .nav-item-role { display: none; }
@@ -829,7 +826,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
-
+<div style="background:#dc2626;color:white;text-align:center;padding:8px;font-size:13px;font-weight:700;position:fixed;top:0;left:0;right:0;z-index:99999">⚠️ ENVIRONNEMENT DE TEST — Les données ne sont pas réelles</div>
+<div style="height:36px"></div>
 
 
 
@@ -871,7 +869,10 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5</div>
+
+
+
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.2</div>
     </div>
   </div>
 </div>
@@ -914,7 +915,10 @@
           </div>
           <div class="nav-item nav-item-role" id="nav-ic-validation" onclick="showPage('ic-validation',this)">
             <div class="nav-icon-cell">
-              <div class="nav-icon-inner"><i class="fa-solid fa-shuffle"></i></div>
+              <div class="nav-icon-inner" id="ic-icon-inner" style="position:relative;transition:background 0.3s">
+                <i class="fa-solid fa-shuffle" id="ic-icon-shuffle"></i>
+                <i class="fa-solid fa-triangle-exclamation" id="ic-icon-alert" style="display:none;color:white"></i>
+              </div>
               <span id="ic-badge" class="nav-badge" style="display:none"></span>
             </div>
             <span class="nav-label">Validation intercabinet</span>
@@ -925,7 +929,10 @@
           </div>
           <div class="nav-item nav-item-role" id="nav-dossiers-redaction" onclick="showPage('ssp-dashboard',this)">
             <div class="nav-icon-cell">
-              <div class="nav-icon-inner"><i class="fa-solid fa-inbox"></i></div>
+              <div class="nav-icon-inner" id="ssp-icon-inner" style="position:relative;transition:background 0.3s">
+                <i class="fa-solid fa-inbox" id="ssp-icon-inbox"></i>
+                <i class="fa-solid fa-triangle-exclamation" id="ssp-icon-alert" style="display:none;color:white"></i>
+              </div>
               <span id="ssp-badge" class="nav-badge" style="display:none"></span>
             </div>
             <span class="nav-label">Banette juridique</span>
@@ -1017,7 +1024,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.5</div>
+        <div class="sidebar-version">v1.5.2</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -1057,61 +1064,39 @@
         </div>
 
         <!-- Dates butoire du mois -->
-        <div class="card" id="card-butoires" style="margin-bottom:20px">
-          <div class="card-header">
-            <span class="card-title">⏰ Dates butoire à surveiller</span>
-            <span style="font-size:12px;color:var(--text-muted)" id="butoire-subtitle"></span>
-          </div>
-          <div style="overflow-x:auto">
-            <table>
-              <thead><tr><th>Affaire</th><th>Agence</th><th>Date butoire</th><th>Statut</th><th>Jours restants</th><th>Actions</th></tr></thead>
-              <tbody id="butoires-tbody"></tbody>
-            </table>
-          </div>
+        <div class="stats-sep" id="card-butoires">
+          <span>⏰ Dates butoire à surveiller</span>
+          <span style="font-size:12px;color:var(--text-muted)" id="butoire-subtitle"></span>
         </div>
+        <table style="margin-bottom:20px">
+          <thead><tr><th>Affaire</th><th>Agence</th><th>Date butoire</th><th>Statut</th><th>Jours restants</th><th>Actions</th></tr></thead>
+          <tbody id="butoires-tbody"></tbody>
+        </table>
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Dossiers SSP</span>
-            <span id="dash-count" style="font-size:12px;color:var(--text-muted)"></span>
-          </div>
-          <div style="overflow-x:auto">
-            <table>
-              <thead>
-                <tr>
-                  <th>Affaire</th>
-                  <th>Agence</th>
-                  <th>Brut TTC</th>
-                  <th>Apporteur</th>
-                  <th>Apport HT</th>
-                  <th>Net HT</th>
-                  <th>Statut</th>
-                  <th>Date SSP</th>
-                  <th>Date butoire</th>
-                  <th>Diag.</th>
-                  <th>Mois</th>
-                  <th>Saisi par</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="dash-tbody"></tbody>
-            </table>
-          </div>
+        <div class="stats-sep">
+          <span>Dossiers SSP</span>
+          <span id="dash-count" style="font-size:12px;color:var(--text-muted)"></span>
         </div>
+        <table style="margin-bottom:20px">
+          <thead>
+            <tr>
+              <th>Affaire</th><th>Agence</th><th>Brut TTC</th><th>Apporteur</th>
+              <th>Apport HT</th><th>Net HT</th><th>Statut</th><th>Date SSP</th>
+              <th>Date butoire</th><th>Diag.</th><th>Mois</th><th>Saisi par</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="dash-tbody"></tbody>
+        </table>
 
         <!-- Frais juridiques -->
-        <div class="card" id="card-juridique">
-          <div class="card-header">
-            <span class="card-title">⚖️ Frais de dossier juridique</span>
-            <span style="font-size:12px;color:var(--text-muted)">450 € HT / dossier — dûs à l'acte authentique</span>
-          </div>
-          <div style="overflow-x:auto">
-            <table>
-              <thead><tr><th>Agence</th><th>Dossiers à l'acte</th><th>Frais dus (HT)</th><th>Détail dossiers</th></tr></thead>
-              <tbody id="juridique-tbody"></tbody>
-            </table>
-          </div>
+        <div class="stats-sep" id="card-juridique">
+          <span>⚖️ Frais de dossier juridique</span>
+          <span style="font-size:12px;color:var(--text-muted)">450 € HT / dossier — dûs à l'acte authentique</span>
         </div>
+        <table style="margin-bottom:20px">
+          <thead><tr><th>Agence</th><th>Dossiers à l'acte</th><th>Frais dus (HT)</th><th>Détail dossiers</th></tr></thead>
+          <tbody id="juridique-tbody"></tbody>
+        </table>
       </div>
 
       <!-- CLASSEMENT -->
@@ -1586,7 +1571,7 @@
               <span class="card-title">📊 Évolution des encaissements</span>
               <div style="display:flex;gap:8px;align-items:center">
                 <select id="enc-graph-annee" onchange="renderEncGraph()" class="filter-select" style="font-size:12px;padding:4px 8px"></select>
-                <label style="font-size:12px;display:flex;align-items:center;gap:4px;color:var(--text-muted)"><input type="checkbox" id="enc-graph-all" onchange="renderEncGraph()"> Toutes</label>
+                <label style="font-size:12px;display:flex;align-items:center;gap:4px;color:var(--text-muted)"><input type="checkbox" id="enc-graph-all" onchange="renderEncGraph()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label>
                 <button id="enc-graph-courbe" onclick="setEncGraphType('courbe')" style="padding:4px 12px;border:1px solid var(--primary);border-radius:6px;font-size:12px;background:var(--primary);color:white;cursor:pointer">Courbe</button>
                 <button id="enc-graph-histo" onclick="setEncGraphType('histo')" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:white;color:var(--text-muted);cursor:pointer">Histogramme</button>
               </div>
@@ -2286,7 +2271,7 @@
                 <span style="font-size:13px;font-weight:600">Crédit courtier / régularisation</span>
                 <input type="number" id="remu-credit" placeholder="0" step="0.01"
                   style="width:120px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:white"
-                  oninput="recalcRemuTotal()">
+                  oninput="recalcBilanRemu()">
                 <span style="font-size:12px;color:var(--text-muted)">€ (positif = bonus, négatif = déduction)</span>
               </div>
             </div>
@@ -2299,15 +2284,15 @@
                   <div style="font-size:13px;color:var(--text-muted)">Commissions générées</div>
                   <span style="font-weight:600" id="remu-bilan-commissions">0 €</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
+                <div id="remu-bilan-solde-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
                   <div style="font-size:13px;color:var(--text-muted)">Solde antérieur (dette)</div>
                   <span style="font-weight:600;color:#dc2626" id="remu-bilan-solde-ant">0 €</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
+                <div id="remu-bilan-dc-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
                   <div style="font-size:13px;color:var(--text-muted)">Débit / Crédit</div>
                   <span style="font-weight:700" id="remu-bilan-debit-credit">0 €</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
+                <div id="remu-bilan-avance-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #bbf7d0">
                   <div style="font-size:13px;color:var(--text-muted)">Avance mensuelle</div>
                   <span style="font-weight:600" id="remu-bilan-avance">0 €</span>
                 </div>
@@ -2319,11 +2304,21 @@
                   <div style="font-size:13px;color:var(--text-muted)">Prime mensuelle agence</div>
                   <span style="font-weight:600;color:#16a34a" id="remu-bilan-prime">0 €</span>
                 </div>
-                <div id="remu-bilan-total-zone" style="display:none;display:flex;justify-content:space-between;padding:10px 0">
+                <div id="remu-bilan-prime-except-zone" style="padding:8px 0;border-bottom:1px solid #bbf7d0">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
+                    <div style="font-size:13px;color:var(--text-muted);white-space:nowrap">Prime exceptionnelle</div>
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <input type="number" id="remu-prime-exceptionnelle" min="0" step="10" placeholder="0" oninput="onPrimeExceptChange()" onchange="onPrimeExceptChange()" style="width:100px;padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;text-align:right;-moz-appearance:textfield;appearance:textfield" onwheel="this.blur()">
+                      <span style="font-size:13px;color:var(--text-muted)">€</span>
+                    </div>
+                  </div>
+                  <input type="text" id="remu-prime-commentaire" placeholder="Motif / commentaire (optionnel)" oninput="onPrimeExceptChange()" style="width:100%;padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted)">
+                </div>
+                <div id="remu-bilan-total-zone" style="display:flex;justify-content:space-between;padding:10px 0">
                   <div style="font-size:14px;font-weight:700">💰 TOTAL À VERSER</div>
                   <span style="font-weight:700;font-size:16px;color:#15803d" id="remu-bilan-total">0 €</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0">
+                <div id="remu-bilan-nvsolde-row" style="display:flex;justify-content:space-between;padding:8px 0">
                   <div style="font-size:13px;color:var(--text-muted)">Nouveau solde reporté</div>
                   <span style="font-weight:600" id="remu-bilan-nouveau-solde">0 €</span>
                 </div>
@@ -3114,7 +3109,7 @@
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // =====================
 // SUPABASE CONFIG
 // =====================
@@ -3444,6 +3439,8 @@ let currentUser = null;
 // =====================
 // AUTH
 // =====================
+
+
 function quickLogin(user, pass) {
   document.getElementById('login-user').value = user;
   document.getElementById('login-pass').value = pass;
@@ -3477,6 +3474,8 @@ async function doLogin() {
 function doLogout() {
   stopSSPPolling();
   stopICPolling();
+  icStopPulse();
+  sspStopPulse();
   // Réinitialiser l'état du draft
   ndDraftId = null;
   ndStep = 1;
@@ -3912,8 +3911,8 @@ function refreshDashboard() {
     <div class="stat-card"><div class="stat-label">CA net HT (signés)<span class="info-tip" data-tip="CA HT après déduction de la TVA et des commissions versées aux apporteurs d'affaires. C'est le CA réellement encaissé par le réseau.">i</span></div><div class="stat-value">${fmtEuro(totalHT)}</div><div class="stat-sub">Après déduction apporteurs</div></div>
     <div class="stat-card"><div class="stat-label">Dossiers signés<span class="info-tip" data-tip="Nombre de sous-seings privés signés sur la période.">i</span></div><div class="stat-value">${fmtCount(nbSigned)}</div><div class="stat-sub">${nbReport} en report · ${nbAnnule} annulés</div></div>
 
-    <div class="stat-card" style="border-left:3px solid #f59e0b"><div class="stat-label">CA à signer — ${moisCourantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue ce mois-ci.">i</span></div><div class="stat-value" style="color:#d97706">${fmtEuro(caASignerCourant)}</div><div class="stat-sub">${aSignerMoisCourant.length} dossier(s)</div></div>
-    <div class="stat-card" style="border-left:3px solid #3b82f6"><div class="stat-label">CA à signer — ${moisSuivantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue le mois prochain.">i</span></div><div class="stat-value" style="color:#2563eb">${fmtEuro(caASignerSuivant)}</div><div class="stat-sub">${aSignerMoisSuivant.length} dossier(s)</div></div>
+    <div class="stat-card" style="border-bottom-color:#f59e0b"><div class="stat-label">CA à signer — ${moisCourantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue ce mois-ci.">i</span></div><div class="stat-value" style="color:#d97706">${fmtEuro(caASignerCourant)}</div><div class="stat-sub">${aSignerMoisCourant.length} dossier(s)</div></div>
+    <div class="stat-card" style="border-bottom-color:#3b82f6"><div class="stat-label">CA à signer — ${moisSuivantLabel}<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue le mois prochain.">i</span></div><div class="stat-value" style="color:#2563eb">${fmtEuro(caASignerSuivant)}</div><div class="stat-sub">${aSignerMoisSuivant.length} dossier(s)</div></div>
   `;
 
   const tbody = document.getElementById('dash-tbody');
@@ -6259,7 +6258,7 @@ async function callClaudeAPI(messages, system) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM'
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcHJ1cnFpdmdqeXB1bXp3ZnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMDIwMTQsImV4cCI6MjA4OTg3ODAxNH0.BN3-KLln4NKsQxIyq1R15NljkcuUbFdTZGKBP4OMX6k'
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
@@ -6816,6 +6815,7 @@ async function loadRemuHistorique(neg) {
     const hasRemises = remises && remises.length > 0;
     const isResponsable = neg.statut_emploi === 'responsable';
     const hasPrime = isResponsable && validations.some(v => (v.prime_agence_montant || 0) > 0);
+    const hasPrimeExcept = validations.some(v => (v.prime_exceptionnelle || 0) > 0);
     // Afficher/cacher colonnes via th
     const table = tbody.closest('table');
     if (table) {
@@ -6823,6 +6823,8 @@ async function loadRemuHistorique(neg) {
       if (thRemise) thRemise.style.display = hasRemises ? '' : 'none';
       const thPrime = table.querySelector('#th-prime');
       if (thPrime) thPrime.style.display = hasPrime ? '' : 'none';
+      const thPrimeExcept = table.querySelector('#th-prime-except');
+      if (thPrimeExcept) thPrimeExcept.style.display = hasPrimeExcept ? '' : 'none';
     }
     const avance = parseFloat(neg.avance_commission) || 0;
     tbody.innerHTML = validations.map(v => {
@@ -6842,6 +6844,7 @@ async function loadRemuHistorique(neg) {
           '<td style="text-align:right;font-weight:700;color:#16a34a">' + fmtEuro(total) + '</td>' +
           '<td style="text-align:right;color:var(--text-muted)">—</td>' +
           (hasPrime ? '<td style="text-align:right;color:var(--text-muted)">—</td>' : '') +
+          (hasPrimeExcept ? '<td style="text-align:right;' + (v.prime_exceptionnelle > 0 ? 'color:#0369a1;font-weight:700' : 'color:var(--text-muted)') + '">' + (v.prime_exceptionnelle > 0 ? fmtEuro(v.prime_exceptionnelle) : '—') + '</td>' : '') +
           (hasRemises ? '<td style="text-align:right;color:var(--text-muted)">—</td>' : '') +
           '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:' + (v.mail_envoye ? '#dcfce7' : '#f1f5f9') + ';color:' + (v.mail_envoye ? '#15803d' : '#64748b') + '">' + (v.mail_envoye ? '✓ Mail' : '—') + '</span></td>' +
           '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d">✓ Validé</span></td>' +
@@ -6863,6 +6866,9 @@ async function loadRemuHistorique(neg) {
         ? '<span title="' + (remiseMois.motif || '').replace(/"/g, '&quot;') + ' — par ' + (remiseMois.auteur || '') + '" style="cursor:help;color:#d97706;font-weight:700;text-decoration:underline dotted">+ ' + fmtEuro(remiseMois.montant) + '</span>'
         : '<span style="color:var(--text-muted)">—</span>') + '</td>' : '';
       const primeCell = hasPrime ? '<td style="text-align:right;color:#7c3aed;font-weight:700">' + (prime > 0 ? fmtEuro(prime) : '—') + '</td>' : '';
+      const primeExceptVal = v.prime_exceptionnelle || 0;
+      const primeCommentVal = v.prime_commentaire || '';
+      const primeExceptCell = hasPrimeExcept ? '<td style="text-align:right;color:#0369a1;font-weight:700">' + (primeExceptVal > 0 ? '<span class="info-tip" data-tip="' + (primeCommentVal || 'Prime exceptionnelle') + '" style="' + (primeCommentVal ? '' : 'display:none') + '">i</span> ' + fmtEuro(primeExceptVal) : '—') + '</td>' : '';
       return '<tr>' +
         '<td style="font-weight:600">' + (moisNoms[v.mois] || v.mois) + ' ' + v.annee + '</td>' +
         '<td style="text-align:right;color:var(--primary);font-weight:600">' + fmtEuro(commissions) + '</td>' +
@@ -6872,6 +6878,7 @@ async function loadRemuHistorique(neg) {
         '<td style="text-align:right;font-weight:700;color:#16a34a">' + fmtEuro(salaireVerse) + '</td>' +
         '<td style="text-align:right;font-weight:700;color:' + nsColor + '">' + (nouveauSolde < 0 ? '- ' + fmtEuro(Math.abs(nouveauSolde)) : '0 €') + '</td>' +
         primeCell +
+        primeExceptCell +
         remiseCell +
         '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:' + (v.mail_envoye ? '#dcfce7' : '#f1f5f9') + ';color:' + (v.mail_envoye ? '#15803d' : '#64748b') + '">' + (v.mail_envoye ? '✓ Mail' : '—') + '</span></td>' +
         '<td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d">✓ Validé</span></td>' +
@@ -9917,13 +9924,13 @@ function buildASignerCards(dosFiltre) {
   const caCeMois = ce_mois.reduce((s,d) => s+(d.ht||0), 0);
   const caMoisSuivant = mois_suivant.reduce((s,d) => s+(d.ht||0), 0);
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">' +
-    '<div class="stat-card" style="border-left:3px solid #f59e0b">' +
-      '<div class="stat-label">CA à signer — ' + moisNomsFull[curMonth] + '</div>' +
+    '<div class="stat-card" style="border-bottom-color:#f59e0b">' +
+      '<div class="stat-label">CA à signer — ' + moisNomsFull[curMonth] + '<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue ce mois-ci. Donne une visibilité sur le CA attendu à court terme.">i</span></div>' +
       '<div class="stat-value" style="color:#d97706">' + fmtEuro(caCeMois) + '</div>' +
       '<div class="stat-sub">' + ce_mois.length + ' dossier(s)</div>' +
     '</div>' +
-    '<div class="stat-card" style="border-left:3px solid #3b82f6">' +
-      '<div class="stat-label">CA à signer — ' + moisNomsFull[nextMonth] + '</div>' +
+    '<div class="stat-card" style="border-bottom-color:#3b82f6">' +
+      '<div class="stat-label">CA à signer — ' + moisNomsFull[nextMonth] + '<span class="info-tip" data-tip="Dossiers en statut À SIGNER avec une date de signature prévue le mois prochain. Indicateur de pipeline à moyen terme.">i</span></div>' +
       '<div class="stat-value" style="color:#2563eb">' + fmtEuro(caMoisSuivant) + '</div>' +
       '<div class="stat-sub">' + mois_suivant.length + ' dossier(s)</div>' +
     '</div>' +
@@ -9941,18 +9948,22 @@ function buildRatioVentes(last10) {
   return '<span style="font-size:12px;color:var(--text-muted);font-weight:500">1 vente tous les <strong style="color:var(--primary)">' + ratio + ' j</strong></span>';
 }
 function buildStatCards(c1l, c1v, c2l, c2v, c3l, c3v, c4l, c4v) {
+  const tips = {
+    'CA HT TOTAL': 'CA net HT cumulé sur toute la période — après déduction TVA et commissions apporteurs. Reflète le chiffre réellement encaissé.',
+    'VENTES SIGNÉES': 'Nombre total de SSP signés (statut SIGNÉ ou AA SIGNÉ). Les reports et annulations ne sont pas comptés.',
+    'VENTES SIGNEES': 'Nombre total de SSP signés (statut SIGNÉ ou AA SIGNÉ). Les reports et annulations ne sont pas comptés.',
+    'CA NET HT': "CA net HT après déduction TVA et commissions apporteurs — ce que l'agence encaisse réellement.",
+  };
+  const tip = (lbl) => {
+    const t = tips[lbl.toUpperCase().trim()];
+    return t ? '<span class="info-tip" data-tip="' + t + '">i</span>' : '';
+  };
   return '<div class="stats-grid" style="margin-bottom:20px">' +
-    '<div class="stat-card"><div class="stat-label">' + c1l + '</div><div class="stat-value">' + c1v + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">' + c2l + '</div><div class="stat-value">' + c2v + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">' + c3l + '</div><div class="stat-value">' + c3v + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">' + c4l + '</div><div class="stat-value">' + c4v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c1l + tip(c1l) + '</div><div class="stat-value">' + c1v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c2l + tip(c2l) + '</div><div class="stat-value">' + c2v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c3l + tip(c3l) + '</div><div class="stat-value">' + c3v + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">' + c4l + tip(c4l) + '</div><div class="stat-value">' + c4v + '</div></div>' +
     '</div>';
-  // Event listeners pour les cartes apporteurs
-  container.querySelectorAll('.ap-card').forEach(el => {
-    el.addEventListener('click', () => openAffairesApporteur(el.dataset.nom, JSON.parse(el.dataset.ids || '[]')));
-    el.addEventListener('mouseover', () => { el.style.borderColor='var(--primary)'; el.style.background='#f0f4f8'; });
-    el.addEventListener('mouseout', () => { el.style.borderColor='var(--border)'; el.style.background='var(--bg)'; });
-  });
 }
 
 // ── Moyenne mensuelle avec comparatif N/N-1 ──
@@ -10331,7 +10342,7 @@ function buildDelaiPyramideSection(containerId, dos) {
 
     // Délai moyen
     '<div>' +
-      '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">⏱ Délai moyen SSP → Acte</div>' +
+      '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">⏱ Délai moyen SSP → Acte<span class="info-tip" data-tip="Nombre de jours moyen entre la date de signature SSP et la date de l\'acte authentique. Vert = ≤ 60 jours, Orange = ≤ 90 jours, Rouge = > 90 jours.">i</span></div>' +
       (delaiMoyen === null
         ? '<div style="color:var(--text-muted);font-size:13px">Aucun acte enregistré</div>'
         : '<div style="display:flex;flex-direction:column;gap:10px">' +
@@ -10356,7 +10367,7 @@ function buildDelaiPyramideSection(containerId, dos) {
 
     // Pyramide des âges
     '<div>' +
-      '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">📊 Dossiers en cours — âge depuis SSP</div>' +
+      '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px">📊 Dossiers en cours — âge depuis SSP<span class="info-tip" data-tip="Répartition des dossiers signés sans acte encore, par ancienneté depuis la date SSP. Cliquer sur une barre affiche les dossiers de cette tranche.">i</span></div>' +
       (enCours.length === 0
         ? '<div style="color:var(--text-muted);font-size:13px">Aucun dossier en attente d\'acte</div>'
         : '<div style="display:flex;flex-direction:column;gap:8px">' +
@@ -10719,31 +10730,20 @@ function renderStatsReseau(container) {
     '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🌐 Réseau Booster Immobilier</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards(DB.dossiers) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="stats-table-n"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="stats-table-n1"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-reseau-sel-annee-moy" onchange="refreshStatsMoyenneReseau()" class="filter-select" style="font-size:12px"></select></div><div id="stats-reseau-moyenne" style="padding:16px"></div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="stats-graph-annee" onchange="renderStatsReseauGraphs()" style="font-size:11px;padding:3px 6px" class="filter-select"></select></div><div style="padding:10px"><canvas id="stats-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span></div><div style="padding:10px"><canvas id="stats-chart-nb" height="90"></canvas></div></div>' +
+    '<div class="stats-sep"><span>📊 ' + curYear + '</span></div><table id="stats-table-n"></table>' +
+    '<div class="stats-sep"><span>📊 ' + n1Year + '</span></div><table id="stats-table-n1"></table>' +
+    '<div class="stats-sep"><span>📊 Moyennes mensuelles</span><select id="stats-reseau-sel-annee-moy" onchange="refreshStatsMoyenneReseau()" class="filter-select" style="font-size:12px"></select></div><div id="stats-reseau-moyenne"></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>📈 CA HT / mois</span><select id="stats-graph-annee" onchange="renderStatsReseauGraphs()" style="font-size:11px;padding:3px 6px" class="filter-select"></select></div><canvas id="stats-chart-ca" height="90"></canvas></div>' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>🏠 Nb ventes / mois</span></div><canvas id="stats-chart-nb" height="90"></canvas></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px">' +
-      '<div class="card-header">' +
-        '<span class="card-title">🔀 Flux intercabinet</span>' +
-        '<div style="display:flex;align-items:center;gap:8px">' +
-          '<select id="ic-sel-periode" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px"></select>' +
-          '<select id="ic-sel-metrique" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px">' +
-            '<option value="nb">Nb de ventes</option>' +
-            '<option value="ca">CA HT</option>' +
-          '</select>' +
-        '</div>' +
-      '</div>' +
-      '<div id="ic-content" style="padding:16px"></div>' +
-    '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-reseau-delai" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-reseau-annul" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Records du réseau</span></div><div id="stats-reseau-records" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-reseau-retro" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-reseau-apporteurs" style="padding:16px"></div></div>' +
+    '<div class="stats-sep"><span>🔀 Flux intercabinet</span><div style="display:flex;align-items:center;gap:8px"><select id="ic-sel-periode" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px"></select><select id="ic-sel-metrique" onchange="refreshIntercabinet()" class="filter-select" style="font-size:12px"><option value="nb">Nb de ventes</option><option value="ca">CA HT</option></select></div></div>' +
+    '<div id="ic-content"></div>' +
+    '<div class="stats-sep"><span>⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-reseau-delai"></div>' +
+    '<div class="stats-sep"><span>🔴 Annulations post-SSP</span></div><div id="stats-reseau-annul"></div>' +
+    '<div class="stats-sep"><span>🏆 Records du réseau</span></div><div id="stats-reseau-records"></div>' +
+    '<div class="stats-sep"><span>🏷 Rétrocession Booster</span></div><div id="stats-reseau-retro"></div>' +
+    '<div class="stats-sep"><span>🏆 Top apporteurs</span></div><div id="stats-reseau-apporteurs"></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -10829,21 +10829,21 @@ function renderStatsSociete(container, socId) {
     '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏛 ' + (s.forme_juridique?s.forme_juridique+' ':'') + s.nom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dos.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards(DB.dossiers.filter(d => agenceNoms.includes(d.agence))) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span><span id="ratio-soc-ventes"></span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-soc-sel-annee-moy" onchange="refreshStatsMoyenneSociete()" class="filter-select" style="font-size:12px"></select></div><div id="stats-soc-moyenne" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-annee"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-societe-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-societe-tableau-n1"></table></div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee" onchange="refreshFicheSocieteGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all" onchange="refreshFicheSocieteGraphs()"> Toutes</label></div></div><div style="padding:10px"><canvas id="fiche-societe-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all-nb" onchange="refreshFicheSocieteGraphNb()"> Toutes</label></div></div><div style="padding:10px"><canvas id="fiche-societe-chart-nb" height="90"></canvas></div></div>' +
+    '<div class="stats-sep"><span>📋 10 dernières ventes</span><span id="ratio-soc-ventes"></span></div><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-societe-ventes"></tbody></table></div>' +
+    '<div class="stats-sep"><span>📊 Moyennes mensuelles</span><select id="stats-soc-sel-annee-moy" onchange="refreshStatsMoyenneSociete()" class="filter-select" style="font-size:12px"></select></div><div id="stats-soc-moyenne"></div>' +
+    '<div class="stats-sep"><span id="fiche-societe-annee-titre">📊 ' + curYear + '</span></div><table id="fiche-societe-tableau-annee"></table>' +
+    '<div class="stats-sep"><span id="fiche-societe-annee-n1-titre">📊 ' + n1Year + '</span></div><table id="fiche-societe-tableau-n1"></table>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee" onchange="refreshFicheSocieteGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all" onchange="refreshFicheSocieteGraphs()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="fiche-societe-chart-ca" height="90"></canvas></div>' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-societe-graph-annee-nb" onchange="refreshFicheSocieteGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="fiche-societe-graph-all-nb" onchange="refreshFicheSocieteGraphNb()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="fiche-societe-chart-nb" height="90"></canvas></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-soc-chart-glissant" height="70"></canvas></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-soc-delai" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-soc-annul" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Records de la société</span></div><div id="stats-soc-records" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-soc-retro" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-soc-top-ap" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="fiche-societe-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
+    '<div class="stats-sep"><span>📈 CA cumulé 12 mois glissants<span class="info-tip" data-tip="Somme glissante du CA HT sur les 12 derniers mois. Chaque point représente le total des 12 mois précédents — permet de lisser les effets de saisonnalité et de voir la tendance de fond.">i</span></span></div><div><canvas id="stats-soc-chart-glissant" height="70"></canvas></div>' +
+    '<div class="stats-sep"><span>⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-soc-delai"></div>' +
+    '<div class="stats-sep"><span>🔴 Annulations post-SSP</span></div><div id="stats-soc-annul"></div>' +
+    '<div class="stats-sep"><span>🏆 Records de la société</span></div><div id="stats-soc-records"></div>' +
+    '<div class="stats-sep"><span>🏷 Rétrocession Booster</span></div><div id="stats-soc-retro"></div>' +
+    '<div class="stats-sep"><span>🏆 Top apporteurs</span></div><div id="stats-soc-top-ap"></div>' +
+    '<div class="stats-sep"><span>👥 Équipe</span></div><div id="fiche-societe-equipe" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -10908,21 +10908,21 @@ function renderStatsAgence(container, agNom) {
     '<div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:16px">🏠 ' + agNom + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dosAgence.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards(DB.dossiers.filter(d => d.agence === agNom)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span><span id="ratio-ag-ventes"></span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyennes mensuelles</span><select id="stats-ag-sel-annee-moy" onchange="refreshStatsMoyenneAgence()" class="filter-select" style="font-size:12px"></select></div><div id="stats-ag-moyenne" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-annee"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-agence-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-agence-tableau-n1"></table></div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><select id="fiche-agence-graph-annee" onchange="refreshFicheAgenceGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all" onchange="refreshFicheAgenceGraphs()"> Toutes</label></div><div style="padding:10px"><canvas id="fiche-agence-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><select id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()"> Toutes</label></div><div style="padding:10px"><canvas id="fiche-agence-chart-nb" height="90"></canvas></div></div>' +
+    '<div class="stats-sep"><span>📋 10 dernières ventes</span><span id="ratio-ag-ventes"></span></div><table><thead><tr><th>Affaire</th><th>Collab</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="stats-ag-ventes"></tbody></table></div>' +
+    '<div class="stats-sep"><span>📊 Moyennes mensuelles</span><select id="stats-ag-sel-annee-moy" onchange="refreshStatsMoyenneAgence()" class="filter-select" style="font-size:12px"></select></div><div id="stats-ag-moyenne"></div>' +
+    '<div class="stats-sep"><span id="fiche-agence-annee-titre">📊 ' + curYear + '</span></div><table id="fiche-agence-tableau-annee"></table>' +
+    '<div class="stats-sep"><span id="fiche-agence-annee-n1-titre">📊 ' + n1Year + '</span></div><table id="fiche-agence-tableau-n1"></table>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-agence-graph-annee" onchange="refreshFicheAgenceGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all" onchange="refreshFicheAgenceGraphs()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="fiche-agence-chart-ca" height="90"></canvas></div>' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="fiche-agence-graph-annee-nb" onchange="refreshFicheAgenceGraphNb()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px"><input type="checkbox" id="fiche-agence-graph-all-nb" onchange="refreshFicheAgenceGraphNb()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="fiche-agence-chart-nb" height="90"></canvas></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-ag-chart-glissant" height="70"></canvas></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-ag-delai" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-ag-annul" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Records agence</span></div><div id="stats-ag-records" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-ag-retro" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Top apporteurs</span></div><div id="stats-ag-top-ap" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">👥 Équipe</span></div><div id="stats-ag-equipe" style="padding:16px;display:flex;gap:12px;flex-wrap:wrap"></div></div>' +
+    '<div class="stats-sep"><span>📈 CA cumulé 12 mois glissants<span class="info-tip" data-tip="Somme glissante du CA HT sur les 12 derniers mois. Chaque point représente le total des 12 mois précédents — permet de lisser les effets de saisonnalité et de voir la tendance de fond.">i</span></span></div><div><canvas id="stats-ag-chart-glissant" height="70"></canvas></div>' +
+    '<div class="stats-sep"><span>⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-ag-delai"></div>' +
+    '<div class="stats-sep"><span>🔴 Annulations post-SSP</span></div><div id="stats-ag-annul"></div>' +
+    '<div class="stats-sep"><span>🏆 Records agence</span></div><div id="stats-ag-records"></div>' +
+    '<div class="stats-sep"><span>🏷 Rétrocession Booster</span></div><div id="stats-ag-retro"></div>' +
+    '<div class="stats-sep"><span>🏆 Top apporteurs</span></div><div id="stats-ag-top-ap"></div>' +
+    '<div class="stats-sep"><span>👥 Équipe<span class="info-tip" data-tip="Cliquez sur un négociateur pour accéder directement à sa fiche personnelle avec ses statistiques détaillées.">i</span></span></div><div id="stats-ag-equipe" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -11020,20 +11020,20 @@ function renderStatsNeg(container, negId) {
     '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">' + n.agence + ' · ' + (n.poste||'négociateur') + '</div>' +
     buildStatCards('CA HT TOTAL', fmtEuro(totalCA), 'VENTES SIGNÉES', dossiersVentes.length, 'CA ' + curYear, fmtEuro(caN), 'CA ' + n1Year, fmtEuro(caN1)) +
     buildASignerCards((DB.dossierNeg||[]).filter(l=>l.negociateur_id===n.id).map(l=>DB.dossiers.find(x=>x.id===l.dossier_id)).filter(Boolean)) +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📋 10 dernières ventes</span><span id="ratio-neg-ventes"></span></div><div style="overflow-x:auto"><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-titre">📊 ' + curYear + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-annee"></table></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title" id="fiche-annee-n1-titre">📊 ' + n1Year + '</span></div><div style="overflow-x:auto"><table id="fiche-tableau-n1"></table></div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all" onchange="refreshStatsNegGraphs()"> Toutes</label></div></div><div style="padding:10px"><canvas id="stats-neg-chart-ca" height="90"></canvas></div></div>' +
-      '<div class="card"><div class="card-header"><span class="card-title" style="font-size:13px">🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee-nb" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all-nb" onchange="refreshStatsNegGraphs()"> Toutes</label></div></div><div style="padding:10px"><canvas id="stats-neg-chart-nb" height="90"></canvas></div></div>' +
+    '<div class="stats-sep"><span>📋 10 dernières ventes</span><span id="ratio-neg-ventes"></span></div><table><thead><tr><th>Affaire</th><th>Agence</th><th>Date SSP</th><th>Jours</th><th>CA HT</th><th>Statut</th></tr></thead><tbody id="fiche-collab-ventes"></tbody></table></div>' +
+    '<div class="stats-sep"><span id="fiche-annee-titre">📊 ' + curYear + '</span></div><table id="fiche-tableau-annee"></table>' +
+    '<div class="stats-sep"><span id="fiche-annee-n1-titre">📊 ' + n1Year + '</span></div><table id="fiche-tableau-n1"></table>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>📈 CA HT / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all" onchange="refreshStatsNegGraphs()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="stats-neg-chart-ca" height="90"></canvas></div>' +
+      '<div><div class="stats-sep" style="margin-top:0"><span>🏠 Nb ventes / mois</span><div style="display:flex;align-items:center;gap:6px"><select id="stats-neg-graph-annee-nb" onchange="refreshStatsNegGraphs()" class="filter-select" style="font-size:11px;padding:3px 6px"></select><label style="font-size:11px;display:flex;align-items:center;gap:3px;color:var(--text-muted)"><input type="checkbox" id="stats-neg-graph-all-nb" onchange="refreshStatsNegGraphs()" title="Cocher cette case affiche toutes les années sur le même graphe pour identifier une saisonnalité"> Toutes<span class=\"info-tip\" style=\"margin-left:2px\" data-tip=\"Affiche toutes les années disponibles sur le même graphe. Permet de repérer une saisonnalité récurrente (mois forts / mois faibles).\" >i</span></label></div></div><canvas id="stats-neg-chart-nb" height="90"></canvas></div>' +
     '</div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📈 CA cumulé 12 mois glissants</span></div><div style="padding:10px"><canvas id="stats-neg-chart-glissant" height="70"></canvas></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="padding:16px;display:flex;gap:20px;flex-wrap:wrap"></div></div>' +
-    ((['salarié','responsable','agent-co','alternant'].includes(n.statut_emploi)) ? '<div class="card" id="fiche-remu-section" style="margin-bottom:20px"><div class="card-header"><span class="card-title">💶 Historique des rémunérations</span>' + '</div><div style="overflow-x:auto"><table><thead><tr><th>Période</th><th style="text-align:right">Commissions</th><th style="text-align:right">Solde ant.</th><th style="text-align:right">Débit/Crédit</th><th style="text-align:right">Avance</th><th style="text-align:right">Salaire versé</th><th style="text-align:right">Nouveau solde</th><th style="text-align:right" id="th-prime" style="display:none">Prime agence</th><th style="text-align:right" id="th-remise" style="display:none">Remise</th><th style="text-align:center">Mail</th><th style="text-align:center">Statut</th></tr></thead><tbody id="fiche-remu-tbody"><tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Chargement...</td></tr></tbody></table></div></div>' : '') +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-neg-delai" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🔴 Annulations post-SSP</span></div><div id="stats-neg-annul" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏷 Rétrocession Booster</span></div><div id="stats-neg-retro" style="padding:16px"></div></div>' +
-    '<div class="card" style="margin-bottom:20px"><div class="card-header"><span class="card-title">🏆 Affaires avec apporteur</span></div><div id="stats-neg-apporteurs" style="padding:16px"></div></div>' +
+    '<div class="stats-sep"><span>📈 CA cumulé 12 mois glissants<span class="info-tip" data-tip="Somme glissante du CA HT sur les 12 derniers mois. Chaque point représente le total des 12 mois précédents — permet de lisser les effets de saisonnalité et de voir la tendance de fond.">i</span></span></div><div><canvas id="stats-neg-chart-glissant" height="70"></canvas></div>' +
+    '<div class="stats-sep"><span>📊 Moyenne mensuelle</span><select id="fiche-collab-annee-moy" onchange="refreshFicheMoyenne()" class="filter-select" style="font-size:12px"></select></div><div id="fiche-collab-moyenne" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px"></div>' +
+    ((['salarié','responsable','agent-co','alternant'].includes(n.statut_emploi)) ? '<div class="card" id="fiche-remu-section" style="margin-bottom:20px"><div class="card-header"><span class="card-title">💶 Historique des rémunérations</span>' + '</div><div style="overflow-x:auto"><table><thead><tr><th>Période</th><th style="text-align:right">Commissions</th><th style="text-align:right">Solde ant.</th><th style="text-align:right">Débit/Crédit</th><th style="text-align:right">Avance</th><th style="text-align:right">Salaire versé</th><th style="text-align:right">Nouveau solde</th><th style="text-align:right" id="th-prime" style="display:none">Prime agence</th><th style="text-align:right" id="th-prime-except" style="display:none">Prime except.</th><th style="text-align:right" id="th-remise" style="display:none">Remise</th><th style="text-align:center">Mail</th><th style="text-align:center">Statut</th></tr></thead><tbody id="fiche-remu-tbody"><tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px">Chargement...</td></tr></tbody></table></div></div>' : '') +
+    '<div class="stats-sep"><span>⏱ Délai SSP → Acte &amp; Dossiers en cours</span></div><div id="stats-neg-delai"></div>' +
+    '<div class="stats-sep"><span>🔴 Annulations post-SSP</span></div><div id="stats-neg-annul"></div>' +
+    '<div class="stats-sep"><span>🏷 Rétrocession Booster</span></div><div id="stats-neg-retro"></div>' +
+    '<div class="stats-sep"><span>🏆 Affaires avec apporteur</span></div><div id="stats-neg-apporteurs"></div>' +
     '<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;border:2px dashed var(--border);text-align:center">' +
     '<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px">🚀 Prochainement</div>' +
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
@@ -11126,7 +11126,7 @@ function refreshStatsNegGraphs() {
 const SEND_EMAIL_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co/functions/v1/send-email';
 
 async function sendEmail(type, to, data) {
-  const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
+  const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcHJ1cnFpdmdqeXB1bXp3ZnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMDIwMTQsImV4cCI6MjA4OTg3ODAxNH0.BN3-KLln4NKsQxIyq1R15NljkcuUbFdTZGKBP4OMX6k';
   try {
     const res = await fetch(SEND_EMAIL_URL, {
       method: 'POST',
@@ -13190,6 +13190,20 @@ function openRemunerationModal() {
   document.getElementById('remu-empty').style.display = 'block';
   document.getElementById('remu-statut-badge').style.display = 'none';
   const remuCreditEl = document.getElementById('remu-credit'); if (remuCreditEl) remuCreditEl.value = '';
+  // Vider d'abord (évite tout event parasite), puis charger la valeur individuelle
+  const _rpeNegId = remuCurrentNeg?.id;
+  const remuPrimeExceptEl = document.getElementById('remu-prime-exceptionnelle');
+  if (remuPrimeExceptEl) {
+    remuPrimeExceptEl.value = '';
+    const _savedPrime = (_rpeNegId && window._remuPrimesExcept && window._remuPrimesExcept[_rpeNegId] != null) ? window._remuPrimesExcept[_rpeNegId] : 0;
+    remuPrimeExceptEl.value = _savedPrime > 0 ? _savedPrime : '';
+  }
+  const remuCommentEl = document.getElementById('remu-prime-commentaire');
+  if (remuCommentEl) {
+    remuCommentEl.value = '';
+    const _savedComment = (_rpeNegId && window._remuCommentaires && window._remuCommentaires[_rpeNegId]) ? window._remuCommentaires[_rpeNegId] : '';
+    remuCommentEl.value = _savedComment;
+  }
   document.getElementById('remu-mail-sent-badge').style.display = 'none';
   document.getElementById('remu-btn-valider').disabled = false;
   document.getElementById('remu-btn-valider').style.opacity = '';
@@ -13352,6 +13366,7 @@ async function calculerRemuneration() {
         fraisJuridiques: l.fraisJuridiques,
         baseCalc: l.baseCalc,
         taux: tauxFinal,
+        tauxBase: tauxSortie,
         commission: l.baseCalc * tauxFinal,
         pctCa: l.pctCa
       });
@@ -13416,14 +13431,16 @@ async function calculerRemuneration() {
       }
       const linkRent = (DB.dossierRent || []).find(l => l.dossier_id === d.id && l.negociateur_id === remuCurrentNeg.id);
       if (linkRent && linkRent.ca_rentree > 0) {
+        // Pour responsable/salarié : taux rentrée = tauxFinal / 2 (pas taux_retrocession_sortie)
+        const tauxRentreeEffectif = (isAlt || tauxRentreeAlt > 0) ? tauxRentreeAlt : tauxFinal / 2;
         remuLignes.push({
           dossier: d,
           type: 'Entrée',
           ht: linkRent.ca_rentree,
           fraisJuridiques: 0,
           baseCalc: linkRent.ca_rentree,
-          taux: tauxRentreeAlt,
-          commission: linkRent.ca_rentree * tauxRentreeAlt,
+          taux: tauxRentreeEffectif,
+          commission: linkRent.ca_rentree * tauxRentreeEffectif,
           pctCa: null
         });
       }
@@ -13552,13 +13569,393 @@ function renderRemuResultats(mois, annee) {
     '</div>' +
     '<div style="display:flex;justify-content:space-between;padding:10px 0">' +
       '<span style="font-size:13px;font-weight:700">Taux sortie / rentrée</span>' +
-      '<span style="font-size:12px;color:var(--text-muted)">' + (remuCurrentNeg.taux_retrocession_sortie||0) + '% / ' + (remuCurrentNeg.taux_retrocession_rentree||0) + '%</span>' +
+      (function() {
+        const isSalResp = ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+        if (isSalResp) {
+          const lSortie = remuLignes.find(l => l.type === 'Sortie' && !l.isPrimeAgence);
+          const tauxS = lSortie ? Math.round(lSortie.taux * 10000) / 100 : 0;
+          const lEntree = remuLignes.find(l => l.type === 'Entrée');
+          // Pour rentrée : si taux stocké, l'utiliser ; sinon calculer depuis taux sortie
+          let tauxR = lEntree ? Math.round(lEntree.taux * 10000) / 100 : 0;
+          if (tauxR === 0 && lEntree && lSortie) tauxR = Math.round((lSortie.taux / 2) * 10000) / 100;
+          const tauxRLabel = tauxR > 0 ? tauxR + '%' : (lEntree ? '(barème/2)' : '—');
+          return '<span style="font-size:12px;color:var(--text-muted)">' + (tauxS > 0 ? tauxS + '%' : '—') + ' / ' + tauxRLabel + '</span>';
+        }
+        return '<span style="font-size:12px;color:var(--text-muted)">' + (remuCurrentNeg.taux_retrocession_sortie||0) + '% / ' + (remuCurrentNeg.taux_retrocession_rentree||0) + '%</span>';
+      })() +
     '</div>';
+}
+
+// Stockage individuel des primes et commentaires par negId
+window._remuPrimesExcept = window._remuPrimesExcept || {};
+window._remuCommentaires = window._remuCommentaires || {};
+
+function onPrimeExceptChange() {
+  if (!remuCurrentNeg || !remuCurrentNeg.id) return;
+  const negId = remuCurrentNeg.id;
+  const montant = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
+  const commentaire = document.getElementById('remu-prime-commentaire')?.value || '';
+  if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+  if (!window._remuCommentaires) window._remuCommentaires = {};
+  window._remuPrimesExcept[negId] = montant;
+  window._remuCommentaires[negId] = commentaire;
+  recalcRemuTotal();
+}
+
+
+function buildReleveHTML(mois, annee, withPrintStyle) {
+  const moisNoms = ['','Janvier','Fev','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  const neg = remuCurrentNeg;
+  const agObj = DB.agences.find(a => a.nom === neg.agence);
+  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
+  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
+  const totalNet = sousTotal + credit;
+  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const agAdresse = agObj?.adresse || '';
+  const agCP = agObj?.code_postal || '';
+  const agVille = agObj?.ville || '';
+  const siret = socObj?.siret || '';
+  const negAdresse1 = neg.adresse1 || '';
+  const negAdresse2 = neg.adresse2 || '';
+  const negCP = neg.code_postal || '';
+  const negVille = neg.ville || '';
+  const rcsNum = neg.numero_rcs || '';
+  const rcsVille = neg.ville_rcs || neg.ville || '';
+
+  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#f5f5f5;font-weight:700;font-size:10px;text-transform:uppercase}.header{display:flex;justify-content:space-between;margin-bottom:20px}.title{font-size:18px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:16px}.totals{text-align:right;margin-top:12px;font-size:12px}.total-net{font-size:15px;font-weight:700;margin-top:6px}.signature{margin-top:40px;border-top:1px solid #ccc;padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:40px}@media print{button{display:none}}</style>' : '';
+
+  const headerHTML = printStyle +
+    '<div class="header">' +
+      '<div>' +
+        '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'EURL T2G') + '</div>' +
+        '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
+        (agAdresse ? '<div style="font-size:10px;color:#555">' + agAdresse + '</div>' : '') +
+        (agCP||agVille ? '<div style="font-size:10px;color:#555">' + [agCP,agVille].filter(Boolean).join(' ') + '</div>' : '') +
+        (siret ? '<div style="font-size:10px;color:#555">SIRET : ' + siret + '</div>' : '') +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-weight:700">' + (neg.nom||'—') + '</div>' +
+        (rcsNum ? '<div style="font-size:10px;color:#555">RCS ' + rcsVille + ' ' + rcsNum + '</div>' : '') +
+        (negAdresse1 ? '<div style="font-size:10px;color:#555">' + negAdresse1 + '</div>' : '') +
+        (negAdresse2 ? '<div style="font-size:10px;color:#555">' + negAdresse2 + '</div>' : '') +
+        (negCP||negVille ? '<div style="font-size:10px;color:#555">' + [negCP,negVille].filter(Boolean).join(' ') + '</div>' : '') +
+        '<div style="font-size:10px;color:#666;margin-top:4px">Toulouse, le ' + today + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="title">RELEVÉ DE COMMISSIONS DÛES</div>' +
+    '<p style="margin-bottom:16px">Objet : Montant des commissions revenant à <strong>' + neg.nom + '</strong> pour le mois de <strong>' + moisNoms[mois] + ' ' + annee + '</strong></p>';
+
+  const tableHTML =
+    '<table>' +
+      '<thead><tr><th>Date</th><th>Affaire</th><th>Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base calcul</th><th>Statut</th><th style="text-align:right">Taux</th><th style="text-align:right">Commission</th></tr></thead>' +
+      '<tbody>' +
+      remuLignes.map(l =>
+        '<tr>' +
+          '<td>' + (l.isPrimeAgence ? '<em style="color:#888;font-size:11px">Prime mensuelle</em>' : fmtDate(l.dossier.dateActe)) + '</td>' +
+          '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' (' + l.pctCa + '%)' : '') + '</td>' +
+          '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
+          '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques > 0 ? '- ' + fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
+          '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
+          '<td>' + l.type + '</td>' +
+          '<td style="text-align:right">' + (l.taux ? Math.round(l.taux * 100) + '%' : '—') + '</td>' +
+          '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
+        '</tr>'
+      ).join('') +
+      '</tbody>' +
+    '</table>';
+
+  if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+  if (!window._remuCommentaires) window._remuCommentaires = {};
+  // Lire depuis window._remuPrimesExcept (capturé juste avant la génération)
+  const primeExcept = (window._remuPrimesExcept && remuCurrentNeg) ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0;
+  const primeCommentPDF = (window._remuCommentaires && remuCurrentNeg) ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
+
+  const totalsHTML =
+    '<div class="totals">' +
+      '<div>Frais juridiques déduits : <strong style="color:#dc2626">- ' + fmtEuro(remuLignes.reduce((s,l)=>s+(l.fraisJuridiques||0),0)) + '</strong></div>' +
+      '<div>Sous-total commissions : <strong>' + fmtEuro(sousTotal) + '</strong></div>' +
+      (credit > 0 ? '<div>Crédit courtier : <strong>+ ' + fmtEuro(credit) + '</strong></div>' : '') +
+      (primeExcept > 0 ? '<div>Prime exceptionnelle' + (primeCommentPDF ? ' (' + primeCommentPDF + ')' : '') + ' : <strong style="color:#0369a1">+ ' + fmtEuro(primeExcept) + '</strong></div>' : '') +
+      '<div class="total-net">Total Hors Taxes : <strong>' + fmtEuro(totalNet + primeExcept) + '</strong></div>' +
+    '</div>';
+
+  const signatureHTML =
+    '<div class="signature">' +
+      '<div><div style="color:#666;margin-bottom:8px;font-size:11px">Reçu en main propre le :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+      '<div><div style="color:#666;margin-bottom:8px;font-size:11px">Signature :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+    '</div>';
+
+  return headerHTML + tableHTML + totalsHTML + signatureHTML;
+}
+
+function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
+  const moisNoms = ['','Janvier','Fev','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  const neg = remuCurrentNeg;
+  const agObj = DB.agences.find(a => a.nom === neg.agence);
+  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
+  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+  const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
+  // Exclure la prime agence du total des commissions perso
+  const sousTotal = remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0);
+  const commissionsTotal = sousTotal + credit;
+  const avance = parseFloat(neg.avance_commission) || 0;
+  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const agAdresse = agObj?.adresse || '';
+  const agCP = agObj?.code_postal || '';
+  const agVille = agObj?.ville || '';
+  const siret = socObj?.siret || '';
+  const negAdresse1 = neg.adresse1 || '';
+  const negAdresse2 = neg.adresse2 || '';
+  const negCP = neg.code_postal || '';
+  const negVille = neg.ville || '';
+  const bareme = neg.bareme_commissions || {t1_max:7500,t1_taux:12,t2_max:15000,t2_taux:14,t3_max:25000,t3_taux:16,t4_taux:18};
+  const ligneSortie = remuLignes.find(l=>l.type==='Sortie');
+  const tauxApplique = ligneSortie?.taux || 0;
+  // Pour le barème, utiliser le taux de base (sans bonus rentrée)
+  const tauxBaseBareme = ligneSortie?.tauxBase || tauxApplique;
+  const pctApplique = (tauxBaseBareme*100).toFixed(1);
+  const pctFinal = (tauxApplique*100).toFixed(2);
+
+  // Calculs bilan
+  const partNonRecupPDF = (neg.part_non_recup !== null && neg.part_non_recup !== undefined) ? parseFloat(neg.part_non_recup) / 100 : 0;
+  const montantNonRecupPDF = Math.round(avance * partNonRecupPDF * 100) / 100;
+  const primeLignePDF = remuLignes.find(l => l.isPrimeAgence);
+  const primeMontantPDF = primeLignePDF ? primeLignePDF.commission : 0;
+  if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+  if (!window._remuCommentaires) window._remuCommentaires = {};
+  // Lire depuis window._remuPrimesExcept (capturé juste avant la génération)
+  const primeExcept = (window._remuPrimesExcept && remuCurrentNeg) ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0;
+  const primeCommentPDF = (window._remuCommentaires && remuCurrentNeg) ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
+  const commissionsSansPrimePDF = commissionsTotal - primeMontantPDF;
+  const soldeAntEffectifPDF = -Math.abs(soldeInitial) + montantNonRecupPDF;
+  const debitCreditSansPrime = commissionsSansPrimePDF + soldeAntEffectifPDF;
+  const salaireAVerserFinal = debitCreditSansPrime >= avance ? debitCreditSansPrime : avance;
+  const nouveauSoldeFinal = debitCreditSansPrime >= avance ? 0 : -(avance - debitCreditSansPrime);
+  const totalAVerserPDF = salaireAVerserFinal + primeMontantPDF + primeExcept;
+
+  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#f5f5f5;font-weight:700;font-size:10px}.header{display:flex;justify-content:space-between;margin-bottom:20px}.title{font-size:16px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}.section-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#666;margin:14px 0 6px;letter-spacing:.05em}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}.bilan{background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:12px;margin-bottom:14px}.bilan-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:11px}.bilan-highlight-green{background:#f0fdf4;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#15803d;font-size:13px}.bilan-highlight-green.bilan-total-bold{background:#16a34a;color:white;padding:10px 8px;border-radius:8px;font-size:16px;margin-top:4px}.bilan-highlight-amber{background:#fef3c7;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#d97706;font-size:13px}.bareme-table td{font-size:10px;padding:3px 6px}.bareme-active{background:#dbeafe;color:#1d4ed8;font-weight:700}.signature{margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px}@media print{button{display:none}}</style>' : '';
+
+  const headerHTML = printStyle +
+    '<div class="header">' +
+      '<div>' +
+        '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'BOOSTER IMMOBILIER') + '</div>' +
+        '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
+        (agAdresse ? '<div style="font-size:10px;color:#555">' + agAdresse + '</div>' : '') +
+        (agCP||agVille ? '<div style="font-size:10px;color:#555">' + [agCP,agVille].filter(Boolean).join(' ') + '</div>' : '') +
+        (siret ? '<div style="font-size:10px;color:#555">SIRET : ' + siret + '</div>' : '') +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-weight:700">' + (neg.nom||'—') + '</div>' +
+        (negAdresse1 ? '<div style="font-size:10px;color:#555">' + negAdresse1 + '</div>' : '') +
+        (negAdresse2 ? '<div style="font-size:10px;color:#555">' + negAdresse2 + '</div>' : '') +
+        (negCP||negVille ? '<div style="font-size:10px;color:#555">' + [negCP,negVille].filter(Boolean).join(' ') + '</div>' : '') +
+        '<div style="font-size:10px;color:#666;margin-top:4px">Toulouse, le ' + today + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="title">ETAT DE COMMISSIONS — ' + moisNoms[mois].toUpperCase() + ' ' + annee + '</div>' +
+    '<p style="margin-bottom:14px;font-size:11px">Commissions revenant a <strong>' + neg.nom + '</strong> pour le mois de <strong>' + moisNoms[mois] + ' ' + annee + '</strong></p>';
+
+  const tableHTML =
+    '<div class="section-title">Affaires traitees</div>' +
+    '<table style="font-size:10px;margin-bottom:14px">' +
+      '<thead><tr><th>Date</th><th>Affaire</th><th style="text-align:right">Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base</th><th>Type</th><th style="text-align:right">Commission</th></tr></thead>' +
+      '<tbody>' +
+      remuLignes.map(l =>
+        '<tr>' +
+          '<td>' + (l.isPrimeAgence ? '<em>Prime mensuelle</em>' : fmtDate(l.dossier.dateActe)) + '</td>' +
+          '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' ('+l.pctCa+'%)' : '') + '</td>' +
+          '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
+          '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques>0 ? '- '+fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
+          '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
+          '<td>' + l.type + '</td>' +
+          '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
+        '</tr>'
+      ).join('') +
+      '</tbody>' +
+    '</table>';
+
+  const twoColHTML = '<div class="two-col">' +
+    '<div>' +
+      '<div class="section-title">Calcul des commissions</div>' +
+      '<table style="font-size:11px">' +
+        '<tr><td style="border:none;padding:3px 0;color:#666">Commissions sortie</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(remuLignes.filter(l=>l.type==='Sortie'&&!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
+        '<tr><td style="border:none;padding:3px 0;color:#666">Commissions rentree</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(remuLignes.filter(l=>l.type==='Entrée').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
+        (credit>0 ? '<tr><td style="border:none;padding:3px 0;color:#666">Credit courtier</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">+ '+fmtEuro(credit)+'</td></tr>' : '') +
+        '<tr style="border-top:1px solid #ccc"><td style="padding:4px 0;font-weight:700">Total commissions</td><td style="padding:4px 0;text-align:right;font-weight:700;color:#2D455A">' + fmtEuro(commissionsSansPrimePDF) + '</td></tr>' +
+      '</table>' +
+    '</div>' +
+    '<div>' +
+      '<div class="section-title">Bareme applique</div>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:10px">' +
+        (function(){
+          const rows = [
+            { label:'Tranche 1', range:'0 – '+(bareme.t1_max||7500).toLocaleString('fr-FR')+' €', taux:bareme.t1_taux||12 },
+            { label:'Tranche 2', range:((bareme.t1_max||7500)+1).toLocaleString('fr-FR')+' – '+(bareme.t2_max||15000).toLocaleString('fr-FR')+' €', taux:bareme.t2_taux||14 },
+            { label:'Tranche 3', range:((bareme.t2_max||15000)+1).toLocaleString('fr-FR')+' – '+(bareme.t3_max||25000).toLocaleString('fr-FR')+' €', taux:bareme.t3_taux||16 },
+            { label:'Tranche 4', range:'> '+(bareme.t3_max||25000).toLocaleString('fr-FR')+' €', taux:bareme.t4_taux||18 }
+          ];
+          return rows.map(r => {
+            const active = parseFloat(pctApplique) === r.taux;
+            const bg = active ? 'background:#dbeafe;color:#1d4ed8;font-weight:700' : '';
+            return '<tr style="' + bg + '"><td style="padding:3px 6px;border:1px solid #ccc">' + r.label + '</td><td style="padding:3px 6px;border:1px solid #ccc">' + r.range + '</td><td style="padding:3px 6px;border:1px solid #ccc;text-align:right">' + r.taux + '%' + (active ? ' ←' : '') + '</td></tr>';
+          }).join('');
+        })() +
+      '</table>' +
+    '</div>' +
+  '</div>';
+
+  const bilanHTML = '<div class="section-title">Bilan du mois</div>' +
+    '<div class="bilan">' +
+      '<div class="bilan-row"><span>Commissions generees</span><span style="font-weight:700">+ ' + fmtEuro(commissionsSansPrimePDF) + '</span></div>' +
+      '<div class="bilan-row"><span>Solde anterieur (dette)</span><span style="font-weight:700;color:#dc2626">- ' + fmtEuro(Math.abs(soldeInitial)) + (montantNonRecupPDF > 0 ? ' <span style="font-size:10px;color:#16a34a">(dont ' + fmtEuro(montantNonRecupPDF) + ' offerts)</span>' : '') + '</span></div>' +
+      '<div class="bilan-row"><span>Debit / Credit du mois</span><span style="font-weight:700;color:' + (debitCreditSansPrime>=0?'#16a34a':'#dc2626') + '">' + (debitCreditSansPrime>=0?'+ ':'- ') + fmtEuro(Math.abs(debitCreditSansPrime)) + '</span></div>' +
+      '<div class="bilan-row"><span>Avance sur commission mensuelle</span><span>' + fmtEuro(avance) + '</span></div>' +
+      (primeMontantPDF > 0 ? '<div class="bilan-row"><span>Prime CA agence (' + (parseFloat(neg.prime_agence_pct)||0) + '%)</span><span style="font-weight:700;color:#7c3aed">+ ' + fmtEuro(primeMontantPDF) + '</span></div>' : '') +
+      (primeExcept > 0 ? '<div class="bilan-row"><span>Prime exceptionnelle' + (primeCommentPDF ? ' (' + primeCommentPDF + ')' : '') + '</span><span style="font-weight:700;color:#0369a1">+ ' + fmtEuro(primeExcept) + '</span></div>' : '') +
+      '<div class="bilan-highlight-green bilan-total-bold"><span>💰 TOTAL A VERSER</span><span>' + fmtEuro(totalAVerserPDF) + '</span></div>' +
+      ((primeMontantPDF > 0 || primeExcept > 0) ? '<div class="bilan-row" style="border-bottom:none;color:#555;font-size:10px"><span>Dont avance sur commission</span><span>' + fmtEuro(salaireAVerserFinal) + '</span></div>' : '') +
+      '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSoldeFinal<0 ? '- '+fmtEuro(Math.abs(nouveauSoldeFinal)) : '0 €') + '</span></div>' +
+    '</div>';
+
+  const signatureHTML = '<div class="signature">' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Recu en main propre le :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Signature :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
+  '</div>';
+
+  return headerHTML + tableHTML + twoColHTML + bilanHTML + signatureHTML;
+}
+
+async function imprimerRelevePDF() {
+  if (remuLignes.length === 0) { showToast('Aucune donnée à imprimer', 'error'); return; }
+  const mois = parseInt(document.getElementById('remu-mois').value);
+  const annee = parseInt(document.getElementById('remu-annee').value);
+  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const nomFichier = 'releve_commissions_' + (remuCurrentNeg.nom||'').replace(/\s+/g,'_') + '_' + moisNoms[mois].toLowerCase() + annee + '.pdf';
+  try {
+    const pdfBase64 = await genererPDFBase64(mois, annee);
+    const byteChars = atob(pdfBase64);
+    const byteNums = new Array(byteChars.length);
+    for (let i=0; i<byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+    const blob = new Blob([new Uint8Array(byteNums)], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nomFichier; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch(e) {
+    showToast('Erreur PDF : ' + e.message, 'error');
+  }
+}
+
+async function genererPDFBase64(mois, annee) {
+  const container = document.getElementById('remu-releve-print');
+  const isSalarieRemu = remuCurrentNeg && ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+  const isAgentCoRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'agent-co';
+  const isAlternantRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'alternant';
+  // Capturer les valeurs du DOM AVANT la génération (la modale peut être cachée ensuite)
+  if (remuCurrentNeg) {
+    const _el = document.getElementById('remu-prime-exceptionnelle');
+    const _elC = document.getElementById('remu-prime-commentaire');
+    if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+    if (!window._remuCommentaires) window._remuCommentaires = {};
+    if (_el) window._remuPrimesExcept[remuCurrentNeg.id] = parseFloat(_el.value) || 0;
+    if (_elC) window._remuCommentaires[remuCurrentNeg.id] = _elC.value || '';
+  }
+  const html = isSalarieRemu ? buildBulletinSalarieHTML(mois, annee, true)
+    : (isAlternantRemu ? buildBulletinAlternantHTML(mois, annee, true)
+    : buildReleveHTML(mois, annee, true));
+  container.innerHTML = html;
+  container.style.display = 'block';
+  container.style.position = 'fixed';
+  container.style.top = '-9999px';
+  container.style.left = '0';
+  container.style.width = '210mm';
+  container.style.background = 'white';
+  container.style.padding = '20px';
+  await new Promise(r => setTimeout(r, 200));
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  return new Promise((resolve, reject) => {
+    doc.html(container, {
+      callback: (d) => {
+        container.style.display = 'none';
+        resolve(d.output('datauristring').split(',')[1]);
+      },
+      x: 10, y: 10, width: 190, windowWidth: 794,
+      error: (e) => { container.style.display = 'none'; reject(e); }
+    });
+  });
+}
+
+async function envoyerReleveMail() {
+  if (remuLignes.length === 0) { showToast('Aucune donnée', 'error'); return; }
+  const btn = document.getElementById('remu-btn-mail');
+  if (!btn) return;
+  btn.disabled = true; btn.textContent = '⏳ Envoi...';
+  const mois = parseInt(document.getElementById('remu-mois').value);
+  const annee = parseInt(document.getElementById('remu-annee').value);
+  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const isSalarieRemu = ['salarié','responsable'].includes(remuCurrentNeg.statut_emploi);
+  const isAlternantRemu = remuCurrentNeg.statut_emploi === 'alternant';
+  const templateType = isSalarieRemu ? 'bulletin_salarie' : (isAlternantRemu ? 'bulletin_alternant' : 'releve_commissions');
+  try {
+    const pdfBase64 = await genererPDFBase64(mois, annee);
+    const nomFichier = 'releve_commissions_' + (remuCurrentNeg.nom||'').replace(/\s+/g,'_') + '_' + moisNoms[mois].toLowerCase() + annee + '.pdf';
+    const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
+    const commissionsTotal = remuLignes.reduce((s,l)=>s+l.commission,0) + credit;
+    const primeExcept = (window._remuPrimesExcept?.[remuCurrentNeg.id] || 0);
+    const sousTotal = remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0);
+    const salaireEmail = commissionsTotal;
+    const totalEmail = commissionsTotal + primeExcept;
+    await sendEmail(templateType, remuCurrentNeg.email || '', {
+      nom: remuCurrentNeg.nom,
+      agence: remuCurrentNeg.agence,
+      mois: moisNoms[mois],
+      annee: String(annee),
+      commissions: fmtEuro(sousTotal),
+      salaire_a_verser: fmtEuro(salaireEmail),
+      total_a_verser: fmtEuro(totalEmail),
+      pdf_base64: pdfBase64,
+      pdf_filename: nomFichier
+    });
+    remuMailEnvoye = true;
+    document.getElementById('remu-mail-sent-badge').style.display = 'block';
+    showToast('Mail envoyé ✓', 'success');
+  } catch(e) {
+    showToast('Erreur envoi mail : ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '📧 Envoyer par mail';
+  }
+}
+
+async function annulerValidationRemuneration() {
+  if (!remuCurrentNeg) return;
+  const mois = parseInt(document.getElementById('remu-mois').value);
+  const annee = parseInt(document.getElementById('remu-annee').value);
+  const ok = confirm('Annuler la validation de ' + remuCurrentNeg.nom + ' pour ' + mois + '/' + annee + ' ?');
+  if (!ok) return;
+  try {
+    await sbDelete('remuneration_validations', 'negociateur_id=eq.' + remuCurrentNeg.id + '&mois=eq.' + mois + '&annee=eq.' + annee);
+    remuValide = false;
+    const badge = document.getElementById('remu-statut-badge');
+    if (badge) badge.style.display = 'none';
+    const btnValider = document.getElementById('remu-btn-valider');
+    btnValider.disabled = false; btnValider.style.opacity = '';
+    const btnAnnuler = document.getElementById('remu-btn-annuler-validation');
+    if (btnAnnuler) btnAnnuler.style.display = 'none';
+    showToast('Validation annulée ✓', 'success');
+  } catch(e) { showToast('Erreur annulation', 'error'); }
+}
+
+
+function recalcBilanRemu() {
+  recalcRemuTotal();
 }
 
 function recalcRemuTotal() {
   const totalFrais = remuLignes.reduce((s,l)=>s+(l.fraisJuridiques||0),0);
-  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
+  // Exclure la prime agence du sous-total affiché (commissions perso uniquement)
+  const sousTotal = remuLignes.filter(l=>!l.isPrimeAgence).reduce((s,l)=>s+l.commission,0);
   const fraisEl = document.getElementById('remu-total-frais');
   if (fraisEl) fraisEl.textContent = totalFrais > 0 ? '- ' + fmtEuro(totalFrais) : '0 €';
   document.getElementById('remu-sous-total').textContent = fmtEuro(sousTotal);
@@ -13592,10 +13989,13 @@ function recalcRemuTotal() {
     soldeAntElAlt.textContent = '—'; soldeAntElAlt.style.color = 'var(--text-muted)';
     const dcElAlt = document.getElementById('remu-bilan-debit-credit');
     dcElAlt.textContent = '—'; dcElAlt.style.color = 'var(--text-muted)';
+    const primeExceptAlt = (window._remuPrimesExcept && remuCurrentNeg ? (window._remuPrimesExcept[remuCurrentNeg.id] || 0) : 0);
+    const totalAltFinal = totalAlt + primeExceptAlt;
     document.getElementById('remu-bilan-avance').textContent = fmtEuro(fixeAlt);
     document.getElementById('remu-bilan-salaire').textContent = fmtEuro(totalAlt);
     const pzAlt = document.getElementById('remu-bilan-prime-zone'); if (pzAlt) pzAlt.style.display = 'none';
-    const tzAlt = document.getElementById('remu-bilan-total-zone'); if (tzAlt) tzAlt.style.display = 'none';
+    const tzAlt = document.getElementById('remu-bilan-total-zone');
+    if (tzAlt) { tzAlt.style.display = ''; document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAltFinal); }
     const nvSoldeElAlt = document.getElementById('remu-bilan-nouveau-solde');
     nvSoldeElAlt.textContent = '—'; nvSoldeElAlt.style.color = 'var(--text-muted)';
     // Adapter les libellés
@@ -13605,6 +14005,12 @@ function recalcRemuTotal() {
     if (slLbl) { const lbl = slLbl.querySelector('div'); if (lbl) lbl.textContent = '💰 TOTAL À VERSER'; }
     document.getElementById('remu-btn-offrir-apres').style.display = 'none';
   } else if (isSalarie && remuLignes.length > 0) {
+    // Logique salarié : remettre les lignes potentiellement masquées par agent-co
+    ['remu-bilan-solde-row','remu-bilan-dc-row','remu-bilan-avance-row','remu-bilan-nvsolde-row'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = '';
+    });
+    const slRowRestore = document.getElementById('remu-bilan-salaire')?.closest('[style*="padding"]');
+    if (slRowRestore) slRowRestore.style.display = '';
     // Logique salarié : commissions - dette antérieure = crédit/débit vs avance
     const commissionsTotal = sousTotal + credit;
     const soldeAnt = -Math.abs(soldeInitial); // solde antérieur = dette (toujours négatif ou 0)
@@ -13618,10 +14024,10 @@ function recalcRemuTotal() {
       .filter(r => r.negociateur_id === remuCurrentNeg?.id && r.mois == moisRemu && r.annee == anneeRemu)
       .reduce((s,r) => s + (r.montant||0), 0);
 
-    // Séparer la prime agence des commissions pour le calcul débit/crédit
+    // Prime agence séparée — commissionsTotal est déjà sans prime (sousTotal exclut isPrimeAgence)
     const primeLigne = remuLignes.find(l => l.isPrimeAgence);
     const primeMontantCalc = primeLigne ? primeLigne.commission : 0;
-    const commissionsSansPrime = commissionsTotal - primeMontantCalc;
+    const commissionsSansPrime = commissionsTotal; // déjà sans prime agence
 
     // Part non récupérable : % de l'avance offert automatiquement chaque mois
     const partNonRecup = (remuCurrentNeg.statut_emploi === 'responsable' && remuCurrentNeg.part_non_recup !== null && remuCurrentNeg.part_non_recup !== undefined)
@@ -13642,7 +14048,10 @@ function recalcRemuTotal() {
       nouveauSolde = -(avance - debitCreditSansPrime) + remiseDejaMois;
       if (nouveauSolde > 0) nouveauSolde = 0;
     }
-    const totalAVerser = salaireAVerser + primeMontantCalc;
+    if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+  if (!window._remuCommentaires) window._remuCommentaires = {};
+  const primeExcept = remuCurrentNeg ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0;
+    const totalAVerser = salaireAVerser + primeMontantCalc + primeExcept;
 
     if (bilanEl) bilanEl.style.display = 'block';
     document.getElementById('remu-bilan-commissions').textContent = fmtEuro(commissionsSansPrime);
@@ -13663,13 +14072,13 @@ function recalcRemuTotal() {
     const totalZone = document.getElementById('remu-bilan-total-zone');
     if (primeMontantCalc > 0) {
       if (primeZone) primeZone.style.display = '';
-      if (totalZone) totalZone.style.display = '';
       document.getElementById('remu-bilan-prime').textContent = fmtEuro(primeMontantCalc);
-      document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAVerser);
     } else {
       if (primeZone) primeZone.style.display = 'none';
-      if (totalZone) totalZone.style.display = 'none';
     }
+    // Toujours afficher le total (il se met à jour en temps réel)
+    if (totalZone) totalZone.style.display = '';
+    document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAVerser);
     const nvSoldeEl = document.getElementById('remu-bilan-nouveau-solde');
     if (remiseDejaMois > 0) {
       const soldeAvantRemise = -(avance - debitCredit);
@@ -13679,6 +14088,25 @@ function recalcRemuTotal() {
       nvSoldeEl.textContent = nouveauSolde < 0 ? '- ' + fmtEuro(Math.abs(nouveauSolde)) : '0 €';
     }
     nvSoldeEl.style.color = nouveauSolde < 0 ? '#d97706' : '#16a34a';
+  } else if (remuCurrentNeg && remuCurrentNeg.statut_emploi === 'agent-co' && remuLignes.length > 0) {
+    // Agent-co : commissions + prime exceptionnelle uniquement
+    if (bilanEl) bilanEl.style.display = 'block';
+    // Masquer les lignes non pertinentes
+    ['remu-bilan-solde-row','remu-bilan-dc-row','remu-bilan-avance-row','remu-bilan-nvsolde-row','remu-bilan-prime-zone'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    // Masquer la ligne "Salaire à verser" — remplacée par le total
+    const slRowAgCo = document.getElementById('remu-bilan-salaire')?.closest('[style*="padding"]');
+    if (slRowAgCo) slRowAgCo.style.display = 'none';
+    const commissionsAgCo = remuLignes.reduce((s,l)=>s+l.commission,0) + credit;
+    const primeExceptAgCo = (window._remuPrimesExcept && remuCurrentNeg ? (window._remuPrimesExcept[remuCurrentNeg.id] || 0) : 0);
+    const totalAgCo = commissionsAgCo + primeExceptAgCo;
+    document.getElementById('remu-bilan-commissions').textContent = fmtEuro(commissionsAgCo);
+    // Toujours afficher le total
+    const tzAgCo = document.getElementById('remu-bilan-total-zone');
+    if (tzAgCo) { tzAgCo.style.display = ''; document.getElementById('remu-bilan-total').textContent = fmtEuro(totalAgCo); }
+    const tzLblAgCo = tzAgCo?.querySelector('div'); if (tzLblAgCo) tzLblAgCo.textContent = '💰 TOTAL À VERSER';
+    document.getElementById('remu-btn-offrir-apres').style.display = 'none';
   } else {
     if (bilanEl) bilanEl.style.display = 'none';
   }
@@ -13706,76 +14134,7 @@ function openRemuDossier(dossierId) {
   document.getElementById('modal-remu-dossier').classList.add('open');
 }
 
-function buildReleveHTML(mois, annee, withPrintStyle) {
-  const moisNoms = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const neg = remuCurrentNeg;
-  const agObj = DB.agences.find(a => a.nom === neg.agence);
-  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
-  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
-  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
-  const totalNet = sousTotal + credit;
-  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
 
-  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:12px;color:#000} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ccc;padding:6px 10px} th{background:#f5f5f5;font-weight:700} .header{display:flex;justify-content:space-between;margin-bottom:24px} .title{font-size:18px;font-weight:700;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:16px} .totals{margin-top:16px;text-align:right} .totals div{margin:4px 0} .total-net{font-size:14px;font-weight:700} .signature{margin-top:40px;border-top:1px solid #ccc;padding-top:16px} @media print{button{display:none}}</style>' : '';
-
-  // En-tête agence
-  const agAdresse = agObj ? (agObj.adresse || '') : '';
-  const agCP = agObj ? (agObj.code_postal || '') : '';
-  const agVille = agObj ? (agObj.ville || '') : '';
-  const siret = socObj?.siret || '';
-  // En-tête collab
-  const negAdresse1 = neg.adresse1 || '';
-  const negAdresse2 = neg.adresse2 || '';
-  const negCP = neg.code_postal || '';
-  const negVille = neg.ville || '';
-  const negRCS = neg.numero_rcs ? ('RCS ' + (neg.ville_rcs || '') + ' ' + neg.numero_rcs).trim() : '';
-
-  return printStyle + '<div class="header">' +
-    '<div>' +
-      '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'BOOSTER IMMOBILIER') + '</div>' +
-      '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
-      (agAdresse ? '<div style="font-size:11px;color:#555">' + agAdresse + '</div>' : '') +
-      (agCP || agVille ? '<div style="font-size:11px;color:#555">' + [agCP, agVille].filter(Boolean).join(' ') + '</div>' : '') +
-      (siret ? '<div style="font-size:11px;color:#555">SIRET : ' + siret + '</div>' : '') +
-    '</div>' +
-    '<div style="text-align:right">' +
-      '<div style="font-weight:700">' + (neg.nom || '—') + '</div>' +
-      (negAdresse1 ? '<div style="font-size:11px;color:#555">' + negAdresse1 + '</div>' : '') +
-      (negAdresse2 ? '<div style="font-size:11px;color:#555">' + negAdresse2 + '</div>' : '') +
-      (negCP || negVille ? '<div style="font-size:11px;color:#555">' + [negCP, negVille].filter(Boolean).join(' ') + '</div>' : '') +
-      (negRCS ? '<div style="font-size:11px;color:#555">' + negRCS + '</div>' : '') +
-      '<div style="font-size:11px;color:#666;margin-top:6px">Toulouse, le ' + today + '</div>' +
-    '</div>' +
-  '</div>' +
-  '<div class="title">RELEVÉ DE COMMISSIONS DÛES</div>' +
-  '<p style="margin-bottom:16px">Objet : Montant des commissions revenant à <strong>' + neg.nom + '</strong> pour le mois de <strong>' + moisNoms[mois] + ' ' + annee + '</strong></p>' +
-  '<table>' +
-    '<thead><tr><th>Date</th><th>Affaire</th><th>Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base calcul</th><th>Statut</th><th>Taux</th><th>Commission</th></tr></thead>' +
-    '<tbody>' +
-      remuLignes.map(l =>
-        '<tr>' +
-          '<td>' + (l.isPrimeAgence ? '<em style="color:var(--text-muted);font-size:11px">Prime mensuelle</em>' : fmtDate(l.dossier.dateActe)) + '</td>' +
-          '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' (' + l.pctCa + '%)' : '') + '</td>' +
-          '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
-          '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques > 0 ? '- ' + fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
-          '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
-          '<td>' + l.type + '</td>' +
-          '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
-        '</tr>'
-      ).join('') +
-    '</tbody>' +
-  '</table>' +
-  '<div class="totals">' +
-    '<div>Frais juridiques déduits : <strong style="color:#dc2626">- ' + fmtEuro(remuLignes.reduce((s,l)=>s+(l.fraisJuridiques||0),0)) + '</strong></div>' +
-    '<div>Sous-total commissions : <strong>' + fmtEuro(sousTotal) + '</strong></div>' +
-    (credit > 0 ? '<div>Crédit courtier : <strong>+ ' + fmtEuro(credit) + '</strong></div>' : '') +
-    '<div class="total-net" style="margin-top:8px;font-size:14px">Total Hors Taxes : <strong>' + fmtEuro(totalNet) + '</strong></div>' +
-  '</div>' +
-  '<div class="signature">' +
-    '<div>Reçu en main propre le : _______________</div>' +
-    '<div style="margin-top:16px">Signature : _______________</div>' +
-  '</div>';
-}
 
 function buildBulletinAlternantHTML(mois, annee, withPrintStyle) {
   const moisNoms = ['','Janvier','Fev','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
@@ -13797,11 +14156,16 @@ function buildBulletinAlternantHTML(mois, annee, withPrintStyle) {
   const tauxRentree = tauxSortie / 2;
 
   const lignesSortie = remuLignes.filter(l => l.type === 'Sortie');
-  const lignesRentree = remuLignes.filter(l => l.type === 'Entree');
+  const lignesRentree = remuLignes.filter(l => l.type === 'Entrée');
   const commSortie = lignesSortie.reduce((s,l)=>s+l.commission,0);
   const commRentree = lignesRentree.reduce((s,l)=>s+l.commission,0);
   const commissionsTotal = commSortie + commRentree + credit;
-  const totalAVerser = commissionsTotal + fixe;
+  // Prime exceptionnelle — lue depuis le stockage (capturé avant génération)
+  if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+  if (!window._remuCommentaires) window._remuCommentaires = {};
+  const primeExceptAlt = remuCurrentNeg ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0;
+  const primeCommentAlt = remuCurrentNeg ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
+  const totalAVerser = commissionsTotal + fixe + primeExceptAlt;
 
   const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#f5f5f5;font-weight:700;font-size:10px}' +
     '.header{display:flex;justify-content:space-between;margin-bottom:20px}.title{font-size:16px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}' +
@@ -13883,7 +14247,8 @@ function buildBulletinAlternantHTML(mois, annee, withPrintStyle) {
       (credit > 0 ? '<div class="bilan-row"><span>Credit courtier</span><span style="font-weight:700">+ ' + fmtEuro(credit) + '</span></div>' : '') +
       '<div class="bilan-row"><span>Total commissions</span><span style="font-weight:700;color:#2D455A">= ' + fmtEuro(commissionsTotal) + '</span></div>' +
       '<div class="bilan-row" style="border-bottom:none"><span>Remuneration fixe mensuelle</span><span>' + fmtEuro(fixe) + '</span></div>' +
-      '<div class="bilan-highlight-green"><span>Total a verser</span><span>' + fmtEuro(totalAVerser) + '</span></div>' +
+      (primeExceptAlt > 0 ? '<div class="bilan-row"><span>Prime exceptionnelle' + (primeCommentAlt ? ' (' + primeCommentAlt + ')' : '') + '</span><span style="font-weight:700;color:#0369a1">+ ' + fmtEuro(primeExceptAlt) + '</span></div>' : '') +
+      '<div class="bilan-highlight-green bilan-total-bold"><span>💰 TOTAL A VERSER</span><span>' + fmtEuro(totalAVerser) + '</span></div>' +
     '</div>';
 
   const signatureHTML = '<div class="signature">' +
@@ -13927,7 +14292,12 @@ function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
   const debitCredit = commissionsPerso + soldeAnt;
   const salaireAVerser = debitCredit >= avance ? debitCredit : avance;
   const nouveauSolde = debitCredit >= avance ? 0 : -(avance - debitCredit);
-  const totalAVerser = salaireAVerser + primeMontant;
+  // Prime exceptionnelle — lue depuis le stockage (capturé avant génération PDF)
+  if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+  if (!window._remuCommentaires) window._remuCommentaires = {};
+  const primeExceptResp = remuCurrentNeg ? (parseFloat(window._remuPrimesExcept[remuCurrentNeg.id]) || 0) : 0;
+  const primeCommentResp = remuCurrentNeg ? (window._remuCommentaires[remuCurrentNeg.id] || '') : '';
+  const totalAVerser = salaireAVerser + primeMontant + primeExceptResp;
 
   // Barème
   const bareme = neg.bareme_commissions || {t1_max:7500,t1_taux:12,t2_max:15000,t2_taux:14,t3_max:25000,t3_taux:16,t4_taux:18};
@@ -14003,7 +14373,7 @@ function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
         '<div class="section-title">Calcul commissions perso</div>' +
         '<table style="font-size:11px">' +
           '<tr><td style="border:none;padding:3px 0;color:#666">Commissions sortie</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(lignesPerso.filter(l=>l.type==='Sortie').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
-          '<tr><td style="border:none;padding:3px 0;color:#666">Commissions rentree</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(lignesPerso.filter(l=>l.type==='Entree').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
+          '<tr><td style="border:none;padding:3px 0;color:#666">Commissions rentree</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(lignesPerso.filter(l=>l.type==='Entrée').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
           (credit>0 ? '<tr><td style="border:none;padding:3px 0;color:#666">Credit courtier</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">+ '+fmtEuro(credit)+'</td></tr>' : '') +
           '<tr style="border-top:1px solid #ccc"><td style="padding:4px 0;font-weight:700">Total commissions perso</td><td style="padding:4px 0;text-align:right;font-weight:700;color:#2D455A">' + fmtEuro(commissionsPerso) + '</td></tr>' +
         '</table>' +
@@ -14056,7 +14426,8 @@ function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
       '<div class="bilan-row" style="border-bottom:none"><span>Avance sur commission</span><span>' + fmtEuro(avance) + '</span></div>' +
       '<div class="bilan-highlight-green"><span>Avance a verser</span><span>' + fmtEuro(salaireAVerser) + '</span></div>' +
       (primeMontant>0 ? '<div class="bilan-highlight-purple"><span>Prime CA agence (' + primePct + '%)</span><span>+ ' + fmtEuro(primeMontant) + '</span></div>' : '') +
-      (primeMontant>0 ? '<div class="bilan-highlight-blue"><span>Total a verser</span><span>' + fmtEuro(totalAVerser) + '</span></div>' : '') +
+      (primeExceptResp>0 ? '<div class="bilan-row" style="border-bottom:1px solid #eee"><span>Prime exceptionnelle' + (primeCommentResp ? ' (' + primeCommentResp + ')' : '') + '</span><span style="font-weight:700;color:#0369a1">+ ' + fmtEuro(primeExceptResp) + '</span></div>' : '') +
+      ((primeMontant>0 || primeExceptResp>0) ? '<div class="bilan-highlight-blue"><span>💰 Total a verser</span><span>' + fmtEuro(totalAVerser) + '</span></div>' : '') +
       '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSolde<0 ? '- '+fmtEuro(Math.abs(nouveauSolde)) : '0 €') + '</span></div>' +
     '</div>';
 
@@ -14068,139 +14439,7 @@ function buildBulletinResponsableHTML(mois, annee, withPrintStyle) {
   return headerHTML + partie1HTML + partie2HTML + bilanHTML + signatureHTML;
 }
 
-function buildBulletinSalarieHTML(mois, annee, withPrintStyle) {
-  const moisNoms = ['','Janvier','Fev','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
-  const neg = remuCurrentNeg;
-  const agObj = DB.agences.find(a => a.nom === neg.agence);
-  const socObj = agObj?.societe_id ? DB.societes.find(s => s.id === agObj.societe_id) : null;
-  const credit = parseFloat(document.getElementById('remu-credit')?.value) || 0;
-  const soldeInitial = parseFloat(document.getElementById('remu-solde-initial')?.value) || 0;
-  const sousTotal = remuLignes.reduce((s,l)=>s+l.commission,0);
-  const commissionsTotal = sousTotal + credit;
-  const soldeAnt = -Math.abs(soldeInitial);
-  const debitCredit = commissionsTotal + soldeAnt;
-  const avance = parseFloat(neg.avance_commission) || 0;
-  const salaireAVerser = debitCredit >= avance ? debitCredit : avance;
-  const nouveauSolde = debitCredit >= avance ? 0 : -(avance - debitCredit);
-  const today = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'});
-  const agAdresse = agObj?.adresse || '';
-  const agCP = agObj?.code_postal || '';
-  const agVille = agObj?.ville || '';
-  const siret = socObj?.siret || '';
-  const negAdresse1 = neg.adresse1 || '';
-  const negAdresse2 = neg.adresse2 || '';
-  const negCP = neg.code_postal || '';
-  const negVille = neg.ville || '';
-  const bareme = neg.bareme_commissions || {t1_max:7500,t1_taux:12,t2_max:15000,t2_taux:14,t3_max:25000,t3_taux:16,t4_taux:18};
-  const tauxApplique = remuLignes.find(l=>l.type==='Sortie')?.taux || 0;
-  const pctApplique = (tauxApplique*100).toFixed(1);
 
-  const printStyle = withPrintStyle ? '<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 8px}th{background:#f5f5f5;font-weight:700;font-size:10px}' +
-    '.header{display:flex;justify-content:space-between;margin-bottom:20px}.title{font-size:16px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}' +
-    '.section-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#666;margin:14px 0 6px;letter-spacing:.05em}' +
-    '.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}' +
-    '.bilan{background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:12px;margin-bottom:14px}' +
-    '.bilan-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:11px}' +
-    '.bilan-highlight-green{background:#f0fdf4;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#15803d;font-size:13px}' +
-    '.bilan-highlight-amber{background:#fef3c7;padding:6px 8px;display:flex;justify-content:space-between;font-weight:700;color:#d97706;font-size:13px}' +
-    '.bareme-table td{font-size:10px;padding:3px 6px}.bareme-active{background:#dbeafe;color:#1d4ed8;font-weight:700}' +
-    '.signature{margin-top:30px;border-top:1px solid #ccc;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px}' +
-    '@media print{button{display:none}}</style>' : '';
-
-  const headerHTML = printStyle +
-    '<div class="header">' +
-      '<div>' +
-        '<div style="font-weight:700">' + (socObj ? (socObj.forme_juridique||'') + ' ' + socObj.nom : 'BOOSTER IMMOBILIER') + '</div>' +
-        '<div>BOOSTER IMMOBILIER ' + neg.agence.toUpperCase() + '</div>' +
-        (agAdresse ? '<div style="font-size:10px;color:#555">' + agAdresse + '</div>' : '') +
-        (agCP||agVille ? '<div style="font-size:10px;color:#555">' + [agCP,agVille].filter(Boolean).join(' ') + '</div>' : '') +
-        (siret ? '<div style="font-size:10px;color:#555">SIRET : ' + siret + '</div>' : '') +
-      '</div>' +
-      '<div style="text-align:right">' +
-        '<div style="font-weight:700">' + (neg.nom||'—') + '</div>' +
-        (negAdresse1 ? '<div style="font-size:10px;color:#555">' + negAdresse1 + '</div>' : '') +
-        (negAdresse2 ? '<div style="font-size:10px;color:#555">' + negAdresse2 + '</div>' : '') +
-        (negCP||negVille ? '<div style="font-size:10px;color:#555">' + [negCP,negVille].filter(Boolean).join(' ') + '</div>' : '') +
-        '<div style="font-size:10px;color:#666;margin-top:4px">Toulouse, le ' + today + '</div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="title">ETAT DE COMMISSIONS — ' + moisNoms[mois].toUpperCase() + ' ' + annee + '</div>' +
-    '<p style="margin-bottom:14px;font-size:11px">Commissions revenant a <strong>' + neg.nom + '</strong> pour le mois de <strong>' + moisNoms[mois] + ' ' + annee + '</strong></p>';
-
-  // Tableau affaires (police 10px)
-  const tableHTML =
-    '<div class="section-title">Affaires traitees</div>' +
-    '<table style="font-size:10px;margin-bottom:14px">' +
-      '<thead><tr><th>Date</th><th>Affaire</th><th style="text-align:right">Honoraires HT</th><th style="text-align:right">Frais jur.</th><th style="text-align:right">Base</th><th>Type</th><th style="text-align:right">Commission</th></tr></thead>' +
-      '<tbody>' +
-      remuLignes.map(l =>
-        '<tr>' +
-          '<td>' + (l.isPrimeAgence ? '<em>Prime mensuelle</em>' : fmtDate(l.dossier.dateActe)) + '</td>' +
-          '<td>' + (l.dossier.client||'—') + (l.pctCa !== null && l.pctCa !== 100 ? ' ('+l.pctCa+'%)' : '') + '</td>' +
-          '<td style="text-align:right">' + fmtEuro(l.ht) + '</td>' +
-          '<td style="text-align:right;color:#dc2626">' + (l.fraisJuridiques>0 ? '- '+fmtEuro(l.fraisJuridiques) : '—') + '</td>' +
-          '<td style="text-align:right">' + fmtEuro(l.baseCalc) + '</td>' +
-          '<td>' + l.type + '</td>' +
-          '<td style="text-align:right;font-weight:700">' + fmtEuro(l.commission) + '</td>' +
-        '</tr>'
-      ).join('') +
-      '</tbody>' +
-    '</table>';
-
-  // Deux colonnes : calcul commissions + barème
-  const twoColHTML = '<div class="two-col">' +
-    '<div>' +
-      '<div class="section-title">Calcul des commissions</div>' +
-      '<table style="font-size:11px">' +
-        '<tr><td style="border:none;padding:3px 0;color:#666">Commissions sortie</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(remuLignes.filter(l=>l.type==='Sortie').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
-        '<tr><td style="border:none;padding:3px 0;color:#666">Commissions rentree</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">' + fmtEuro(remuLignes.filter(l=>l.type==='Entree').reduce((s,l)=>s+l.commission,0)) + '</td></tr>' +
-        (credit>0 ? '<tr><td style="border:none;padding:3px 0;color:#666">Credit courtier</td><td style="border:none;padding:3px 0;text-align:right;font-weight:700">+ '+fmtEuro(credit)+'</td></tr>' : '') +
-        '<tr style="border-top:1px solid #ccc"><td style="padding:4px 0;font-weight:700">Total commissions</td><td style="padding:4px 0;text-align:right;font-weight:700;color:#2D455A">' + fmtEuro(commissionsTotal) + '</td></tr>' +
-      '</table>' +
-    '</div>' +
-    '<div>' +
-      '<div class="section-title">Bareme applique</div>' +
-      '<table class="bareme-table">' +
-        '<tr class="' + (pctApplique==(bareme.t1_taux||12)+'.0' ? 'bareme-active' : '') + '"><td>Tranche 1</td><td>0 – ' + (bareme.t1_max||7500).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t1_taux||12) + '%' + (pctApplique==(bareme.t1_taux||12)+'.0' ? ' ←' : '') + '</td></tr>' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? 'bareme-active' : '') + '"><td>Tranche 2</td><td>' + ((bareme.t1_max||7500)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t2_max||15000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t2_taux||14) + '%' + (parseFloat(pctApplique)==(bareme.t2_taux||14) ? ' &larr;' : '') + '</td></tr>' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? 'bareme-active' : '') + '"><td>Tranche 3</td><td>' + ((bareme.t2_max||15000)+1).toLocaleString('fr-FR') + ' – ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t3_taux||16) + '%' + (parseFloat(pctApplique)==(bareme.t3_taux||16) ? ' &larr;' : '') + '</td></tr>' +
-        '<tr class="' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? 'bareme-active' : '') + '"><td>Tranche 4</td><td>&gt; ' + (bareme.t3_max||25000).toLocaleString('fr-FR') + ' €</td><td style="text-align:right">' + (bareme.t4_taux||18) + '%' + (parseFloat(pctApplique)==(bareme.t4_taux||18) ? ' &larr;' : '') + '</td></tr>' +
-      '</table>' +
-    '</div>' +
-  '</div>';
-
-  // Calculs spécifiques responsable
-  const partNonRecupPDF = (neg.part_non_recup !== null && neg.part_non_recup !== undefined) ? parseFloat(neg.part_non_recup) / 100 : 0;
-  const montantNonRecupPDF = Math.round(avance * partNonRecupPDF * 100) / 100;
-  const primeLignePDF = remuLignes.find(l => l.isPrimeAgence);
-  const primeMontantPDF = primeLignePDF ? primeLignePDF.commission : 0;
-  const commissionsSansPrimePDF = commissionsTotal - primeMontantPDF;
-  const soldeAntEffectifPDF = soldeAnt + montantNonRecupPDF;
-  const debitCreditSansPrime = commissionsSansPrimePDF + soldeAntEffectifPDF;
-  const salaireAVerserFinal = debitCreditSansPrime >= avance ? debitCreditSansPrime : avance;
-  const nouveauSoldeFinal = debitCreditSansPrime >= avance ? 0 : -(avance - debitCreditSansPrime);
-  const totalAVerserPDF = salaireAVerserFinal + primeMontantPDF;
-
-  // Bilan du mois
-  const bilanHTML = '<div class="section-title">Bilan du mois</div>' +
-    '<div class="bilan">' +
-      '<div class="bilan-row"><span>Commissions generees</span><span style="font-weight:700">+ ' + fmtEuro(commissionsSansPrimePDF) + '</span></div>' +
-      '<div class="bilan-row"><span>Solde anterieur (dette)</span><span style="font-weight:700;color:#dc2626">- ' + fmtEuro(Math.abs(soldeInitial)) + (montantNonRecupPDF > 0 ? ' <span style="font-size:10px;color:#16a34a">(dont ' + fmtEuro(montantNonRecupPDF) + ' offerts)</span>' : '') + '</span></div>' +
-      '<div class="bilan-row"><span>Debit / Credit du mois</span><span style="font-weight:700;color:' + (debitCreditSansPrime>=0?'#16a34a':'#dc2626') + '">' + (debitCreditSansPrime>=0?'+ ':'- ') + fmtEuro(Math.abs(debitCreditSansPrime)) + '</span></div>' +
-      '<div class="bilan-row"><span>Avance sur commission mensuelle</span><span>' + fmtEuro(avance) + '</span></div>' +
-      (primeMontantPDF > 0 ? '<div class="bilan-row"><span>Prime CA agence (' + (parseFloat(neg.prime_agence_pct)||0) + '%)</span><span style="font-weight:700;color:#7c3aed">+ ' + fmtEuro(primeMontantPDF) + '</span></div>' : '') +
-      (primeMontantPDF > 0 ? '<div class="bilan-row" style="border-bottom:none"><span>Total a verser</span><span style="font-weight:700;color:#16a34a">= ' + fmtEuro(totalAVerserPDF) + '</span></div>' : '<div class="bilan-row" style="border-bottom:none"></div>') +
-      '<div class="bilan-highlight-green"><span>' + (primeMontantPDF > 0 ? 'Dont avance a verser' : 'Salaire brut a verser') + '</span><span>' + fmtEuro(salaireAVerserFinal) + '</span></div>' +
-      '<div class="bilan-highlight-amber"><span>Nouveau solde (report mois suivant)</span><span>' + (nouveauSoldeFinal<0 ? '- '+fmtEuro(Math.abs(nouveauSoldeFinal)) : '0 €') + '</span></div>' +
-    '</div>';
-
-  const signatureHTML = '<div class="signature">' +
-    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Recu en main propre le :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
-    '<div><div style="color:#666;margin-bottom:6px;font-size:11px">Signature :</div><div style="border-bottom:1px solid #999;height:28px"></div></div>' +
-  '</div>';
-
-  return headerHTML + tableHTML + twoColHTML + bilanHTML + signatureHTML;
-}
 
 async function imprimerRelevePDF() {
   if (remuLignes.length === 0) { showToast('Aucune donnée à imprimer', 'error'); return; }
@@ -14223,6 +14462,15 @@ async function imprimerRelevePDF() {
 
 async function genererPDFBase64(mois, annee) {
   const { jsPDF } = window.jspdf;
+  // Capturer prime/commentaire depuis le DOM avant génération
+  if (remuCurrentNeg) {
+    const _elPR = document.getElementById('remu-prime-exceptionnelle');
+    const _elCR = document.getElementById('remu-prime-commentaire');
+    if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+    if (!window._remuCommentaires) window._remuCommentaires = {};
+    if (_elPR) window._remuPrimesExcept[remuCurrentNeg.id] = parseFloat(_elPR.value) || 0;
+    if (_elCR) window._remuCommentaires[remuCurrentNeg.id] = _elCR.value || '';
+  }
   const isResponsableRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'responsable';
   const isSalarieRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'salarié';
   const isAlternantRemu = remuCurrentNeg && remuCurrentNeg.statut_emploi === 'alternant';
@@ -14793,6 +15041,21 @@ function openRemunerationForCollab(negId) {
   document.getElementById('remu-solde-initial').value = '';
   window._remisesMois = [];
   window._remuOpenedFrom = 'remunerations';
+
+  // Vider puis charger prime/commentaire individuels pour ce collab
+  const _rpeNegIdFC = neg.id;
+  const remuPrimeExElFC = document.getElementById('remu-prime-exceptionnelle');
+  if (remuPrimeExElFC) {
+    remuPrimeExElFC.value = '';
+    const _savedPrimeFC = (_rpeNegIdFC && window._remuPrimesExcept && window._remuPrimesExcept[_rpeNegIdFC] != null) ? window._remuPrimesExcept[_rpeNegIdFC] : 0;
+    remuPrimeExElFC.value = _savedPrimeFC > 0 ? _savedPrimeFC : '';
+  }
+  const remuCommentElFC = document.getElementById('remu-prime-commentaire');
+  if (remuCommentElFC) {
+    remuCommentElFC.value = '';
+    const _savedCommentFC = (_rpeNegIdFC && window._remuCommentaires && window._remuCommentaires[_rpeNegIdFC]) ? window._remuCommentaires[_rpeNegIdFC] : '';
+    remuCommentElFC.value = _savedCommentFC;
+  }
 
   checkRemuValidation();
   document.getElementById('modal-remuneration').classList.add('open');
@@ -15468,7 +15731,7 @@ async function deleteRoadmapItem(id) {
 // ═══════════════════════════════════════════════════
 // ASSISTANT IA ROADMAP
 // ═══════════════════════════════════════════════════
-const RD_AI_SYSTEM = 'Tu es un assistant développeur expert de Scorim, une application web single-file (index.html) de suivi des ventes immobilières pour Booster Immobilier, un réseau de 6 agences à Toulouse.\n\n## ARCHITECTURE TECHNIQUE\n- Single-file app : tout dans index.html (HTML + CSS + JS)\n- Hébergement : GitHub Pages (repo ThomasBooster/booster-immo, branche main)\n- Backend : Supabase (upprurqivgjypumzwftq, eu-north-1)\n- IA : Edge Function "claude-proxy" (claude-sonnet-4-20250514)\n- Mails : Edge Function "send-email" (Resend)\n- DNS : ventes.booster-immobilier.com\n\n## TABLES SUPABASE\n- dossiers : id, client, agence, agence_id, ttc, brut_ht, ht, ttc_total, ht_total, pct, nb_agences_groupe, has_apporteur, apporteur_nom, apporteur_pct, apport_ht, has_retro_booster, retro_booster_ht, statut, date_ssp, date_butoire, date_acte, diag, mois, remarque, saisi, group_id\n- negociateurs : id, nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca, date_fin_periode_essai, periode_essai_validee, checklist_embauche, email, avance_commission, taux_retrocession_sortie, taux_retrocession_rentree, numero_rcs, date_inactivite, motif_inactivite\n- dossier_negociateurs : id, dossier_id, negociateur_id, agence, pct_ca\n- dossier_rentreurs : id, dossier_id, negociateur_id, agence, ca_rentree\n- users : id, nom, role, agence, email, password\n- settings : key, value, meta\n- apporteurs : id, nom\n- agences : id, nom, actif, date_ouverture\n- societes : id, nom, forme_juridique\n- gerants : id, societe_id, negociateur_id\n- feedbacks : id, type (bug/idea), description, auteur, agence, role, statut (nouveau/en_cours/traite), roadmap_item_id, created_at\n- roadmap_items : id, titre, description, priorite, categorie, statut, version_cible, feedback_id, theme, created_at\n\n## RÔLES UTILISATEURS\n- admin (Thomas) : accès total, espace roadmap, paramètres\n- saisie (Laurie, Benoît) : saisie dossiers, accès stats, feedback\n- agence (directeurs) : accès limité à leur agence, feedback\n\n## RÈGLES MÉTIER IMPORTANTES\n- Rankings basés sur date_ssp, pas le champ mois\n- Intercabinet = dossiers liés par group_id (splitting 1/nb_agences)\n- Statuts : À SIGNER, SIGNÉ, AA SIGNÉ (auto si date_acte renseignée), REPORT, ANNULÉ, SRU, REFUS DE CRÉDIT\n- isNet() = SIGNÉ ou AA SIGNÉ (comptabilisé dans les stats)\n- TVA 20%, frais juridiques 450€ HT/dossier\n- Sans date_ssp → mois vide → exclu des stats mensuelles\n- Collaborateurs 🍒 = virtuels, exclus des classements\n\n## FONCTIONS JS CLÉS\n- sbFetch(table, options) : GET Supabase\n- sbInsert(table, data) : POST Supabase\n- sbUpdate(table, filter, data) : PATCH Supabase\n- sbDelete(table, filter) : DELETE Supabase\n- showPage(name, navEl) : navigation entre pages\n- showToast(msg, type) : notifications\n- fmtEuro(val) : formatage monétaire\n- fmtDate(str) : formatage date fr\n- isNet(d) : vérifie si dossier signé\n- DB : objet global contenant toutes les données en mémoire\n- currentUser : utilisateur connecté {id, nom, role, agence}\n\n## VERSIONING\n- Version actuelle : 1.3.0 (prod)\n- En cours de développement : 1.4.0\n- x.x.1 = bug fix, x.x+1.0 = nouvelle feature, x+1.0.0 = refonte majeure\n\n## WORKFLOW DE DEV\n1. Thomas décrit une fonctionnalité\n2. Tu poses des questions pour clarifier\n3. Tu génères un prompt structuré et précis\n4. Thomas colle le prompt dans Claude.ai pour coder\n5. Claude code et livre index-test.html\n6. Thomas teste, valide, déploie en prod\n\n## FORMAT DU PROMPT FINAL\nLe prompt que tu génères doit être structuré ainsi :\n---\n**CONTEXTE** : [Description de l\'app et de l\'état actuel]\n**OBJECTIF** : [Ce qu\'il faut développer exactement]\n**CONTRAINTES TECHNIQUES** : [Architecture, tables Supabase, fonctions à utiliser]\n**DÉTAILS UX** : [Comportement attendu, cas limites]\n**LIVRABLE** : [Ce qui doit être livré — index-test.html avec version x.x.x]\n---\n\nTon rôle :\n1. Analyser l\'item de roadmap soumis\n2. Poser les questions nécessaires pour comprendre le besoin précis (UX, règles métier, cas limites)\n3. Une fois les réponses obtenues, générer le prompt structuré\n4. Proposer le bouton "📋 Copier le prompt" quand le prompt est prêt\n\nCommence toujours par analyser l\'item et poser 2-3 questions ciblées. Ne génère le prompt qu\'une fois que tu as suffisamment d\'informations.';
+const RD_AI_SYSTEM = 'Tu es un assistant développeur expert de Scorim, une application web single-file (index.html) de suivi des ventes immobilières pour Booster Immobilier, un réseau de 6 agences à Toulouse.\n\n## ARCHITECTURE TECHNIQUE\n- Single-file app : tout dans index.html (HTML + CSS + JS)\n- Hébergement : GitHub Pages (repo ThomasBooster/booster-immo, branche main)\n- Backend : Supabase (bqzluhzkzpalludrfxyr, eu-north-1)\n- IA : Edge Function "claude-proxy" (claude-sonnet-4-20250514)\n- Mails : Edge Function "send-email" (Resend)\n- DNS : ventes.booster-immobilier.com\n\n## TABLES SUPABASE\n- dossiers : id, client, agence, agence_id, ttc, brut_ht, ht, ttc_total, ht_total, pct, nb_agences_groupe, has_apporteur, apporteur_nom, apporteur_pct, apport_ht, has_retro_booster, retro_booster_ht, statut, date_ssp, date_butoire, date_acte, diag, mois, remarque, saisi, group_id\n- negociateurs : id, nom, agence, actif, poste, statut_emploi, date_entree, objectif_ca, date_fin_periode_essai, periode_essai_validee, checklist_embauche, email, avance_commission, taux_retrocession_sortie, taux_retrocession_rentree, numero_rcs, date_inactivite, motif_inactivite\n- dossier_negociateurs : id, dossier_id, negociateur_id, agence, pct_ca\n- dossier_rentreurs : id, dossier_id, negociateur_id, agence, ca_rentree\n- users : id, nom, role, agence, email, password\n- settings : key, value, meta\n- apporteurs : id, nom\n- agences : id, nom, actif, date_ouverture\n- societes : id, nom, forme_juridique\n- gerants : id, societe_id, negociateur_id\n- feedbacks : id, type (bug/idea), description, auteur, agence, role, statut (nouveau/en_cours/traite), roadmap_item_id, created_at\n- roadmap_items : id, titre, description, priorite, categorie, statut, version_cible, feedback_id, theme, created_at\n\n## RÔLES UTILISATEURS\n- admin (Thomas) : accès total, espace roadmap, paramètres\n- saisie (Laurie, Benoît) : saisie dossiers, accès stats, feedback\n- agence (directeurs) : accès limité à leur agence, feedback\n\n## RÈGLES MÉTIER IMPORTANTES\n- Rankings basés sur date_ssp, pas le champ mois\n- Intercabinet = dossiers liés par group_id (splitting 1/nb_agences)\n- Statuts : À SIGNER, SIGNÉ, AA SIGNÉ (auto si date_acte renseignée), REPORT, ANNULÉ, SRU, REFUS DE CRÉDIT\n- isNet() = SIGNÉ ou AA SIGNÉ (comptabilisé dans les stats)\n- TVA 20%, frais juridiques 450€ HT/dossier\n- Sans date_ssp → mois vide → exclu des stats mensuelles\n- Collaborateurs 🍒 = virtuels, exclus des classements\n\n## FONCTIONS JS CLÉS\n- sbFetch(table, options) : GET Supabase\n- sbInsert(table, data) : POST Supabase\n- sbUpdate(table, filter, data) : PATCH Supabase\n- sbDelete(table, filter) : DELETE Supabase\n- showPage(name, navEl) : navigation entre pages\n- showToast(msg, type) : notifications\n- fmtEuro(val) : formatage monétaire\n- fmtDate(str) : formatage date fr\n- isNet(d) : vérifie si dossier signé\n- DB : objet global contenant toutes les données en mémoire\n- currentUser : utilisateur connecté {id, nom, role, agence}\n\n## VERSIONING\n- Version actuelle : 1.3.0 (prod)\n- En cours de développement : 1.4.0\n- x.x.1 = bug fix, x.x+1.0 = nouvelle feature, x+1.0.0 = refonte majeure\n\n## WORKFLOW DE DEV\n1. Thomas décrit une fonctionnalité\n2. Tu poses des questions pour clarifier\n3. Tu génères un prompt structuré et précis\n4. Thomas colle le prompt dans Claude.ai pour coder\n5. Claude code et livre index-test.html\n6. Thomas teste, valide, déploie en prod\n\n## FORMAT DU PROMPT FINAL\nLe prompt que tu génères doit être structuré ainsi :\n---\n**CONTEXTE** : [Description de l\'app et de l\'état actuel]\n**OBJECTIF** : [Ce qu\'il faut développer exactement]\n**CONTRAINTES TECHNIQUES** : [Architecture, tables Supabase, fonctions à utiliser]\n**DÉTAILS UX** : [Comportement attendu, cas limites]\n**LIVRABLE** : [Ce qui doit être livré — index-test.html avec version x.x.x]\n---\n\nTon rôle :\n1. Analyser l\'item de roadmap soumis\n2. Poser les questions nécessaires pour comprendre le besoin précis (UX, règles métier, cas limites)\n3. Une fois les réponses obtenues, générer le prompt structuré\n4. Proposer le bouton "📋 Copier le prompt" quand le prompt est prêt\n\nCommence toujours par analyser l\'item et poser 2-3 questions ciblées. Ne génère le prompt qu\'une fois que tu as suffisamment d\'informations.';
 
 let rdAiHistory = [];
 let rdAiCurrentItem = null;
@@ -15818,7 +16081,7 @@ function icRender() {
       const motif = refus?.commentaire || '—';
       const agenceRefus = refus?.agence || '—';
       return `<div style="background:#FFF5F5;border:1px solid #E24B4A;border-radius:12px;padding:14px 18px;margin-bottom:10px">
-        <div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:6px">${nd.vendeurNom||'—'} → ${nd.acquereurNom||'—'}</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:6px">${nd.vendeurNom||'—'} → ${nd.acquereurNom||'—'}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">🏠 ${agences.join(' / ')}</div>
         <div style="font-size:13px;color:#E24B4A;margin-bottom:10px">✗ Refusé par <strong>${agenceRefus}</strong> — <em>${motif}</em></div>
         <button onclick="icOuvrirDossier(${d.id}, true)" style="font-size:12px;padding:5px 12px;border:none;border-radius:8px;background:#d97706;color:white;cursor:pointer;font-weight:600">✏️ Modifier et renvoyer</button>
@@ -15945,7 +16208,7 @@ function icCard(d, myAgence, canAct) {
   return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:10px${canAct?';border-left:3px solid #E24B4A':''}">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div>
-        <div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:6px">${vendeur} → ${acquereur}</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:6px">${vendeur} → ${acquereur}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
           <span>🏠 Agences : ${agences.join(' / ')}</span>
           <span style="margin-left:12px">📝 Saisi par <strong>${d.saisi_par||'—'}</strong> (${agenceInitiale})</span>
@@ -16027,6 +16290,59 @@ async function icRefuser(draftId) {
   icUpdateBadge();
 }
 
+// ── IC Pulse ─────────────────────────────────────────────────────────────────
+let _icPulseInterval = null;
+let _icAltInterval   = null;
+let _icPulseState    = false;
+let _icAltState      = false;
+
+function icStopPulse() {
+  if (_icPulseInterval) { clearInterval(_icPulseInterval); _icPulseInterval = null; }
+  if (_icAltInterval)   { clearInterval(_icAltInterval);   _icAltInterval   = null; }
+  _icPulseState = false; _icAltState = false;
+  const inner = document.getElementById('ic-icon-inner');
+  const shuffle = document.getElementById('ic-icon-shuffle');
+  const alert = document.getElementById('ic-icon-alert');
+  if (!inner) return;
+  inner.style.background = '';
+  inner.style.transition = 'background 0.3s';
+  if (shuffle) shuffle.style.display = '';
+  if (alert)   alert.style.display   = 'none';
+}
+
+function icStartPulse(oldestHours) {
+  icStopPulse();
+  const inner   = document.getElementById('ic-icon-inner');
+  const shuffle = document.getElementById('ic-icon-shuffle');
+  const alert   = document.getElementById('ic-icon-alert');
+  if (!inner) return;
+  const bgMap = [
+    { h: 0,  bg: 'rgba(239,68,68,0.45)' },
+    { h: 24, bg: 'rgba(220,38,38,0.70)' },
+    { h: 48, bg: 'rgba(185,28,28,0.88)' },
+    { h: 72, bg: 'rgba(153,27,27,1)'    },
+    { h: 96, bg: '#7f1d1d'              },
+  ];
+  let activeBg = bgMap[0].bg;
+  for (const s of bgMap) { if (oldestHours >= s.h) activeBg = s.bg; }
+  if (oldestHours >= 96) {
+    inner.style.background = activeBg;
+    inner.style.transition = 'none';
+    _icAltInterval = setInterval(() => {
+      _icAltState = !_icAltState;
+      if (shuffle) shuffle.style.display = _icAltState ? 'none' : '';
+      if (alert)   alert.style.display   = _icAltState ? '' : 'none';
+    }, 400);
+  } else {
+    const period = 3000 - (oldestHours / 96) * (3000 - 300);
+    const half   = period / 2;
+    _icPulseInterval = setInterval(() => {
+      _icPulseState = !_icPulseState;
+      inner.style.background = _icPulseState ? activeBg : '';
+    }, half);
+  }
+}
+
 function icUpdateBadge() {
   const myAgence = icGetMyAgence();
   const badge = document.getElementById('ic-badge');
@@ -16042,8 +16358,13 @@ function icUpdateBadge() {
   }).length;
   if (count>0) { badge.textContent=count; badge.style.display='inline-flex'; badge.style.alignItems='center'; badge.style.justifyContent='center'; }
   else { badge.style.display='none'; }
-  // Ne jamais masquer le nav-ic-validation — setupNav gère la visibilité par rôle
-  // Le badge seul indique le nombre de dossiers en attente
+  // Afficher/masquer le nav selon s'il y a des IC
+  const total = (DB.drafts||[]).filter(d=>{
+    if(d.statut!=='en_attente_ic') return false;
+    const nd=d.data||{};
+    return (nd.agences||[]).slice(0,nd.nbAgences||1).map(a=>a.nom).includes(myAgence);
+  }).length;
+  if (navIC) navIC.style.display = total>0 ? 'flex' : 'none';
 }
 
 
@@ -16081,7 +16402,7 @@ function sspShowLoginAlert() {
   popup.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
   popup.innerHTML = `<div style="background:var(--bg);border-radius:16px;padding:28px 32px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center">
     <div style="font-size:42px;margin-bottom:12px">📋</div>
-    <div style="font-family:DM Sans,sans-serif;font-size:20px;font-weight:700;color:var(--primary);margin-bottom:8px">
+    <div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:var(--primary);margin-bottom:8px">
       ${n === 1 ? 'Un nouveau dossier vous attend !' : n + ' nouveaux dossiers vous attendent !'}
     </div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.6">
@@ -16220,7 +16541,7 @@ function sspShowNouveauDossierAlert(nouveaux) {
   popup.innerHTML = `
     <div style="font-size:28px;flex-shrink:0">📋</div>
     <div style="flex:1;min-width:0">
-      <div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:14px;margin-bottom:4px">${titre}</div>
+      <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;margin-bottom:4px">${titre}</div>
       <div style="font-size:12px;opacity:.85;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${detail}${isIC ? ' · intercabinet' : ''}</div>
       <button onclick="sspGoToDashboardFromNotif()" style="font-size:12px;padding:6px 14px;border:none;border-radius:8px;background:white;color:var(--primary);cursor:pointer;font-weight:700">Voir les dossiers →</button>
     </div>
@@ -16370,7 +16691,7 @@ function sspCard(d, idx) {
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-            <span style="font-family:DM Sans,sans-serif;font-weight:700;font-size:14px;color:var(--primary)">${vendeur} → ${acquereur}</span>
+            <span style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--primary)">${vendeur} → ${acquereur}</span>
             ${isIC ? '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:#EDE9FE;color:#7C3AED">INTERCABINET</span>' : ''}
             ${sspStatutBadge(statut)}
           </div>
@@ -16430,7 +16751,7 @@ function sspConfirmValider(draftId) {
     document.body.appendChild(popup);
   }
   popup.innerHTML = `<div style="background:var(--bg);border-radius:16px;padding:28px 32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-    <div style="font-family:DM Sans,sans-serif;font-size:18px;font-weight:700;color:var(--primary);margin-bottom:12px">Valider ce dossier ?</div>
+    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700;color:var(--primary);margin-bottom:12px">Valider ce dossier ?</div>
     <div style="font-size:13px;color:var(--text);background:var(--bg-secondary,#f8fafc);border-radius:10px;padding:12px 14px;margin-bottom:20px;line-height:1.7">
       <div><strong>Vendeur :</strong> ${vendeur}</div>
       <div><strong>Acquéreur :</strong> ${acquereur}</div>
@@ -16753,6 +17074,59 @@ function sspInitDragDrop(list, pending) {
     dragCard = null;
     overCard = null;
   });
+}
+
+// ── SSP Pulse ────────────────────────────────────────────────────────────────
+let _sspPulseInterval = null;
+let _sspAltInterval   = null;
+let _sspPulseState    = false;
+let _sspAltState      = false;
+
+function sspStopPulse() {
+  if (_sspPulseInterval) { clearInterval(_sspPulseInterval); _sspPulseInterval = null; }
+  if (_sspAltInterval)   { clearInterval(_sspAltInterval);   _sspAltInterval   = null; }
+  _sspPulseState = false; _sspAltState = false;
+  const inner  = document.getElementById('ssp-icon-inner');
+  const inbox  = document.getElementById('ssp-icon-inbox');
+  const alert  = document.getElementById('ssp-icon-alert');
+  if (!inner) return;
+  inner.style.background = '';
+  inner.style.transition = 'background 0.3s';
+  if (inbox) inbox.style.display = '';
+  if (alert) alert.style.display = 'none';
+}
+
+function sspStartPulse(oldestHours) {
+  sspStopPulse();
+  const inner = document.getElementById('ssp-icon-inner');
+  const inbox = document.getElementById('ssp-icon-inbox');
+  const alert = document.getElementById('ssp-icon-alert');
+  if (!inner) return;
+  const bgMap = [
+    { h: 0,  bg: 'rgba(239,68,68,0.45)' },
+    { h: 24, bg: 'rgba(220,38,38,0.70)' },
+    { h: 48, bg: 'rgba(185,28,28,0.88)' },
+    { h: 72, bg: 'rgba(153,27,27,1)'    },
+    { h: 96, bg: '#7f1d1d'              },
+  ];
+  let activeBg = bgMap[0].bg;
+  for (const s of bgMap) { if (oldestHours >= s.h) activeBg = s.bg; }
+  if (oldestHours >= 96) {
+    inner.style.background = activeBg;
+    inner.style.transition = 'none';
+    _sspAltInterval = setInterval(() => {
+      _sspAltState = !_sspAltState;
+      if (inbox) inbox.style.display = _sspAltState ? 'none' : '';
+      if (alert) alert.style.display = _sspAltState ? '' : 'none';
+    }, 400);
+  } else {
+    const period = 3000 - (oldestHours / 96) * (3000 - 300);
+    const half   = period / 2;
+    _sspPulseInterval = setInterval(() => {
+      _sspPulseState = !_sspPulseState;
+      inner.style.background = _sspPulseState ? activeBg : '';
+    }, half);
+  }
 }
 
 function sspUpdateBadge() {
@@ -18817,7 +19191,7 @@ function ndUpdateCA(){
     <div style="background:white;max-width:1000px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
       <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-titre">Affaires de —</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-titre">Affaires de —</div>
           <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-affaires-count"></div>
         </div>
         <button onclick="closeAffairesCollab()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
@@ -18868,7 +19242,7 @@ function ndUpdateCA(){
     <div style="background:white;max-width:900px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
       <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-agence-titre">Affaires —</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-affaires-agence-titre">Affaires —</div>
           <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-affaires-agence-count"></div>
         </div>
         <button onclick="closeAffairesAgence()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
@@ -18908,7 +19282,7 @@ function ndUpdateCA(){
     <div style="background:white;max-width:950px;margin:40px auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
       <div style="background:var(--primary);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:white" id="modal-apporteur-titre">Affaires de —</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:white" id="modal-apporteur-titre">Affaires de —</div>
           <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px" id="modal-apporteur-stats"></div>
         </div>
         <button onclick="document.getElementById('modal-affaires-apporteur').style.display='none';document.body.style.overflow=''" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
@@ -18942,7 +19316,7 @@ function ndUpdateCA(){
   <!-- MODAL PÉRIODE D'ESSAI -->
   <div id="modal-pe-duree" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;display:none;align-items:center;justify-content:center">
     <div style="background:white;border-radius:16px;padding:28px;width:400px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-      <div style="font-family:DM Sans,sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:8px">⏱ Période d'essai</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--primary);margin-bottom:8px">⏱ Période d'essai</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px">Quelle est la durée de la période d'essai pour ce contrat ?</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
         <button id="pe-btn-3mois" onclick="setPEDuree(3)" style="padding:12px 16px;border:2px solid var(--border);border-radius:10px;background:white;font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:all .15s">
