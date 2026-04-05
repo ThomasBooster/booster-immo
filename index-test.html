@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.3-test                               ║
+║                        SCORIM — v1.5.4-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -98,7 +98,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.3-test</title>
+<title>SCORIM v1.5.4-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -979,7 +979,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.2</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.4-test</div>
     </div>
   </div>
 </div>
@@ -1131,7 +1131,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.2</div>
+        <div class="sidebar-version">v1.5.4-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -17135,18 +17135,20 @@ function sspStartPulse(oldestHours) {
 }
 
 function sspUpdateBadge() {
-  const pending = (DB.drafts || []).filter(d => d.statut === 'en_attente');
+  const allDrafts = DB.drafts || [];
+  const pending = allDrafts.filter(d => d.statut === 'en_attente');
+  console.log('[SSP] sspUpdateBadge — drafts total:', allDrafts.length, '| en_attente:', pending.length, '| statuts:', [...new Set(allDrafts.map(d=>d.statut))]);
   const badge = document.getElementById('ssp-badge');
-  if (!badge) return;
+  if (!badge) { console.warn('[SSP] badge element introuvable'); return; }
   if (pending.length > 0) {
     badge.textContent = pending.length;
     badge.style.display = 'inline-block';
-    // Calculer l'ancienneté du draft le plus vieux (en heures)
     const now = Date.now();
     const oldestHours = pending.reduce((max, d) => {
       const h = d.created_at ? (now - new Date(d.created_at).getTime()) / 3600000 : 0;
       return Math.max(max, h);
     }, 0);
+    console.log('[SSP] oldestHours:', oldestHours.toFixed(1), '→ sspStartPulse');
     sspStartPulse(oldestHours);
   } else {
     badge.style.display = 'none';
