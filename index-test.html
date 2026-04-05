@@ -3758,11 +3758,13 @@ async function initApp() {
   // Polling IC temps réel pour les agences
   startICPolling();
 
+  // Badge SSP pour tous les rôles qui voient le nav SSP
+  sspUpdateBadge();
+
   // Landing page selon rôle
   if (currentUser.role === 'saisie') {
     const navSSP = document.getElementById('nav-dossiers-redaction');
     showPage('ssp-dashboard', navSSP);
-    sspUpdateBadge();
     startSSPPolling();
     sspShowLoginAlert();
   } else if (currentUser.role === 'gratuit') {
@@ -17136,8 +17138,20 @@ function sspUpdateBadge() {
   const pending = (DB.drafts || []).filter(d => d.statut === 'en_attente');
   const badge = document.getElementById('ssp-badge');
   if (!badge) return;
-  if (pending.length > 0) { badge.textContent = pending.length; badge.style.display = 'inline-block'; }
-  else { badge.style.display = 'none'; }
+  if (pending.length > 0) {
+    badge.textContent = pending.length;
+    badge.style.display = 'inline-block';
+    // Calculer l'ancienneté du draft le plus vieux (en heures)
+    const now = Date.now();
+    const oldestHours = pending.reduce((max, d) => {
+      const h = d.created_at ? (now - new Date(d.created_at).getTime()) / 3600000 : 0;
+      return Math.max(max, h);
+    }, 0);
+    sspStartPulse(oldestHours);
+  } else {
+    badge.style.display = 'none';
+    sspStopPulse();
+  }
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
