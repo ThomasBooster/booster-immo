@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.24</title>
+<title>SCORIM v1.5.25</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -884,7 +884,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.24</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.25</div>
     </div>
   </div>
 </div>
@@ -1036,7 +1036,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.24</div>
+        <div class="sidebar-version">v1.5.25</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -13220,12 +13220,20 @@ function openRemunerationModal() {
   document.getElementById('remu-empty').style.display = 'block';
   document.getElementById('remu-statut-badge').style.display = 'none';
   const remuCreditEl = document.getElementById('remu-credit'); if (remuCreditEl) remuCreditEl.value = '';
-  // Charger prime/commentaire individuels pour ce collab
+  // Vider d'abord (évite tout event parasite), puis charger la valeur individuelle
   const _rpeNegId = remuCurrentNeg?.id;
   const remuPrimeExceptEl = document.getElementById('remu-prime-exceptionnelle');
-  if (remuPrimeExceptEl) remuPrimeExceptEl.value = (_rpeNegId && window._remuPrimesExcept?.[_rpeNegId]) ? window._remuPrimesExcept[_rpeNegId] : '';
+  if (remuPrimeExceptEl) {
+    remuPrimeExceptEl.value = '';
+    const _savedPrime = (_rpeNegId && window._remuPrimesExcept && window._remuPrimesExcept[_rpeNegId] != null) ? window._remuPrimesExcept[_rpeNegId] : 0;
+    remuPrimeExceptEl.value = _savedPrime > 0 ? _savedPrime : '';
+  }
   const remuCommentEl = document.getElementById('remu-prime-commentaire');
-  if (remuCommentEl) remuCommentEl.value = (_rpeNegId && window._remuCommentaires?.[_rpeNegId]) ? window._remuCommentaires[_rpeNegId] : '';
+  if (remuCommentEl) {
+    remuCommentEl.value = '';
+    const _savedComment = (_rpeNegId && window._remuCommentaires && window._remuCommentaires[_rpeNegId]) ? window._remuCommentaires[_rpeNegId] : '';
+    remuCommentEl.value = _savedComment;
+  }
   document.getElementById('remu-mail-sent-badge').style.display = 'none';
   document.getElementById('remu-btn-valider').disabled = false;
   document.getElementById('remu-btn-valider').style.opacity = '';
@@ -13598,12 +13606,14 @@ window._remuPrimesExcept = window._remuPrimesExcept || {};
 window._remuCommentaires = window._remuCommentaires || {};
 
 function onPrimeExceptChange() {
-  if (!remuCurrentNeg) return;
-  // Lire depuis le DOM, pas depuis le stockage
+  if (!remuCurrentNeg || !remuCurrentNeg.id) return;
+  const negId = remuCurrentNeg.id;
   const montant = parseFloat(document.getElementById('remu-prime-exceptionnelle')?.value) || 0;
   const commentaire = document.getElementById('remu-prime-commentaire')?.value || '';
-  window._remuPrimesExcept[remuCurrentNeg.id] = montant;
-  window._remuCommentaires[remuCurrentNeg.id] = commentaire;
+  if (!window._remuPrimesExcept) window._remuPrimesExcept = {};
+  if (!window._remuCommentaires) window._remuCommentaires = {};
+  window._remuPrimesExcept[negId] = montant;
+  window._remuCommentaires[negId] = commentaire;
   recalcRemuTotal();
 }
 
@@ -15006,6 +15016,21 @@ function openRemunerationForCollab(negId) {
   document.getElementById('remu-solde-initial').value = '';
   window._remisesMois = [];
   window._remuOpenedFrom = 'remunerations';
+
+  // Vider puis charger prime/commentaire individuels pour ce collab
+  const _rpeNegIdFC = neg.id;
+  const remuPrimeExElFC = document.getElementById('remu-prime-exceptionnelle');
+  if (remuPrimeExElFC) {
+    remuPrimeExElFC.value = '';
+    const _savedPrimeFC = (_rpeNegIdFC && window._remuPrimesExcept && window._remuPrimesExcept[_rpeNegIdFC] != null) ? window._remuPrimesExcept[_rpeNegIdFC] : 0;
+    remuPrimeExElFC.value = _savedPrimeFC > 0 ? _savedPrimeFC : '';
+  }
+  const remuCommentElFC = document.getElementById('remu-prime-commentaire');
+  if (remuCommentElFC) {
+    remuCommentElFC.value = '';
+    const _savedCommentFC = (_rpeNegIdFC && window._remuCommentaires && window._remuCommentaires[_rpeNegIdFC]) ? window._remuCommentaires[_rpeNegIdFC] : '';
+    remuCommentElFC.value = _savedCommentFC;
+  }
 
   checkRemuValidation();
   document.getElementById('modal-remuneration').classList.add('open');
