@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.4-test                               ║
+║                        SCORIM — v1.5.5-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -100,7 +100,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.4-test</title>
+<title>SCORIM v1.5.5-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -981,7 +981,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.4-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5-test</div>
     </div>
   </div>
 </div>
@@ -1143,7 +1143,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.4-test</div>
+        <div class="sidebar-version">v1.5.5-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -16820,7 +16820,7 @@ function sspCard(d, idx) {
           </div>
           <div style="display:flex;gap:8px">
             ${estBloque
-              ? `<button onclick="banetteAgenceOuvrir(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid #F09595;border-radius:8px;background:#FCEBEB;color:#791F1F;cursor:pointer;font-weight:600">📂 Voir (non modifiable)</button>`
+              ? `<span onmouseenter="ndShowBloqueTooltip(this)" onmouseleave="ndHideBloqueTooltip()"><button disabled style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary,#f8fafc);color:var(--text-muted);opacity:.5;pointer-events:none">📂 Ouvrir</button></span>`
               : `<button onclick="sspOuvrirDossier(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">📂 Ouvrir</button>`
             }
             <button onclick="sspTelechargerPDF(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">📥 PDF</button>
@@ -16828,13 +16828,15 @@ function sspCard(d, idx) {
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
           ${(currentUser.role==='saisie'||currentUser.role==='admin') ? `
-          <select onchange="sspSetStatut(${d.id}, this.value)"
-            style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">
-            <option value="a_rediger" ${statut==='a_rediger'?'selected':''}>À rédiger</option>
-            <option value="en_cours"  ${statut==='en_cours' ?'selected':''}>En cours</option>
-            <option value="redige"    ${statut==='redige'   ?'selected':''}>Rédigé</option>
-          </select>
-          ${statut === 'redige' ? `<button onclick="sspConfirmValider(${d.id})" style="font-size:12px;padding:5px 12px;border:none;border-radius:8px;background:var(--primary);color:white;cursor:pointer;font-weight:600">✓ Valider →</button>` : ''}
+          ${estBloque
+            ? '<span onmouseenter="ndShowBloqueTooltip(this)" onmouseleave="ndHideBloqueTooltip()"><select disabled style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary,#f8fafc);color:var(--text-muted);opacity:.5;pointer-events:none"><option>À rédiger</option></select></span>'
+            : '<select onchange="sspSetStatut('+d.id+', this.value)" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">'
+              + '<option value="a_rediger" '+(statut==='a_rediger'?'selected':'')+'>À rédiger</option>'
+              + '<option value="en_cours" '+(statut==='en_cours'?'selected':'')+'>En cours</option>'
+              + '<option value="redige" '+(statut==='redige'?'selected':'')+'>Rédigé</option>'
+              + '</select>'
+              + (statut==='redige' ? '<button onclick="sspConfirmValider('+d.id+')" style="font-size:12px;padding:5px 12px;border:none;border-radius:8px;background:var(--primary);color:white;cursor:pointer;font-weight:600">✓ Valider →</button>' : '')
+          }
           ` : sspStatutBadge(statut)}
         </div>
       </div>
@@ -18006,22 +18008,19 @@ async function ndSubmit(){
       return;
     }
 
-    // Complétion depuis la banette agence → sauvegarde + recalcul statut auto
+    // Complétion depuis la banette agence → recalcul statut auto
     if(ndS._vientBanette && ndDraftId){
       const _draftIdBanette = ndDraftId;
       ndS._vientBanette = false;
-      // Recalculer le statut selon les pièces bloquantes restantes
-      const _bloquantesRestantes = ndGetPiecesBloquantes().filter(p => !(ndS.piecesCochees && ndS.piecesCochees[p]));
+      const _bloquantesRest = ndGetPiecesBloquantes().filter(p=>!(ndS.piecesCochees&&ndS.piecesCochees[p]));
       const _isIC2 = ndS.nbAgences > 1;
-      ndS.statutDraft = _bloquantesRestantes.length > 0 ? 'bloque' : (_isIC2 ? 'en_attente_ic' : 'en_attente');
+      ndS.statutDraft = _bloquantesRest.length > 0 ? 'bloque' : (_isIC2 ? 'en_attente_ic' : 'en_attente');
       await ndSaveDraft();
-      ndEditMode = false;
-      ndDraftId = null;
+      ndEditMode = false; ndDraftId = null;
       showLoading(false);
-      if(_bloquantesRestantes.length > 0){
+      if(_bloquantesRest.length > 0){
         showToast('Pièces bloquantes encore manquantes — dossier toujours bloqué.', 'warning');
       } else {
-        // Envoyer mail à Laurie/Benoît — dossier précédemment bloqué, maintenant complété
         const _emailsSSP = (DB.users||[]).filter(u=>u.email&&u.role==='saisie').map(u=>u.email);
         if(_emailsSSP.length){
           await sendEmail('nouveau_ssp', _emailsSSP, {
@@ -18033,10 +18032,8 @@ async function ndSubmit(){
         }
         showToast('Dossier renvoyé au juridique ✓', 'success');
       }
-      sspUpdateBadge();
-      banetteAgenceUpdateBadge();
-      const navBA = document.getElementById('nav-banette-agence');
-      showPage('banette-agence', navBA);
+      sspUpdateBadge(); banetteAgenceUpdateBadge();
+      showPage('banette-agence', document.getElementById('nav-banette-agence'));
       return;
     }
 
@@ -18195,16 +18192,33 @@ function ndPiecesManquantesFromData(nd){
   return { bloquantes, recommandees: recommandeesFinales, attention };
 }
 
-// Store global pour les tooltips feu tricolore (évite les problèmes de quotes dans les attributs HTML)
+// Store global tooltips feu tricolore
 const _feuTooltipStore = {};
 let _feuTooltipCounter = 0;
 
-// Génère le HTML du feu tricolore pour un draft
+// Explication du fonctionnement — affichée au survol du i
+const _FEU_EXPLICATION = [
+  '<b style="font-size:13px">Feu tricolore des pi\u00e8ces</b><br><br>',
+  '<span style="display:inline-flex;align-items:center;gap:6px">',
+  '<span style="width:10px;height:10px;border-radius:50%;background:#E24B4A;flex-shrink:0"></span>',
+  '<b style="color:#F09595">Bloquant</b></span><br>',
+  '<span style="color:#ccc;font-size:11px">Pi\u00e8ces indispensables. Le juridique ne peut<br>pas ouvrir le dossier sans elles.</span><br><br>',
+  '<span style="display:inline-flex;align-items:center;gap:6px">',
+  '<span style="width:10px;height:10px;border-radius:50%;background:#EF9F27;flex-shrink:0"></span>',
+  '<b style="color:#FAC775">Recommand\u00e9</b></span><br>',
+  '<span style="color:#ccc;font-size:11px">Pi\u00e8ces utiles. Envoi autoris\u00e9<br>mais un avertissement est signal\u00e9.</span><br><br>',
+  '<span style="display:inline-flex;align-items:center;gap:6px">',
+  '<span style="width:10px;height:10px;border-radius:50%;background:#1D9E75;flex-shrink:0"></span>',
+  '<b style="color:#5DCAA5">\u00c0 ne pas oublier</b></span><br>',
+  '<span style="color:#ccc;font-size:11px">Pi\u00e8ces mineures. Simple rappel.</span><br><br>',
+  '<span style="color:#aaa;font-size:11px">Le chiffre = nombre de pi\u00e8ces manquantes.<br>Cliquez sur le feu pour voir le d\u00e9tail.</span>'
+].join('');
+
+// G\u00e9n\u00e8re le HTML du feu tricolore pour un draft
 function ndFeuTricolore(nd){
   const { bloquantes, recommandees, attention } = ndPiecesManquantesFromData(nd);
   if(!bloquantes.length && !recommandees.length && !attention.length) return '';
 
-  // Stocker le contenu tooltip dans le store avec un ID unique
   const tipId = 'feu_' + (++_feuTooltipCounter);
   const lines = [];
   if(bloquantes.length)   lines.push('<b style="color:#F09595">&#128308; Bloquant</b><br>' + bloquantes.map(p=>'&middot; '+p).join('<br>'));
@@ -18218,42 +18232,82 @@ function ndFeuTricolore(nd){
   if(recommandees.length) slots.push('<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:#EF9F27;flex-shrink:0"></span><span style="font-size:11px;font-weight:600;color:white">'+recommandees.length+'</span></span>');
   if(attention.length)    slots.push('<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:#1D9E75;flex-shrink:0"></span><span style="font-size:11px;font-weight:600;color:white">'+attention.length+'</span></span>');
 
-  const feu = '<span style="display:inline-flex;align-items:center;gap:5px;background:#1e1e1e;border-radius:20px;padding:4px 8px">'+slots.join(sep)+'</span>';
-  const info = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);font-size:10px;font-weight:700;color:var(--text-muted);cursor:pointer;flex-shrink:0;line-height:1" onclick="ndToggleFeuTooltip(this,\''+tipId+'\')">i</span>';
+  // Feu = clic pour voir la liste des pi\u00e8ces manquantes
+  const feu = '<span style="display:inline-flex;align-items:center;gap:5px;background:#1e1e1e;border-radius:20px;padding:4px 8px;cursor:pointer" title="" onclick="ndToggleFeuDetail(this,\''+tipId+'\')">'+slots.join(sep)+'</span>';
+  // i = survol pour explication du fonctionnement
+  const info = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1.5px solid #94a3b8;font-size:10px;font-weight:700;color:#64748b;cursor:default;flex-shrink:0;line-height:1;background:var(--bg)" onmouseenter="ndShowFeuTip(this)" onmouseleave="ndHideFeuTip()">i</span>';
 
   return '<span style="display:inline-flex;align-items:center;gap:5px">'+feu+info+'</span>';
 }
 
-// Tooltip maison — clic sur le i pour afficher/masquer
-function ndToggleFeuTooltip(el, tipId){
-  let tip = document.getElementById('feu-tooltip');
-  if(tip && tip.dataset.tipId === tipId && tip.style.display !== 'none'){
-    tip.style.display = 'none';
-    return;
+// Clic feu -> liste pi\u00e8ces manquantes
+function ndToggleFeuDetail(el, tipId){
+  const tip = ndGetOrCreateFeuTip();
+  if(tip.dataset.tipId===tipId && tip.style.display!=='none'){ tip.style.display='none'; return; }
+  tip.dataset.tipId = tipId;
+  tip.innerHTML = _feuTooltipStore[tipId] || '';
+  ndPositionFeuTip(tip, el);
+}
+
+// Survol i -> explication
+function ndShowFeuTip(el){
+  const tip = ndGetOrCreateFeuTip();
+  tip.dataset.tipId = 'explication';
+  tip.innerHTML = _FEU_EXPLICATION;
+  ndPositionFeuTip(tip, el);
+}
+function ndHideFeuTip(){
+  const t = document.getElementById('feu-tooltip');
+  if(t) t.style.display='none';
+}
+
+// Tooltip "Dossier bloqu\u00e9" pour bouton Ouvrir et select statut
+function ndShowBloqueTooltip(el){
+  let tip = document.getElementById('bloque-tooltip');
+  if(!tip){
+    tip = document.createElement('div');
+    tip.id = 'bloque-tooltip';
+    tip.style.cssText = 'position:fixed;z-index:9999;background:#1e2d3d;color:white;padding:7px 12px;border-radius:8px;font-size:12px;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.35);pointer-events:none';
+    tip.textContent = '\uD83D\uDD12 Dossier bloqu\u00e9';
+    document.body.appendChild(tip);
   }
+  tip.style.display = 'block';
+  const r = el.getBoundingClientRect();
+  tip.style.left = (r.left + r.width/2 - tip.offsetWidth/2) + 'px';
+  tip.style.top  = (r.top - tip.offsetHeight - 6) + 'px';
+}
+function ndHideBloqueTooltip(){
+  const tip = document.getElementById('bloque-tooltip');
+  if(tip) tip.style.display = 'none';
+}
+
+function ndGetOrCreateFeuTip(){
+  let tip = document.getElementById('feu-tooltip');
   if(!tip){
     tip = document.createElement('div');
     tip.id = 'feu-tooltip';
-    tip.style.cssText = 'position:fixed;z-index:9999;background:#1e2d3d;color:white;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.8;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.4)';
-    // Fermer au clic extérieur
-    document.addEventListener('click', function(e){ if(!tip.contains(e.target) && e.target !== el){ tip.style.display='none'; }});
+    tip.style.cssText = 'position:fixed;z-index:9999;background:#1e2d3d;color:white;padding:12px 16px;border-radius:10px;font-size:12px;line-height:1.8;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.4)';
+    document.addEventListener('click', function(e){
+      const t = document.getElementById('feu-tooltip');
+      if(t && !t.contains(e.target) && !e.target.closest('[onclick*="ndToggleFeuDetail"]') && !e.target.closest('[onmouseenter*="ndShowFeuTip"]')){ t.style.display='none'; }
+    });
     document.body.appendChild(tip);
   }
-  tip.dataset.tipId = tipId;
-  tip.innerHTML = _feuTooltipStore[tipId] || '';
-  tip.style.display = 'block';
-  const r = el.getBoundingClientRect();
-  const tipW = 300;
-  tip.style.left = '0px'; tip.style.top = '0px'; // reset pour mesure
-  const tipH = tip.offsetHeight;
-  let left = r.right + 8;
-  let top  = r.top - tipH/2 + r.height/2;
-  if(left + tipW > window.innerWidth - 8) left = r.left - tipW - 8;
-  if(top < 8) top = 8;
-  if(top + tipH > window.innerHeight - 8) top = window.innerHeight - tipH - 8;
-  tip.style.left = left + 'px';
-  tip.style.top  = top + 'px';
+  return tip;
 }
+
+function ndPositionFeuTip(tip, el){
+  tip.style.display = 'block';
+  tip.style.left = '0px'; tip.style.top = '0px';
+  const tipW=300, tipH=tip.offsetHeight;
+  const r = el.getBoundingClientRect();
+  let left = r.right+8, top = r.top-tipH/2+r.height/2;
+  if(left+tipW > window.innerWidth-8) left = r.left-tipW-8;
+  if(top<8) top=8;
+  if(top+tipH > window.innerHeight-8) top=window.innerHeight-tipH-8;
+  tip.style.left=left+'px'; tip.style.top=top+'px';
+}
+
 
 // ── Pièces ───────────────────────────────────────────────────────────────────
 function ndSavePieces(){
