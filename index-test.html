@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.6-test                               ║
+║                        SCORIM — v1.5.7-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -100,7 +100,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.6-test</title>
+<title>SCORIM v1.5.7-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -981,7 +981,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.6-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.7-test</div>
     </div>
   </div>
 </div>
@@ -1143,7 +1143,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.6-test</div>
+        <div class="sidebar-version">v1.5.7-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -16855,6 +16855,7 @@ async function sspSetStatut(draftId, newStatut) {
 }
 
 let sspDraftAValider = null;
+let sspValidationEnCours = false;
 function sspConfirmValider(draftId) {
   const d = DB.drafts.find(x => x.id === draftId);
   if (!d) return;
@@ -16872,6 +16873,7 @@ function sspConfirmValider(draftId) {
     popup.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
     document.body.appendChild(popup);
   }
+  sspValidationEnCours = false;
   popup.innerHTML = `<div style="background:var(--bg);border-radius:16px;padding:28px 32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
     <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700;color:var(--primary);margin-bottom:12px">Valider ce dossier ?</div>
     <div style="font-size:13px;color:var(--text);background:var(--bg-secondary,#f8fafc);border-radius:10px;padding:12px 14px;margin-bottom:20px;line-height:1.7">
@@ -16882,13 +16884,17 @@ function sspConfirmValider(draftId) {
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button onclick="document.getElementById('ssp-popup-confirm').style.display='none'" style="padding:9px 18px;border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;background:var(--bg);color:var(--text)">Annuler</button>
-      <button onclick="sspValider()" style="padding:9px 20px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;background:var(--primary);color:white">✓ Confirmer la validation</button>
+      <button id="ssp-btn-confirmer" onclick="sspValider()" style="padding:9px 20px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;background:var(--primary);color:white">✓ Confirmer la validation</button>
     </div>
   </div>`;
   popup.style.display = 'flex';
 }
 
 async function sspValider() {
+  if (sspValidationEnCours) return;
+  sspValidationEnCours = true;
+  const btn = document.getElementById('ssp-btn-confirmer');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Validation...'; }
   const popup = document.getElementById('ssp-popup-confirm');
   if (popup) popup.style.display = 'none';
   const d = sspDraftAValider;
@@ -16986,6 +16992,7 @@ async function sspValider() {
 
     showLoading(false);
     showToast('Dossier intégré dans les statistiques ✓', 'success');
+    sspValidationEnCours = false;
 
     // Recharger
     await loadDB();
@@ -16994,6 +17001,7 @@ async function sspValider() {
 
   } catch(e) {
     showLoading(false);
+    sspValidationEnCours = false;
     showToast('Erreur : ' + e.message, 'error');
     console.error(e);
   }
