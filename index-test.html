@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.5-test                               ║
+║                        SCORIM — v1.5.6-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -100,7 +100,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.5-test</title>
+<title>SCORIM v1.5.6-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -981,7 +981,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.6-test</div>
     </div>
   </div>
 </div>
@@ -1143,7 +1143,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.5-test</div>
+        <div class="sidebar-version">v1.5.6-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -16967,14 +16967,14 @@ async function sspValider() {
         if (partIns && partIns[0]) {
           // Négociateurs de cette agence
           const negRows = (agPart.negs || []).filter(n => n.negId).map(n => ({ dossier_id: partIns[0].id, negociateur_id: n.negId, agence: agPart.nom, pct_ca: parseFloat(n.pct) || 0 }));
-          if (negRows.length) await sbInsert('dossier_negociateurs', negRows);
+          if (negRows.length) await sbUpsert('dossier_negociateurs', negRows, 'dossier_id,negociateur_id');
         }
       }
     }
 
     // 4. Négociateurs de l'agence principale
     const negRows = (agList[0]?.negs || []).filter(n => n.negId).map(n => ({ dossier_id: dossierId, negociateur_id: n.negId, agence, pct_ca: parseFloat(n.pct) || 0 }));
-    if (negRows.length) await sbInsert('dossier_negociateurs', negRows);
+    if (negRows.length) await sbUpsert('dossier_negociateurs', negRows, 'dossier_id,negociateur_id');
 
     // 5. Rentreurs
     const rentRows = (nd.rentreurs || []).filter(r => r.negId).map(r => ({ dossier_id: dossierId, negociateur_id: r.negId, agence, ca_rentree: 0 }));
