@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.3-test                               ║
+║                        SCORIM — v1.5.4-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -82,6 +82,8 @@
 ║  L.~15732  NOUVEAU DOSSIER SSP — Formulaire pas-à-pas (préfixe nd_)       ║
 ║  L.~16158  SSP POLLING (alertes temps réel Laurie/Benoît)                  ║
 ║  L.~16347  SSP DASHBOARD (dossiers en attente)                             ║
+║  L.~16900  BANETTE AGENCE (dossiers bloqués)                               ║
+║  L.~18100  PIÈCES — CLASSIFICATION (bloquant/recommandé/attention)         ║
 ║                                                                            ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║  RÈGLES IMPORTANTES                                                        ║
@@ -98,7 +100,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.3-test</title>
+<title>SCORIM v1.5.4-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -979,7 +981,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.3-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.4-test</div>
     </div>
   </div>
 </div>
@@ -1141,7 +1143,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.3-test</div>
+        <div class="sidebar-version">v1.5.4-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -17324,12 +17326,7 @@ function banetteAgenceCard(d) {
     ageSubmitTxt = diff === 0 ? "aujourd'hui" : 'il y a ' + diff + ' jour' + (diff > 1 ? 's' : '');
   }
 
-  // Liste pièces manquantes affichée sur la carte
-  const listePieces = [
-    ...bloquantes.map(p => `<li style="color:#791F1F;font-size:12px">🔴 ${p}</li>`),
-    ...recommandees.map(p => `<li style="color:#633806;font-size:12px">🟡 ${p}</li>`),
-    ...attention.map(p => `<li style="color:#0F6E56;font-size:12px">🟢 ${p}</li>`)
-  ].join('');
+
 
   const btnAction = isCreateur
     ? `<button onclick="banetteAgenceCompleter(${d.id})" style="font-size:12px;padding:5px 14px;border:none;border-radius:8px;background:var(--primary);color:white;cursor:pointer;font-weight:600">✏️ Compléter</button>`
@@ -17348,7 +17345,7 @@ function banetteAgenceCard(d) {
           <span>📅 Soumis ${ageSubmitTxt}</span>
           ${feuHtml ? feuHtml : ''}
         </div>
-        ${listePieces ? `<ul style="margin:0 0 10px 0;padding-left:16px;list-style:none">${listePieces}</ul>` : ''}
+
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           ${btnAction}
           <button onclick="sspTelechargerPDF(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer">📥 PDF</button>
@@ -17542,7 +17539,7 @@ function ndRender(){
     ${!isConsultation ? `<div style="display:flex;gap:12px;margin-top:20px">
       <button onclick="ndGo(-1)" id="nd-prev" style="padding:10px 20px;border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;background:var(--bg);color:var(--text);${ndStep===1?'visibility:hidden':''}">← Retour</button>
       <button onclick="ndGo(1)" id="nd-next" style="padding:10px 28px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:var(--primary);color:white;flex:1">
-        ${ndStep===ND_TOTAL?(ndEditMode&&!ndS._vientBanette?'Valider les modifications →': ndS._vientBanette?'Renvoyer au juridique →':'Envoyer le dossier →'):'Suivant →'}
+        ${ndStep===ND_TOTAL?(ndEditMode?'Valider les modifications →':'Envoyer le dossier →'):'Suivant →'}
       </button>
       ${(!ndEditMode && !sspModeEdition) ? `<button onclick="ndAbandonner()" style="padding:10px 16px;border:1px solid #fca5a5;border-radius:8px;font-size:13px;cursor:pointer;background:#fff5f5;color:#dc2626">✕ Abandonner</button>` : ''}
     </div>` : ''}`;
@@ -17560,7 +17557,7 @@ function ndRenderStep(){
   const prev=document.getElementById('nd-prev');
   const next=document.getElementById('nd-next');
   if(prev) prev.style.visibility=ndStep===1?'hidden':'visible';
-  if(next) next.textContent=ndStep===ND_TOTAL?(ndEditMode&&!ndS._vientBanette?'Valider les modifications →':ndS._vientBanette?'Renvoyer au juridique →':'Envoyer le dossier →'):'Suivant →';
+  if(next) next.textContent=ndStep===ND_TOTAL?(ndEditMode?'Valider les modifications →':'Envoyer le dossier →'):'Suivant →';
   ndUpdateTopbar();
   ndBindEvents();
 }
@@ -18009,15 +18006,37 @@ async function ndSubmit(){
       return;
     }
 
-    // Complétion depuis la banette agence → renvoyer au juridique
+    // Complétion depuis la banette agence → sauvegarde + recalcul statut auto
     if(ndS._vientBanette && ndDraftId){
       const _draftIdBanette = ndDraftId;
-      await ndSaveDraft();
       ndS._vientBanette = false;
+      // Recalculer le statut selon les pièces bloquantes restantes
+      const _bloquantesRestantes = ndGetPiecesBloquantes().filter(p => !(ndS.piecesCochees && ndS.piecesCochees[p]));
+      const _isIC2 = ndS.nbAgences > 1;
+      ndS.statutDraft = _bloquantesRestantes.length > 0 ? 'bloque' : (_isIC2 ? 'en_attente_ic' : 'en_attente');
+      await ndSaveDraft();
       ndEditMode = false;
       ndDraftId = null;
       showLoading(false);
-      await banetteAgenceRenvoyer(_draftIdBanette);
+      if(_bloquantesRestantes.length > 0){
+        showToast('Pièces bloquantes encore manquantes — dossier toujours bloqué.', 'warning');
+      } else {
+        // Envoyer mail à Laurie/Benoît — dossier précédemment bloqué, maintenant complété
+        const _emailsSSP = (DB.users||[]).filter(u=>u.email&&u.role==='saisie').map(u=>u.email);
+        if(_emailsSSP.length){
+          await sendEmail('nouveau_ssp', _emailsSSP, {
+            vendeur: ndS.vendeurNom||'—', acquereur: ndS.acquereurNom||'—',
+            agence: currentUser.agence||'—', saisePar: currentUser.nom,
+            note: '⚠️ Ce dossier était précédemment bloqué — il a été complété et renvoyé.',
+            lien: 'https://upprurqivgjypumzwftq.supabase.co'
+          }).catch(()=>{});
+        }
+        showToast('Dossier renvoyé au juridique ✓', 'success');
+      }
+      sspUpdateBadge();
+      banetteAgenceUpdateBadge();
+      const navBA = document.getElementById('nav-banette-agence');
+      showPage('banette-agence', navBA);
       return;
     }
 
@@ -18176,56 +18195,64 @@ function ndPiecesManquantesFromData(nd){
   return { bloquantes, recommandees: recommandeesFinales, attention };
 }
 
+// Store global pour les tooltips feu tricolore (évite les problèmes de quotes dans les attributs HTML)
+const _feuTooltipStore = {};
+let _feuTooltipCounter = 0;
+
 // Génère le HTML du feu tricolore pour un draft
 function ndFeuTricolore(nd){
   const { bloquantes, recommandees, attention } = ndPiecesManquantesFromData(nd);
   if(!bloquantes.length && !recommandees.length && !attention.length) return '';
 
+  // Stocker le contenu tooltip dans le store avec un ID unique
+  const tipId = 'feu_' + (++_feuTooltipCounter);
+  const lines = [];
+  if(bloquantes.length)   lines.push('<b style="color:#F09595">&#128308; Bloquant</b><br>' + bloquantes.map(p=>'&middot; '+p).join('<br>'));
+  if(recommandees.length) lines.push('<b style="color:#FAC775">&#128993; Recommand&eacute;</b><br>' + recommandees.map(p=>'&middot; '+p).join('<br>'));
+  if(attention.length)    lines.push('<b style="color:#5DCAA5">&#128994; &Agrave; ne pas oublier</b><br>' + attention.map(p=>'&middot; '+p).join('<br>'));
+  _feuTooltipStore[tipId] = lines.join('<br><br>');
+
+  const sep = '<span style="width:1px;height:12px;background:#555;display:inline-block;flex-shrink:0"></span>';
   const slots = [];
-  if(bloquantes.length)   slots.push(`<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:#E24B4A;flex-shrink:0;display:inline-block"></span><span style="font-size:11px;font-weight:600;color:white">${bloquantes.length}</span></span>`);
-  if(recommandees.length) slots.push(`<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:#EF9F27;flex-shrink:0;display:inline-block"></span><span style="font-size:11px;font-weight:600;color:white">${recommandees.length}</span></span>`);
-  if(attention.length)    slots.push(`<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:#1D9E75;flex-shrink:0;display:inline-block"></span><span style="font-size:11px;font-weight:600;color:white">${attention.length}</span></span>`);
+  if(bloquantes.length)   slots.push('<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:#E24B4A;flex-shrink:0"></span><span style="font-size:11px;font-weight:600;color:white">'+bloquantes.length+'</span></span>');
+  if(recommandees.length) slots.push('<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:#EF9F27;flex-shrink:0"></span><span style="font-size:11px;font-weight:600;color:white">'+recommandees.length+'</span></span>');
+  if(attention.length)    slots.push('<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:#1D9E75;flex-shrink:0"></span><span style="font-size:11px;font-weight:600;color:white">'+attention.length+'</span></span>');
 
-  // Tooltip maison avec le détail
-  const tooltipLines = [];
-  if(bloquantes.length)   tooltipLines.push('<b style="color:#F09595">🔴 Bloquant</b><br>' + bloquantes.map(p=>'· '+p).join('<br>'));
-  if(recommandees.length) tooltipLines.push('<b style="color:#FAC775">🟡 Recommandé</b><br>' + recommandees.map(p=>'· '+p).join('<br>'));
-  if(attention.length)    tooltipLines.push('<b style="color:#5DCAA5">🟢 À ne pas oublier</b><br>' + attention.map(p=>'· '+p).join('<br>'));
-  const tooltipHtml = tooltipLines.join('<br><br>');
+  const feu = '<span style="display:inline-flex;align-items:center;gap:5px;background:#1e1e1e;border-radius:20px;padding:4px 8px">'+slots.join(sep)+'</span>';
+  const info = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);font-size:10px;font-weight:700;color:var(--text-muted);cursor:pointer;flex-shrink:0;line-height:1" onclick="ndToggleFeuTooltip(this,\''+tipId+'\')">i</span>';
 
-  const feuHtml = `<span style="display:inline-flex;align-items:center;gap:6px;background:#1e1e1e;border-radius:20px;padding:4px 8px">${slots.join('<span style="width:1px;height:12px;background:#444;display:inline-block"></span>')}</span>`;
-
-  const infoHtml = `<span class="feu-info-btn" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);font-size:10px;font-weight:700;color:var(--text-muted);cursor:pointer;position:relative;flex-shrink:0"
-    onmouseenter="ndShowFeuTooltip(this,\`${tooltipHtml.replace(/`/g,'\\`')}\`)"
-    onmouseleave="ndHideFeuTooltip()">i</span>`;
-
-  return `<span style="display:inline-flex;align-items:center;gap:4px">${feuHtml}${infoHtml}</span>`;
+  return '<span style="display:inline-flex;align-items:center;gap:5px">'+feu+info+'</span>';
 }
 
-// Tooltip maison pour le feu tricolore
-function ndShowFeuTooltip(el, html){
+// Tooltip maison — clic sur le i pour afficher/masquer
+function ndToggleFeuTooltip(el, tipId){
   let tip = document.getElementById('feu-tooltip');
+  if(tip && tip.dataset.tipId === tipId && tip.style.display !== 'none'){
+    tip.style.display = 'none';
+    return;
+  }
   if(!tip){
     tip = document.createElement('div');
     tip.id = 'feu-tooltip';
-    tip.style.cssText = 'position:fixed;z-index:9999;background:#1e2d3d;color:white;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.7;max-width:280px;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.4)';
+    tip.style.cssText = 'position:fixed;z-index:9999;background:#1e2d3d;color:white;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.8;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.4)';
+    // Fermer au clic extérieur
+    document.addEventListener('click', function(e){ if(!tip.contains(e.target) && e.target !== el){ tip.style.display='none'; }});
     document.body.appendChild(tip);
   }
-  tip.innerHTML = html;
-  const r = el.getBoundingClientRect();
+  tip.dataset.tipId = tipId;
+  tip.innerHTML = _feuTooltipStore[tipId] || '';
   tip.style.display = 'block';
-  const tipW = 280, tipH = tip.offsetHeight;
+  const r = el.getBoundingClientRect();
+  const tipW = 300;
+  tip.style.left = '0px'; tip.style.top = '0px'; // reset pour mesure
+  const tipH = tip.offsetHeight;
   let left = r.right + 8;
   let top  = r.top - tipH/2 + r.height/2;
-  if(left + tipW > window.innerWidth) left = r.left - tipW - 8;
+  if(left + tipW > window.innerWidth - 8) left = r.left - tipW - 8;
   if(top < 8) top = 8;
   if(top + tipH > window.innerHeight - 8) top = window.innerHeight - tipH - 8;
   tip.style.left = left + 'px';
   tip.style.top  = top + 'px';
-}
-function ndHideFeuTooltip(){
-  const tip = document.getElementById('feu-tooltip');
-  if(tip) tip.style.display = 'none';
 }
 
 // ── Pièces ───────────────────────────────────────────────────────────────────
