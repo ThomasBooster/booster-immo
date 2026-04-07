@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.10-test                               ║
+║                        SCORIM — v1.5.11-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -100,7 +100,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.10-test</title>
+<title>SCORIM v1.5.11-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -981,7 +981,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.10-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.11-test</div>
     </div>
   </div>
 </div>
@@ -1143,7 +1143,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.10-test</div>
+        <div class="sidebar-version">v1.5.11-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -18323,21 +18323,17 @@ function ndPositionFeuTip(tip, el){
 function ndSavePieces(){
   if(ndStep!==7) return;
   ndS.piecesCochees=ndS.piecesCochees||{};
+  // Ne mettre à jour que les cases présentes dans le DOM
+  // true si cochée, false si décochée — on écrase toujours car l'utilisateur voit les cases
   document.querySelectorAll('.nd-piece-cb').forEach(cb=>{
-    // Ne stocker false que si l'utilisateur a explicitement décoché (data-touched=true)
-    // Les cases jamais touchées restent undefined → ne bloquent pas l'envoi
-    if(cb.checked){
-      ndS.piecesCochees[cb.dataset.piece] = true;
-    } else if(cb.dataset.touched === 'true'){
-      ndS.piecesCochees[cb.dataset.piece] = false;
-    }
+    ndS.piecesCochees[cb.dataset.piece] = cb.checked;
   });
 }
 
-// Marquer une case comme touchée par l'utilisateur
+// Appelé au changement d'une case — identique à ndSavePieces mais explicite
 function ndOnPieceChange(cb){
-  cb.dataset.touched = 'true';
-  ndSavePieces();
+  ndS.piecesCochees = ndS.piecesCochees || {};
+  ndS.piecesCochees[cb.dataset.piece] = cb.checked;
 }
 
 function ndGetPieces(){
