@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.21-test                               ║
+║                        SCORIM — v1.5.2-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -19,6 +19,8 @@
 ║  L.~1059   DASHBOARD                                                       ║
 ║  L.~1114   CLASSEMENT                                                      ║
 ║  L.~1180   SAISIE / NOUVEAU DOSSIER                                        ║
+║  L.~1283   BANETTE JURIDIQUE (page-ssp-dashboard)                          ║
+║  L.~1315   BANETTE AGENCE (page-banette-agence)                            ║
 ║  L.~1402   TOUS LES DOSSIERS                                               ║
 ║  L.~1454   PARAMÈTRES                                                      ║
 ║  L.~1530   STATISTIQUES                                                    ║
@@ -82,8 +84,10 @@
 ║  L.~15732  NOUVEAU DOSSIER SSP — Formulaire pas-à-pas (préfixe nd_)       ║
 ║  L.~16158  SSP POLLING (alertes temps réel Laurie/Benoît)                  ║
 ║  L.~16347  SSP DASHBOARD (dossiers en attente)                             ║
+║  L.~16440  IC UPDATE BADGE (badge validation intercabinet)                 ║
 ║  L.~16900  BANETTE AGENCE (dossiers bloqués)                               ║
 ║  L.~18100  PIÈCES — CLASSIFICATION (bloquant/recommandé/attention)         ║
+║  L.~18200  FEU TRICOLORE (tooltip store, rendu, interactions)              ║
 ║                                                                            ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║  RÈGLES IMPORTANTES                                                        ║
@@ -100,7 +104,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.21-test</title>
+<title>SCORIM v1.5.2-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -981,7 +985,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.21-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.2-test</div>
     </div>
   </div>
 </div>
@@ -1143,7 +1147,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.21-test</div>
+        <div class="sidebar-version">v1.5.2-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
