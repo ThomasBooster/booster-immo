@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.13-test                               ║
+║                        SCORIM — v1.5.14-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -100,7 +100,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.13-test</title>
+<title>SCORIM v1.5.14-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -981,7 +981,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.13-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.14-test</div>
     </div>
   </div>
 </div>
@@ -1143,7 +1143,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.13-test</div>
+        <div class="sidebar-version">v1.5.14-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -16083,10 +16083,11 @@ function icRender() {
   const myAgences = icGetMyAgences();
   if (!myAgences.length) { list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Aucune agence associée à votre compte.</div>'; return; }
 
-  // Drafts IC qui concernent au moins une de mes agences
+  // Drafts IC qui concernent au moins une de mes agences (en_attente_ic OU bloque IC)
   const icDrafts = (DB.drafts||[]).filter(d => {
-    if (d.statut !== 'en_attente_ic') return false;
+    if (d.statut !== 'en_attente_ic' && d.statut !== 'bloque') return false;
     const nd = d.data || {};
+    if ((nd.nbAgences||1) <= 1) return false; // exclure les non-IC bloqués
     const agences = (nd.agences||[]).slice(0, nd.nbAgences||1).map(a=>a.nom);
     return agences.some(ag => myAgences.includes(ag));
   });
@@ -16249,6 +16250,7 @@ function icCard(d, myAgence, canAct) {
   const submittedAt = d.created_at ? (() => { const s=new Date(d.created_at),t=new Date(); return Math.round((new Date(t.getFullYear(),t.getMonth(),t.getDate())-new Date(s.getFullYear(),s.getMonth(),s.getDate()))/86400000); })() : null;
   const ageCol = submittedAt>10 ? '#E24B4A' : 'var(--text-muted)';
   const ageTxt = submittedAt===0 ? "aujourd'hui" : submittedAt!=null ? 'il y a '+submittedAt+' j' : '—';
+  const estBloqueIC = d.statut === 'bloque';
 
   // Statuts des autres agences
   const vals = (DB.draftValidations||[]).filter(v=>v.draft_id==d.id);
@@ -16259,6 +16261,10 @@ function icCard(d, myAgence, canAct) {
     const lbl = s==='valide'?'✓':s==='refuse'?'✗':'⏳';
     return `<span style="font-size:11px;padding:2px 8px;border-radius:8px;background:${col}20;color:${col};font-weight:600">${lbl} ${ag}</span>`;
   }).join('');
+
+  const badgeBloqueHtml = estBloqueIC
+    ? `<span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:8px;background:#FCEBEB;color:#791F1F;border:1px solid #F09595">🔒 Pièces manquantes — en attente de complétion par ${agenceInitiale}</span>`
+    : '';
 
   const actHtml = canAct ? `
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
@@ -16272,7 +16278,11 @@ function icCard(d, myAgence, canAct) {
       </div>
     </div>` : '';
 
-  return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:10px${canAct?';border-left:3px solid #E24B4A':''}">
+  const voirBtn = estBloqueIC
+    ? `<span onmouseenter="ndShowBloqueTooltip(this)" onmouseleave="ndHideBloqueTooltip()"><button disabled style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary,#f8fafc);color:var(--text-muted);opacity:.5;pointer-events:none;flex-shrink:0">📂 Voir</button></span>`
+    : `<button onclick="icOuvrirDossier(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer;flex-shrink:0">📂 Voir</button>`;
+
+  return `<div style="background:var(--bg);border:1px solid ${estBloqueIC?'#F09595':'var(--border)'};border-radius:12px;padding:14px 18px;margin-bottom:10px${canAct?';border-left:3px solid #E24B4A':''}">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div>
         <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--primary);margin-bottom:6px">${vendeur} → ${acquereur}</div>
@@ -16281,9 +16291,10 @@ function icCard(d, myAgence, canAct) {
           <span style="margin-left:12px">📝 Saisi par <strong>${d.saisi_par||'—'}</strong> (${agenceInitiale})</span>
           <span style="margin-left:12px;color:${ageCol}">📅 Soumis ${ageTxt}</span>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">${statutsHtml}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${badgeBloqueHtml?'8px':'0'}">${statutsHtml}</div>
+        ${badgeBloqueHtml}
       </div>
-      <button onclick="icOuvrirDossier(${d.id})" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer;flex-shrink:0">📂 Voir</button>
+      ${voirBtn}
     </div>
     ${actHtml}
   </div>`;
@@ -16310,12 +16321,19 @@ async function icValider(draftId) {
     });
     const allOk = freshVals.length>0 && freshVals.every(v=>v.statut==='valide');
     if (allOk) {
-      // Passer le draft en en_attente → visible chez Laurie/Benoît
-      await sbUpdate('dossiers_draft', 'id=eq.'+draftId, { statut: 'en_attente' });
-      const d = DB.drafts.find(x=>x.id==draftId);
-      if (d) d.statut = 'en_attente';
-      showToast('Toutes les agences ont validé — dossier transmis à Laurie/Benoît ✓', 'success');
+      // Si le draft est bloqué → reste bloqué chez Laurie (non ouvrable), sinon en_attente normal
+      const draftCurrent = DB.drafts.find(x=>x.id==draftId);
+      const estBloque = draftCurrent?.statut === 'bloque';
+      const newStatut = estBloque ? 'bloque' : 'en_attente';
+      await sbUpdate('dossiers_draft', 'id=eq.'+draftId, { statut: newStatut });
+      if (draftCurrent) draftCurrent.statut = newStatut;
+      if(estBloque){
+        showToast('Toutes les agences ont validé — dossier transmis au juridique (bloqué jusqu\'à complétion) ✓', 'warning');
+      } else {
+        showToast('Toutes les agences ont validé — dossier transmis à Laurie/Benoît ✓', 'success');
+      }
       sspUpdateBadge();
+      banetteAgenceUpdateBadge();
     } else {
       showToast('Validation enregistrée ✓', 'success');
     }
@@ -17389,9 +17407,9 @@ function banetteAgenceUpdateBadge() {
 
 async function banetteAgenceCompleter(draftId) {
   const d = DB.drafts.find(x => x.id === draftId);
-  if (!d) return;
+  if (!d) { showToast('Dossier introuvable', 'error'); return; }
   const nd = d.data || {};
-  // Charger le draft dans ndS
+  // Charger le draft dans ndS AVANT la navigation (ndInit vérifiera _vientBanette)
   sspLoadDraftIntoNdS(nd);
   ndDraftId = draftId;
   ndEditMode = true;
@@ -17399,7 +17417,13 @@ async function banetteAgenceCompleter(draftId) {
   sspConsultationMode = false;
   ndS._vientBanette = true;
   ndStep = 7;
-  showPage('nouveau-dossier', document.getElementById('nav-nouveau-dossier'));
+  // Navigation directe sans passer par showPage (qui appelle ndInit et réinitialise tout)
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-nouveau-dossier').classList.add('active');
+  const navND = document.getElementById('nav-nouveau-dossier');
+  if(navND) navND.classList.add('active');
+  document.getElementById('topbar-title').textContent = 'Compléter le dossier';
   ndRender();
 }
 
@@ -17472,6 +17496,8 @@ function sspUpdateBadge() {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 function ndInit(){
+  // Ne pas réinitialiser si on vient de la banette agence (draft déjà chargé)
+  if(ndS._vientBanette){ ndRender(); return; }
   // Vérifier s'il y a des brouillons de cet utilisateur à reprendre
   const myBrouillons = (DB.drafts||[]).filter(d =>
     d.statut === 'brouillon' &&
@@ -18062,11 +18088,40 @@ async function ndSubmit(){
     await ndSaveDraft();
 
     if(_estBloque){
-      // Dossier bloqué : pas de flux IC, toast explicite, redirection banette agence
+      // Dossier bloqué : créer quand même le flux IC si intercabinet
+      if(isIC && ndDraftId){
+        const agencesSaisieB = ndS.agences.slice(0, ndS.nbAgences);
+        const agenceInitialeB = currentUser.agence || agencesSaisieB[0]?.nom || '';
+        const existingValsB = (DB.draftValidations||[]).filter(v => v.draft_id==ndDraftId);
+        if(existingValsB.length === 0){
+          const validRowsB = agencesSaisieB.map(ag => ({
+            draft_id: ndDraftId,
+            agence: ag.nom,
+            statut: ag.nom === agenceInitialeB ? 'valide' : 'en_attente',
+            commentaire: null
+          }));
+          await sbInsert('draft_validations', validRowsB);
+          DB.draftValidations = [...(DB.draftValidations||[]), ...validRowsB];
+        }
+        // Envoyer emails aux agences partenaires
+        const autresAgencesB = agencesSaisieB.filter(ag => ag.nom !== agenceInitialeB);
+        for(const ag of autresAgencesB){
+          const valExistB = (DB.draftValidations||[]).find(v=>v.draft_id==ndDraftId&&v.agence===ag.nom);
+          if(valExistB && valExistB.statut==='en_attente'){
+            const emailsB = getResponsablesForIC(ag.nom);
+            if(!emailsB.length) continue;
+            await sendEmail('intercabinet_validation', emailsB, {
+              agence: ag.nom, agenceInitiale: agenceInitialeB,
+              vendeur: ndS.vendeurNom || '—', acquereur: ndS.acquereurNom || '—',
+              saisePar: currentUser.nom, lien: 'https://ventes.booster-immobilier.com'
+            }).catch(()=>{});
+          }
+        }
+      }
       showLoading(false);
       ndDraftId = null;
       sspModeEdition = false;
-      showToast('Dossier envoyé avec pièces manquantes — visible dans votre banette.', 'warning');
+      showToast('Dossier envoyé avec pièces bloquantes manquantes — visible dans votre banette.', 'warning');
       banetteAgenceUpdateBadge();
       const navBA = document.getElementById('nav-banette-agence');
       showPage('banette-agence', navBA);
