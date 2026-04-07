@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.11-test                               ║
+║                        SCORIM — v1.5.12-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -100,7 +100,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.11-test</title>
+<title>SCORIM v1.5.12-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -981,7 +981,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.11-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.12-test</div>
     </div>
   </div>
 </div>
@@ -1143,7 +1143,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.11-test</div>
+        <div class="sidebar-version">v1.5.12-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -17979,8 +17979,8 @@ async function ndSaveDraft(){
   // Mode normal : payload complet
   // Statut brouillon pour les sauvegardes intermédiaires
   // Seul ndSubmit final écrit le vrai statut (en_attente ou en_attente_ic)
-  const statutSave = ndS.statutDraft === 'en_attente' || ndS.statutDraft === 'en_attente_ic'
-    ? ndS.statutDraft  // déjà soumis → on préserve
+  const statutSave = ['en_attente','en_attente_ic','bloque'].includes(ndS.statutDraft)
+    ? ndS.statutDraft  // déjà soumis ou bloqué → on préserve
     : 'brouillon';     // en cours de saisie → brouillon
   const payload={agence:currentUser.agence||'',saisi_par:currentUser.nom,saisi_role:currentUser.role,etape_courante:ndStep,statut_redaction:'a_rediger',statut:statutSave,data:JSON.stringify(ndS)};
   try{
