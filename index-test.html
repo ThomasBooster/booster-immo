@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.2-test                               ║
+║                        SCORIM — v1.5.3-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -104,7 +104,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.2-test</title>
+<title>SCORIM v1.5.3-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -985,7 +985,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.2-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.3-test</div>
     </div>
   </div>
 </div>
@@ -1147,7 +1147,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.2-test</div>
+        <div class="sidebar-version">v1.5.3-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -18222,6 +18222,14 @@ async function ndSubmit(){
         }));
         await sbInsert('draft_validations', validRows);
         DB.draftValidations = [...(DB.draftValidations||[]), ...validRows];
+      } else {
+        // Renvoi après refus : remettre les lignes 'refuse' à 'en_attente'
+        const agencesARelancer = existingVals.filter(v => v.statut === 'refuse');
+        for(const v of agencesARelancer){
+          await sbUpdate('draft_validations', `draft_id=eq.${ndDraftId}&agence=eq.${encodeURIComponent(v.agence)}`, { statut: 'en_attente', commentaire: null, updated_at: new Date().toISOString() });
+          const idx = (DB.draftValidations||[]).findIndex(x=>x.draft_id==ndDraftId&&x.agence===v.agence);
+          if(idx>=0){ DB.draftValidations[idx].statut='en_attente'; DB.draftValidations[idx].commentaire=null; }
+        }
       }
       // Toujours envoyer les emails aux agences dont la validation est en_attente
       const autresAgences = agencesSaisie.filter(ag => ag.nom !== agenceInitiale);
