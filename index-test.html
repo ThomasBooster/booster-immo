@@ -11293,10 +11293,10 @@ function refreshStatsNegGraphs() {
 // ─────────────────────────────────────────────────────────────────
 // ENVOI DE MAILS
 // ─────────────────────────────────────────────────────────────────
-const SEND_EMAIL_URL = 'https://upprurqivgjypumzwftq.supabase.co/functions/v1/send-email';
+const SEND_EMAIL_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co/functions/v1/send-email';
 
 async function sendEmail(type, to, data) {
-  const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcHJ1cnFpdmdqeXB1bXp3ZnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMDIwMTQsImV4cCI6MjA4OTg3ODAxNH0.BN3-KLln4NKsQxIyq1R15NljkcuUbFdTZGKBP4OMX6k';
+  const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
   try {
     const res = await fetch(SEND_EMAIL_URL, {
       method: 'POST',
