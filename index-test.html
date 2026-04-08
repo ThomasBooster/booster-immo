@@ -16326,6 +16326,16 @@ async function icValider(draftId) {
       if(fresh) v.statut = fresh.statut;
     });
     const allOk = freshVals.length>0 && freshVals.every(v=>v.statut==='valide');
+    // Helper : construit le tableau agences[] pour les mails IC
+    const _icAgencesMail = (nd.agences||[]).slice(0,nd.nbAgences||1).map(ag=>({
+      nom: ag.nom||'—',
+      pct: ag.pct||0,
+      negociateurs: (ag.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
+    }));
+    const _icHonoraires = fmtEuro((nd.prixFinalHono||0));
+    const _icVendeur = nd.vendeurNom||'—';
+    const _icAcquereur = nd.acquereurNom||'—';
+    const _icAgenceEmettrice = draftAgences[0]||'—';
     if (allOk) {
       // Si le draft est bloqué → reste bloqué chez Laurie (non ouvrable), sinon en_attente normal
       const draftCurrent = DB.drafts.find(x=>x.id==draftId);
@@ -16333,6 +16343,19 @@ async function icValider(draftId) {
       const newStatut = estBloque ? 'bloque' : 'en_attente';
       await sbUpdate('dossiers_draft', 'id=eq.'+draftId, { statut: newStatut });
       if (draftCurrent) draftCurrent.statut = newStatut;
+      // Mail → agence émettrice : validation complète
+      const _emailsEmettrice = getResponsablesForIC(_icAgenceEmettrice);
+      if(_emailsEmettrice.length) await sendEmail('intercabinet_valide_agence', _emailsEmettrice, {
+        vendeur: _icVendeur, acquereur: _icAcquereur, honorairesTTC: _icHonoraires,
+        agenceEmettrice: _icAgenceEmettrice, agenceValidante: myAgence,
+        agences: _icAgencesMail
+      }).catch(()=>{});
+      // Mail → saisie : dossier IC entièrement validé
+      const _emailsSaisie = (DB.users||[]).filter(u=>u.email&&u.role==='saisie').map(u=>u.email);
+      if(_emailsSaisie.length) await sendEmail('intercabinet_valide_complet', _emailsSaisie, {
+        vendeur: _icVendeur, acquereur: _icAcquereur, honorairesTTC: _icHonoraires,
+        agences: _icAgencesMail
+      }).catch(()=>{});
       if(estBloque){
         showToast('Toutes les agences ont validé — dossier transmis au juridique (bloqué jusqu\'à complétion) ✓', 'warning');
       } else {
@@ -16341,6 +16364,15 @@ async function icValider(draftId) {
       sspUpdateBadge();
       banetteAgenceUpdateBadge();
     } else {
+      // Mail → agence émettrice : validation partielle par myAgence
+      const _emailsEmettrice = getResponsablesForIC(_icAgenceEmettrice);
+      if(_icAgenceEmettrice !== myAgence && _emailsEmettrice.length) {
+        await sendEmail('intercabinet_valide_agence', _emailsEmettrice, {
+          vendeur: _icVendeur, acquereur: _icAcquereur, honorairesTTC: _icHonoraires,
+          agenceEmettrice: _icAgenceEmettrice, agenceValidante: myAgence,
+          agences: _icAgencesMail
+        }).catch(()=>{});
+      }
       showToast('Validation enregistrée ✓', 'success');
     }
   } catch(e) { showToast('Erreur : '+e.message, 'error'); return; }
@@ -16375,12 +16407,19 @@ async function icRefuser(draftId) {
     const emails = [];
     agences.forEach(ag => { getResponsablesForIC(ag).forEach(e=>{ if(!emails.includes(e)) emails.push(e); }); });
     if (emails.length) {
+      const _refusAgencesMail = (nd.agences||[]).slice(0,nd.nbAgences||1).map(ag=>({
+        nom: ag.nom||'—',
+        pct: ag.pct||0,
+        negociateurs: (ag.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
+      }));
       await sendEmail('intercabinet_refus', emails, {
         agenceRefus: myAgence,
+        agenceEmettrice: agences[0]||'—',
         vendeur: nd.vendeurNom||'—',
         acquereur: nd.acquereurNom||'—',
+        honorairesTTC: fmtEuro(nd.prixFinalHono||0),
         commentaire,
-        agences: agences.join(' / ')
+        agences: _refusAgencesMail
       });
     }
     showToast('Dossier refusé — toutes les agences ont été notifiées.', 'success');
@@ -17457,13 +17496,20 @@ async function banetteAgenceRenvoyer(draftId) {
     // Notification mail à Laurie/Benoît — dossier précédemment bloqué, maintenant complété
     const emailsSSP = (DB.users||[]).filter(u=>u.email&&u.role==='saisie').map(u=>u.email);
     if (emailsSSP.length) {
-      await sendEmail('nouveau_ssp', emailsSSP, {
+      const _agMail = [{
+        nom: d.agence||'—', pct: 100,
+        negociateurs: (DB.dossierNeg||[]).filter(l=>l.dossier_id===draftId).map(l=>{
+          const neg = (DB.negociateurs||[]).find(n=>n.id===l.negociateur_id);
+          return neg ? { nom: neg.nom, role: 'Négociateur' } : null;
+        }).filter(Boolean)
+      }];
+      await sendEmail('draft_debloque', emailsSSP, {
         vendeur: nd.vendeurNom||'—',
         acquereur: nd.acquereurNom||'—',
+        honorairesTTC: fmtEuro(nd.prixFinalHono||0),
         agence: d.agence||'—',
         saisePar: currentUser.nom,
-        note: '⚠️ Ce dossier était précédemment bloqué — il a été complété et renvoyé.',
-        lien: 'https://upprurqivgjypumzwftq.supabase.co'
+        agences: _agMail
       });
     }
     showLoading(false);
@@ -18083,11 +18129,15 @@ async function ndSubmit(){
       } else {
         const _emailsSSP = (DB.users||[]).filter(u=>u.email&&u.role==='saisie').map(u=>u.email);
         if(_emailsSSP.length){
-          await sendEmail('nouveau_ssp', _emailsSSP, {
+          const _agMailND = ndS.agences.slice(0,ndS.nbAgences).map(ag=>({
+            nom: ag.nom||'—', pct: ag.pct||0,
+            negociateurs: (ag.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
+          }));
+          await sendEmail('draft_debloque', _emailsSSP, {
             vendeur: ndS.vendeurNom||'—', acquereur: ndS.acquereurNom||'—',
+            honorairesTTC: fmtEuro(ndS.prixFinalHono||0),
             agence: currentUser.agence||'—', saisePar: currentUser.nom,
-            note: '⚠️ Ce dossier était précédemment bloqué — il a été complété et renvoyé.',
-            lien: 'https://upprurqivgjypumzwftq.supabase.co'
+            agences: _agMailND
           }).catch(()=>{});
         }
         showToast('Dossier renvoyé au juridique ✓', 'success');
@@ -18133,10 +18183,16 @@ async function ndSubmit(){
           if(valExistB && valExistB.statut==='en_attente'){
             const emailsB = getResponsablesForIC(ag.nom);
             if(!emailsB.length) continue;
+            const _agMailB = agencesSaisieB.map(a=>({
+              nom: a.nom||'—', pct: a.pct||0,
+              negociateurs: (a.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
+            }));
             await sendEmail('intercabinet_validation', emailsB, {
-              agence: ag.nom, agenceInitiale: agenceInitialeB,
+              agenceDestinataire: ag.nom, agenceEmettrice: agenceInitialeB,
               vendeur: ndS.vendeurNom || '—', acquereur: ndS.acquereurNom || '—',
-              saisePar: currentUser.nom, lien: 'https://ventes.booster-immobilier.com'
+              honorairesTTC: fmtEuro(ndS.prixFinalHono||0),
+              saisePar: currentUser.nom,
+              agences: _agMailB
             }).catch(()=>{});
           }
         }
@@ -18174,13 +18230,18 @@ async function ndSubmit(){
         if(valExist && valExist.statut==='en_attente'){
           const emails = getResponsablesForIC(ag.nom);
           if(!emails.length) continue;
+          const _agMail = agencesSaisie.map(a=>({
+            nom: a.nom||'—', pct: a.pct||0,
+            negociateurs: (a.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
+          }));
           await sendEmail('intercabinet_validation', emails, {
-            agence: ag.nom,
-            agenceInitiale,
+            agenceDestinataire: ag.nom,
+            agenceEmettrice: agenceInitiale,
             vendeur: ndS.vendeurNom || '—',
             acquereur: ndS.acquereurNom || '—',
+            honorairesTTC: fmtEuro(ndS.prixFinalHono||0),
             saisePar: currentUser.nom,
-            lien: 'https://ventes.booster-immobilier.com'
+            agences: _agMail
           });
         }
       }
