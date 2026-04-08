@@ -18273,9 +18273,19 @@ async function ndSubmit(){
 }
 
 function getResponsablesForIC(agenceNom){
-  // Responsables agence + gratuit ayant cette agence
+  // Responsables agence + gratuit + gérants concernés par cette agence
   return (DB.users||[])
-    .filter(u => u.email && (u.role==='agence'||u.role==='gratuit') && u.agence===agenceNom)
+    .filter(u => {
+      if (!u.email) return false;
+      if ((u.role==='agence'||u.role==='gratuit') && u.agence===agenceNom) return true;
+      if (u.role==='gerant') {
+        const agObj = (DB.agences||[]).find(a=>a.nom===u.agence);
+        if (!agObj) return false;
+        const agences = (DB.agences||[]).filter(a=>a.societe_id===agObj.societe_id).map(a=>a.nom);
+        return agences.includes(agenceNom);
+      }
+      return false;
+    })
     .map(u=>u.email).filter(Boolean);
 }
 
