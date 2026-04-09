@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.5-test                               ║
+║                        SCORIM — v1.5.6-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -104,7 +104,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.5-test</title>
+<title>SCORIM v1.5.6-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -985,7 +985,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.6-test</div>
     </div>
   </div>
 </div>
@@ -1147,7 +1147,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.5-test</div>
+        <div class="sidebar-version">v1.5.6-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -16337,9 +16337,9 @@ async function icValider(draftId) {
     const _icAcquereur = nd.acquereurNom||'—';
     const _icAgenceEmettrice = draftAgences[0]||'—';
     if (allOk) {
-      // Si le draft est bloqué → reste bloqué chez Laurie (non ouvrable), sinon en_attente normal
+      // Utiliser le flag _avecPiecesBloquantes mémorisé dans le draft data (persiste à travers les allers-retours)
       const draftCurrent = DB.drafts.find(x=>x.id==draftId);
-      const estBloque = draftCurrent?.statut === 'bloque';
+      const estBloque = nd._avecPiecesBloquantes === true;
       const newStatut = estBloque ? 'bloque' : 'en_attente';
       await sbUpdate('dossiers_draft', 'id=eq.'+draftId, { statut: newStatut });
       if (draftCurrent) draftCurrent.statut = newStatut;
@@ -18155,60 +18155,26 @@ async function ndSubmit(){
       return;
     }
 
-    // Détection pièces bloquantes manquantes → statut bloque si nécessaire
-    // Si le draft était déjà bloqué (renvoi après refus IC) : bloquant si non coché (true)
-    // Si première soumission : bloquant uniquement si explicitement décoché (false)
-    const _draftEtaitBloque = ndDraftId && (DB.drafts||[]).find(x=>x.id==ndDraftId)?.statut === 'bloque';
-    const _piecesBloquantesManquantes = _draftEtaitBloque
-      ? ndGetPiecesBloquantes().filter(p => !(ndS.piecesCochees && ndS.piecesCochees[p] === true))
-      : ndGetPiecesBloquantes().filter(p => ndS.piecesCochees && ndS.piecesCochees[p] === false);
+    // Détection pièces bloquantes manquantes
+    // Règle : bloquant si la pièce n'est pas explicitement cochée (true)
+    // Cela couvre : première soumission, renvoi après refus, toutes situations
+    const _piecesBloquantesManquantes = ndGetPiecesBloquantes().filter(p => !(ndS.piecesCochees && ndS.piecesCochees[p] === true));
     const _estBloque = _piecesBloquantesManquantes.length > 0;
 
-    // Intercabinet : statut en_attente_ic, sinon en_attente direct (ou bloque)
-    if(_estBloque){
-      ndS.statutDraft = 'bloque';
+    // Mémoriser dans le draft si des pièces bloquantes sont manquantes
+    // Ce flag persiste à travers tous les allers-retours IC et permet à icValider de décider du statut final
+    ndS._avecPiecesBloquantes = _estBloque;
+
+    // Statut : toujours en_attente_ic pour IC (bloqué ou pas — Laurie ne voit pas encore)
+    // Pour non-IC : en_attente si complet, bloque si incomplet
+    if(isIC){
+      ndS.statutDraft = 'en_attente_ic';
     } else {
-      ndS.statutDraft = isIC ? 'en_attente_ic' : 'en_attente';
+      ndS.statutDraft = _estBloque ? 'bloque' : 'en_attente';
     }
     await ndSaveDraft();
 
-    if(_estBloque){
-      // Dossier bloqué : créer quand même le flux IC si intercabinet
-      if(isIC && ndDraftId){
-        const agencesSaisieB = ndS.agences.slice(0, ndS.nbAgences);
-        const agenceInitialeB = currentUser.agence || agencesSaisieB[0]?.nom || '';
-        const existingValsB = (DB.draftValidations||[]).filter(v => v.draft_id==ndDraftId);
-        if(existingValsB.length === 0){
-          const validRowsB = agencesSaisieB.map(ag => ({
-            draft_id: ndDraftId,
-            agence: ag.nom,
-            statut: ag.nom === agenceInitialeB ? 'valide' : 'en_attente',
-            commentaire: null
-          }));
-          await sbInsert('draft_validations', validRowsB);
-          DB.draftValidations = [...(DB.draftValidations||[]), ...validRowsB];
-        }
-        // Envoyer emails aux agences partenaires
-        const autresAgencesB = agencesSaisieB.filter(ag => ag.nom !== agenceInitialeB);
-        for(const ag of autresAgencesB){
-          const valExistB = (DB.draftValidations||[]).find(v=>v.draft_id==ndDraftId&&v.agence===ag.nom);
-          if(valExistB && valExistB.statut==='en_attente'){
-            const emailsB = getResponsablesForIC(ag.nom);
-            if(!emailsB.length) continue;
-            const _agMailB = agencesSaisieB.map(a=>({
-              nom: a.nom||'—', pct: a.pct||0,
-              negociateurs: (a.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
-            }));
-            await sendEmail('intercabinet_validation', emailsB, {
-              agenceDestinataire: ag.nom, agenceEmettrice: agenceInitialeB,
-              vendeur: ndS.vendeurNom || '—', acquereur: ndS.acquereurNom || '—',
-              honorairesTTC: fmtEuro(ndS.prixFinalHono||0),
-              saisePar: currentUser.nom,
-              agences: _agMailB
-            }).catch(()=>{});
-          }
-        }
-      }
+    if(!isIC && _estBloque){
       showLoading(false);
       ndDraftId = null;
       sspModeEdition = false;
