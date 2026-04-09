@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.6-test                               ║
+║                        SCORIM — v1.5.7-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -104,7 +104,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.6-test</title>
+<title>SCORIM v1.5.7-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -985,7 +985,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.6-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.7-test</div>
     </div>
   </div>
 </div>
@@ -1147,7 +1147,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.6-test</div>
+        <div class="sidebar-version">v1.5.7-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -18922,7 +18922,7 @@ function ndS8(){
       <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">
         <div>Rentreur</div><div>%</div><div>Montant</div><div></div>
       </div>
-      ${(()=>{ const ag1=ndS.agences[0]?.nom||currentUser.agence||''; const rentDispo=(DB.negociateurs||[]).filter(n=>n.actif&&n.agence===ag1&&!n.nom.startsWith('🍒')); return ndS.rentreurs.map((r,i)=>{ const rMt=base*(parseFloat(r.pct)||0)/100; return`<div style="display:grid;grid-template-columns:2fr 80px 80px auto;gap:8px;align-items:center;margin-bottom:6px"><select id="nd-rent-${i}" onchange="ndS.rentreurs[${i}].nom=this.value;const found=(DB.negociateurs||[]).find(n=>n.nom===this.value);ndS.rentreurs[${i}].negId=found?found.id:null;" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"><option value="">— Choisir —</option>${rentDispo.map(n=>`<option value="${n.nom}" ${r.nom===n.nom?'selected':''}>${n.nom}</option>`).join('')}</select><input id="nd-rentp-${i}" type="number" value="${r.pct||0}" min="0" max="100" step="0.01" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;text-align:center;font-family:inherit" oninput="ndS.rentreurs[${i}].pct=parseFloat(this.value)||0;ndUpdateCA()"/><div id="nd-rmt-${i}" style="padding:8px 10px;background:var(--bg-secondary,#f8fafc);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted)">${ndFmt(rMt)}</div>${i>0?`<button onclick="ndRemRent(${i})" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:#E24B4A;font-size:13px">✕</button>`:'<div></div>'}</div>`; }).join(''); })()}
+      ${(()=>{ const ag1=ndS.agences[0]?.nom||currentUser.agence||''; const rentDispo=(DB.negociateurs||[]).filter(n=>n.actif&&n.agence===ag1&&!n.nom.startsWith('🍒')); const ag1Pct=(parseFloat(ndS.agences[0]?.pct)||0)/100; const baseRent=base*ag1Pct; return ndS.rentreurs.map((r,i)=>{ const rMt=baseRent*(parseFloat(r.pct)||0)/100; return`<div style="display:grid;grid-template-columns:2fr 80px 80px auto;gap:8px;align-items:center;margin-bottom:6px"><select id="nd-rent-${i}" onchange="ndS.rentreurs[${i}].nom=this.value;const found=(DB.negociateurs||[]).find(n=>n.nom===this.value);ndS.rentreurs[${i}].negId=found?found.id:null;" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"><option value="">— Choisir —</option>${rentDispo.map(n=>`<option value="${n.nom}" ${r.nom===n.nom?'selected':''}>${n.nom}</option>`).join('')}</select><input id="nd-rentp-${i}" type="number" value="${r.pct||0}" min="0" max="100" step="0.01" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;text-align:center;font-family:inherit" oninput="ndS.rentreurs[${i}].pct=parseFloat(this.value)||0;ndUpdateCA()"/><div id="nd-rmt-${i}" style="padding:8px 10px;background:var(--bg-secondary,#f8fafc);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted)">${ndFmt(rMt)}</div>${i>0?`<button onclick="ndRemRent(${i})" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:#E24B4A;font-size:13px">✕</button>`:'<div></div>'}</div>`; }).join(''); })()}
       <button onclick="ndAddRent()" style="width:100%;padding:8px;border:1px dashed var(--border);border-radius:8px;font-size:13px;cursor:pointer;background:transparent;color:var(--text-muted)">+ Ajouter un rentreur</button>
     </div><div style="flex:1;min-width:220px"></div></div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
@@ -19819,11 +19819,13 @@ function ndUpdateCA(){
       if(negMtEl) negMtEl.textContent=ndFmt(agMt*negPct/100);
     });
   });
+  const ag1PctCA=(parseFloat(ndS.agences[0]?.pct)||0)/100;
+  const baseRentCA=base*ag1PctCA;
   ndS.rentreurs.forEach((r,i)=>{
     const rPctEl=document.getElementById('nd-rentp-'+i);
     const rPct=rPctEl?parseFloat(rPctEl.value)||0:r.pct;
     const rMtEl=document.getElementById('nd-rmt-'+i);
-    if(rMtEl) rMtEl.textContent=ndFmt(base*rPct/100);
+    if(rMtEl) rMtEl.textContent=ndFmt(baseRentCA*rPct/100);
   });
   if(ndS.nbAgences>1){
     const tot=Array.from(document.querySelectorAll('[id^="nd-ag-pct-"]')).reduce((s,e)=>s+(parseFloat(e.value)||0),0);
