@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.2                               ║
+║                        SCORIM — v1.5.3                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : PROD (Supabase bqzluhzkzpalludrfxyr)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -99,12 +99,25 @@
 ║  • Intercabinet → déduplication obligatoire partout                        ║
 ║  • JSON.stringify(null) = "null" (truthy) → vigilance prefix/conditions    ║
 ║  • Pas de fonctions dupliquées — toujours vérifier avant d'en ajouter     ║
+║  ── DRAFT / IC ─────────────────────────────────────────────────────────   ║
+║  • Draft IC → statut toujours 'en_attente_ic' à la soumission              ║
+║    (bloqué ou pas) — Laurie ne voit pas avant validation IC complète       ║
+║  • nd.data._avecPiecesBloquantes = true/false — flag persistant à travers  ║
+║    tous les allers-retours IC. icValider() s'en sert pour décider          ║
+║    du statut final ('bloque' ou 'en_attente') quand allOk                  ║
+║  • Pièces bloquantes — 2 logiques selon contexte :                         ║
+║    - Première soumission : bloque si piecesCochees[p] === false             ║
+║    - Banette agence (_vientBanette) : bloque si piecesCochees[p] !== true  ║
+║  • Renvoi après refus IC : remettre les lignes 'refuse' à 'en_attente'     ║
+║    dans draft_validations avant de renvoyer les mails                      ║
+║  • getResponsablesForIC = agence + gratuit + gérants (via societe_id)      ║
+║  • Montant rentreur = base × (pct agence 1 / 100) × (pct rentreur / 100)  ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.2</title>
+<title>SCORIM v1.5.3</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -971,9 +984,12 @@
       <button class="btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:14px;margin-top:8px">Se connecter</button>
       <div class="auth-error" id="auth-error">Identifiant ou mot de passe incorrect.</div>
 
-      </div>
+      <!-- Connexion rapide TEST -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
+        <div style="text-align:center;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Accès rapide — TEST</div>
+        
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.2</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.3</div>
     </div>
   </div>
 </div>
@@ -1135,7 +1151,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.2</div>
+        <div class="sidebar-version">v1.5.3</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -3573,21 +3589,6 @@ let currentUser = null;
 const PROD_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co';
 const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
 
-async function quickLoginProd(userId) {
-  try {
-    const res = await fetch(PROD_URL + '/rest/v1/users?id=eq.' + encodeURIComponent(userId) + '&select=id,password', {
-      headers: { 'apikey': PROD_KEY, 'Authorization': 'Bearer ' + PROD_KEY }
-    });
-    const rows = await res.json();
-    if (!rows || rows.length === 0) {
-      showToast('Utilisateur introuvable : ' + userId, 'error');
-      return;
-    }
-    quickLogin(rows[0].id, rows[0].password);
-  } catch(e) {
-    showToast('Erreur connexion prod : ' + e.message, 'error');
-  }
-}
 
 function quickLogin(user, pass) {
   document.getElementById('login-user').value = user;
@@ -6413,7 +6414,7 @@ async function callClaudeAPI(messages, system) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcHJ1cnFpdmdqeXB1bXp3ZnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMDIwMTQsImV4cCI6MjA4OTg3ODAxNH0.BN3-KLln4NKsQxIyq1R15NljkcuUbFdTZGKBP4OMX6k'
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM'
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
@@ -11284,7 +11285,7 @@ function refreshStatsNegGraphs() {
 const SEND_EMAIL_URL = 'https://bqzluhzkzpalludrfxyr.supabase.co/functions/v1/send-email';
 
 async function sendEmail(type, to, data) {
-  const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwcHJ1cnFpdmdqeXB1bXp3ZnRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMDIwMTQsImV4cCI6MjA4OTg3ODAxNH0.BN3-KLln4NKsQxIyq1R15NljkcuUbFdTZGKBP4OMX6k';
+  const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxemx1aHprenBhbGx1ZHJmeHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjgzNzIsImV4cCI6MjA4OTI0NDM3Mn0.CiRTyZFYO9KdzDRO5kyBDAVB2f6Cfju69d1hxHJdzLM';
   try {
     const res = await fetch(SEND_EMAIL_URL, {
       method: 'POST',
@@ -16314,13 +16315,36 @@ async function icValider(draftId) {
       if(fresh) v.statut = fresh.statut;
     });
     const allOk = freshVals.length>0 && freshVals.every(v=>v.statut==='valide');
+    // Helper : construit le tableau agences[] pour les mails IC
+    const _icAgencesMail = (nd.agences||[]).slice(0,nd.nbAgences||1).map(ag=>({
+      nom: ag.nom||'—',
+      pct: ag.pct||0,
+      negociateurs: (ag.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
+    }));
+    const _icHonoraires = fmtEuro((nd.prixFinalHono||0));
+    const _icVendeur = nd.vendeurNom||'—';
+    const _icAcquereur = nd.acquereurNom||'—';
+    const _icAgenceEmettrice = draftAgences[0]||'—';
     if (allOk) {
-      // Si le draft est bloqué → reste bloqué chez Laurie (non ouvrable), sinon en_attente normal
+      // Utiliser le flag _avecPiecesBloquantes mémorisé dans le draft data (persiste à travers les allers-retours)
       const draftCurrent = DB.drafts.find(x=>x.id==draftId);
-      const estBloque = draftCurrent?.statut === 'bloque';
+      const estBloque = nd._avecPiecesBloquantes === true;
       const newStatut = estBloque ? 'bloque' : 'en_attente';
       await sbUpdate('dossiers_draft', 'id=eq.'+draftId, { statut: newStatut });
       if (draftCurrent) draftCurrent.statut = newStatut;
+      // Mail → agence émettrice : validation complète
+      const _emailsEmettrice = getResponsablesForIC(_icAgenceEmettrice);
+      if(_emailsEmettrice.length) await sendEmail('intercabinet_valide_agence', _emailsEmettrice, {
+        vendeur: _icVendeur, acquereur: _icAcquereur, honorairesTTC: _icHonoraires,
+        agenceEmettrice: _icAgenceEmettrice, agenceValidante: myAgence,
+        agences: _icAgencesMail
+      }).catch(()=>{});
+      // Mail → saisie : dossier IC entièrement validé
+      const _emailsSaisie = (DB.users||[]).filter(u=>u.email&&u.role==='saisie').map(u=>u.email);
+      if(_emailsSaisie.length) await sendEmail('intercabinet_valide_complet', _emailsSaisie, {
+        vendeur: _icVendeur, acquereur: _icAcquereur, honorairesTTC: _icHonoraires,
+        agences: _icAgencesMail
+      }).catch(()=>{});
       if(estBloque){
         showToast('Toutes les agences ont validé — dossier transmis au juridique (bloqué jusqu\'à complétion) ✓', 'warning');
       } else {
@@ -16329,6 +16353,15 @@ async function icValider(draftId) {
       sspUpdateBadge();
       banetteAgenceUpdateBadge();
     } else {
+      // Mail → agence émettrice : validation partielle par myAgence
+      const _emailsEmettrice = getResponsablesForIC(_icAgenceEmettrice);
+      if(_icAgenceEmettrice !== myAgence && _emailsEmettrice.length) {
+        await sendEmail('intercabinet_valide_agence', _emailsEmettrice, {
+          vendeur: _icVendeur, acquereur: _icAcquereur, honorairesTTC: _icHonoraires,
+          agenceEmettrice: _icAgenceEmettrice, agenceValidante: myAgence,
+          agences: _icAgencesMail
+        }).catch(()=>{});
+      }
       showToast('Validation enregistrée ✓', 'success');
     }
   } catch(e) { showToast('Erreur : '+e.message, 'error'); return; }
@@ -16363,12 +16396,19 @@ async function icRefuser(draftId) {
     const emails = [];
     agences.forEach(ag => { getResponsablesForIC(ag).forEach(e=>{ if(!emails.includes(e)) emails.push(e); }); });
     if (emails.length) {
+      const _refusAgencesMail = (nd.agences||[]).slice(0,nd.nbAgences||1).map(ag=>({
+        nom: ag.nom||'—',
+        pct: ag.pct||0,
+        negociateurs: (ag.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
+      }));
       await sendEmail('intercabinet_refus', emails, {
         agenceRefus: myAgence,
+        agenceEmettrice: agences[0]||'—',
         vendeur: nd.vendeurNom||'—',
         acquereur: nd.acquereurNom||'—',
+        honorairesTTC: fmtEuro(nd.prixFinalHono||0),
         commentaire,
-        agences: agences.join(' / ')
+        agences: _refusAgencesMail
       });
     }
     showToast('Dossier refusé — toutes les agences ont été notifiées.', 'success');
@@ -17445,13 +17485,20 @@ async function banetteAgenceRenvoyer(draftId) {
     // Notification mail à Laurie/Benoît — dossier précédemment bloqué, maintenant complété
     const emailsSSP = (DB.users||[]).filter(u=>u.email&&u.role==='saisie').map(u=>u.email);
     if (emailsSSP.length) {
-      await sendEmail('nouveau_ssp', emailsSSP, {
+      const _agMail = [{
+        nom: d.agence||'—', pct: 100,
+        negociateurs: (DB.dossierNeg||[]).filter(l=>l.dossier_id===draftId).map(l=>{
+          const neg = (DB.negociateurs||[]).find(n=>n.id===l.negociateur_id);
+          return neg ? { nom: neg.nom, role: 'Négociateur' } : null;
+        }).filter(Boolean)
+      }];
+      await sendEmail('draft_debloque', emailsSSP, {
         vendeur: nd.vendeurNom||'—',
         acquereur: nd.acquereurNom||'—',
+        honorairesTTC: fmtEuro(nd.prixFinalHono||0),
         agence: d.agence||'—',
         saisePar: currentUser.nom,
-        note: '⚠️ Ce dossier était précédemment bloqué — il a été complété et renvoyé.',
-        lien: 'https://bqzluhzkzpalludrfxyr.supabase.co'
+        agences: _agMail
       });
     }
     showLoading(false);
@@ -18039,8 +18086,15 @@ async function ndSubmit(){
       ndStepSnapshot = null;
       ndDraftId = null;
       showToast('Modifications enregistrées ✓', 'success');
-      const navSSP = document.getElementById('nav-ssp-dashboard');
-      showPage('ssp-dashboard', navSSP);
+      if(currentUser.role==='saisie'||currentUser.role==='admin'){
+        const navSSP = document.getElementById('nav-ssp-dashboard');
+        showPage('ssp-dashboard', navSSP);
+      } else if(currentUser.role==='gratuit'||currentUser.role==='agence'){
+        const navIC = document.getElementById('nav-ic-validation') || document.getElementById('nav-ic-validation-gratuit');
+        showPage('ic-validation', navIC);
+      } else {
+        showPage('dashboard', null);
+      }
       return;
     }
 
@@ -18048,7 +18102,8 @@ async function ndSubmit(){
     if(ndS._vientBanette && ndDraftId){
       const _draftIdBanette = ndDraftId;
       ndS._vientBanette = false;
-      const _bloquantesRest = ndGetPiecesBloquantes().filter(p => ndS.piecesCochees && ndS.piecesCochees[p] === false);
+      // Depuis la banette : bloquant si non explicitement coché (true) — l'agence doit confirmer avoir la pièce
+      const _bloquantesRest = ndGetPiecesBloquantes().filter(p => !(ndS.piecesCochees && ndS.piecesCochees[p] === true));
       const _isIC2 = ndS.nbAgences > 1;
       if(_bloquantesRest.length > 0){
         ndS.statutDraft = 'bloque';
@@ -18071,11 +18126,15 @@ async function ndSubmit(){
       } else {
         const _emailsSSP = (DB.users||[]).filter(u=>u.email&&u.role==='saisie').map(u=>u.email);
         if(_emailsSSP.length){
-          await sendEmail('nouveau_ssp', _emailsSSP, {
+          const _agMailND = ndS.agences.slice(0,ndS.nbAgences).map(ag=>({
+            nom: ag.nom||'—', pct: ag.pct||0,
+            negociateurs: (ag.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
+          }));
+          await sendEmail('draft_debloque', _emailsSSP, {
             vendeur: ndS.vendeurNom||'—', acquereur: ndS.acquereurNom||'—',
+            honorairesTTC: fmtEuro(ndS.prixFinalHono||0),
             agence: currentUser.agence||'—', saisePar: currentUser.nom,
-            note: '⚠️ Ce dossier était précédemment bloqué — il a été complété et renvoyé.',
-            lien: 'https://bqzluhzkzpalludrfxyr.supabase.co'
+            agences: _agMailND
           }).catch(()=>{});
         }
         showToast('Dossier renvoyé au juridique ✓', 'success');
@@ -18085,50 +18144,26 @@ async function ndSubmit(){
       return;
     }
 
-    // Détection pièces bloquantes manquantes → statut bloque si nécessaire
-    // On bloque uniquement si la pièce est explicitement décochée (false), pas si non renseignée (undefined)
-    const _piecesBloquantesManquantes = ndGetPiecesBloquantes().filter(p => ndS.piecesCochees && ndS.piecesCochees[p] === false);
+    // Détection pièces bloquantes manquantes
+    // Règle : bloquant si la pièce n'est pas explicitement cochée (true)
+    // Cela couvre : première soumission, renvoi après refus, toutes situations
+    const _piecesBloquantesManquantes = ndGetPiecesBloquantes().filter(p => !(ndS.piecesCochees && ndS.piecesCochees[p] === true));
     const _estBloque = _piecesBloquantesManquantes.length > 0;
 
-    // Intercabinet : statut en_attente_ic, sinon en_attente direct (ou bloque)
-    if(_estBloque){
-      ndS.statutDraft = 'bloque';
+    // Mémoriser dans le draft si des pièces bloquantes sont manquantes
+    // Ce flag persiste à travers tous les allers-retours IC et permet à icValider de décider du statut final
+    ndS._avecPiecesBloquantes = _estBloque;
+
+    // Statut : toujours en_attente_ic pour IC (bloqué ou pas — Laurie ne voit pas encore)
+    // Pour non-IC : en_attente si complet, bloque si incomplet
+    if(isIC){
+      ndS.statutDraft = 'en_attente_ic';
     } else {
-      ndS.statutDraft = isIC ? 'en_attente_ic' : 'en_attente';
+      ndS.statutDraft = _estBloque ? 'bloque' : 'en_attente';
     }
     await ndSaveDraft();
 
-    if(_estBloque){
-      // Dossier bloqué : créer quand même le flux IC si intercabinet
-      if(isIC && ndDraftId){
-        const agencesSaisieB = ndS.agences.slice(0, ndS.nbAgences);
-        const agenceInitialeB = currentUser.agence || agencesSaisieB[0]?.nom || '';
-        const existingValsB = (DB.draftValidations||[]).filter(v => v.draft_id==ndDraftId);
-        if(existingValsB.length === 0){
-          const validRowsB = agencesSaisieB.map(ag => ({
-            draft_id: ndDraftId,
-            agence: ag.nom,
-            statut: ag.nom === agenceInitialeB ? 'valide' : 'en_attente',
-            commentaire: null
-          }));
-          await sbInsert('draft_validations', validRowsB);
-          DB.draftValidations = [...(DB.draftValidations||[]), ...validRowsB];
-        }
-        // Envoyer emails aux agences partenaires
-        const autresAgencesB = agencesSaisieB.filter(ag => ag.nom !== agenceInitialeB);
-        for(const ag of autresAgencesB){
-          const valExistB = (DB.draftValidations||[]).find(v=>v.draft_id==ndDraftId&&v.agence===ag.nom);
-          if(valExistB && valExistB.statut==='en_attente'){
-            const emailsB = getResponsablesForIC(ag.nom);
-            if(!emailsB.length) continue;
-            await sendEmail('intercabinet_validation', emailsB, {
-              agence: ag.nom, agenceInitiale: agenceInitialeB,
-              vendeur: ndS.vendeurNom || '—', acquereur: ndS.acquereurNom || '—',
-              saisePar: currentUser.nom, lien: 'https://ventes.booster-immobilier.com'
-            }).catch(()=>{});
-          }
-        }
-      }
+    if(!isIC && _estBloque){
       showLoading(false);
       ndDraftId = null;
       sspModeEdition = false;
@@ -18154,6 +18189,14 @@ async function ndSubmit(){
         }));
         await sbInsert('draft_validations', validRows);
         DB.draftValidations = [...(DB.draftValidations||[]), ...validRows];
+      } else {
+        // Renvoi après refus : remettre les lignes 'refuse' à 'en_attente'
+        const agencesARelancer = existingVals.filter(v => v.statut === 'refuse');
+        for(const v of agencesARelancer){
+          await sbUpdate('draft_validations', `draft_id=eq.${ndDraftId}&agence=eq.${encodeURIComponent(v.agence)}`, { statut: 'en_attente', commentaire: null, updated_at: new Date().toISOString() });
+          const idx = (DB.draftValidations||[]).findIndex(x=>x.draft_id==ndDraftId&&x.agence===v.agence);
+          if(idx>=0){ DB.draftValidations[idx].statut='en_attente'; DB.draftValidations[idx].commentaire=null; }
+        }
       }
       // Toujours envoyer les emails aux agences dont la validation est en_attente
       const autresAgences = agencesSaisie.filter(ag => ag.nom !== agenceInitiale);
@@ -18162,13 +18205,18 @@ async function ndSubmit(){
         if(valExist && valExist.statut==='en_attente'){
           const emails = getResponsablesForIC(ag.nom);
           if(!emails.length) continue;
+          const _agMail = agencesSaisie.map(a=>({
+            nom: a.nom||'—', pct: a.pct||0,
+            negociateurs: (a.negs||[]).filter(n=>n.nom).map(n=>({ nom: n.nom, role: 'Négociateur' }))
+          }));
           await sendEmail('intercabinet_validation', emails, {
-            agence: ag.nom,
-            agenceInitiale,
+            agenceDestinataire: ag.nom,
+            agenceEmettrice: agenceInitiale,
             vendeur: ndS.vendeurNom || '—',
             acquereur: ndS.acquereurNom || '—',
+            honorairesTTC: fmtEuro(ndS.prixFinalHono||0),
             saisePar: currentUser.nom,
-            lien: 'https://ventes.booster-immobilier.com'
+            agences: _agMail
           });
         }
       }
@@ -18200,9 +18248,19 @@ async function ndSubmit(){
 }
 
 function getResponsablesForIC(agenceNom){
-  // Responsables agence + gratuit ayant cette agence
+  // Responsables agence + gratuit + gérants concernés par cette agence
   return (DB.users||[])
-    .filter(u => u.email && (u.role==='agence'||u.role==='gratuit') && u.agence===agenceNom)
+    .filter(u => {
+      if (!u.email) return false;
+      if ((u.role==='agence'||u.role==='gratuit') && u.agence===agenceNom) return true;
+      if (u.role==='gerant') {
+        const agObj = (DB.agences||[]).find(a=>a.nom===u.agence);
+        if (!agObj) return false;
+        const agences = (DB.agences||[]).filter(a=>a.societe_id===agObj.societe_id).map(a=>a.nom);
+        return agences.includes(agenceNom);
+      }
+      return false;
+    })
     .map(u=>u.email).filter(Boolean);
 }
 
@@ -18853,7 +18911,7 @@ function ndS8(){
       <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">
         <div>Rentreur</div><div>%</div><div>Montant</div><div></div>
       </div>
-      ${(()=>{ const ag1=ndS.agences[0]?.nom||currentUser.agence||''; const rentDispo=(DB.negociateurs||[]).filter(n=>n.actif&&n.agence===ag1&&!n.nom.startsWith('🍒')); return ndS.rentreurs.map((r,i)=>{ const rMt=base*(parseFloat(r.pct)||0)/100; return`<div style="display:grid;grid-template-columns:2fr 80px 80px auto;gap:8px;align-items:center;margin-bottom:6px"><select id="nd-rent-${i}" onchange="ndS.rentreurs[${i}].nom=this.value;const found=(DB.negociateurs||[]).find(n=>n.nom===this.value);ndS.rentreurs[${i}].negId=found?found.id:null;" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"><option value="">— Choisir —</option>${rentDispo.map(n=>`<option value="${n.nom}" ${r.nom===n.nom?'selected':''}>${n.nom}</option>`).join('')}</select><input id="nd-rentp-${i}" type="number" value="${r.pct||0}" min="0" max="100" step="0.01" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;text-align:center;font-family:inherit" oninput="ndS.rentreurs[${i}].pct=parseFloat(this.value)||0;ndUpdateCA()"/><div id="nd-rmt-${i}" style="padding:8px 10px;background:var(--bg-secondary,#f8fafc);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted)">${ndFmt(rMt)}</div>${i>0?`<button onclick="ndRemRent(${i})" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:#E24B4A;font-size:13px">✕</button>`:'<div></div>'}</div>`; }).join(''); })()}
+      ${(()=>{ const ag1=ndS.agences[0]?.nom||currentUser.agence||''; const rentDispo=(DB.negociateurs||[]).filter(n=>n.actif&&n.agence===ag1&&!n.nom.startsWith('🍒')); const ag1Pct=(parseFloat(ndS.agences[0]?.pct)||0)/100; const baseRent=base*ag1Pct; return ndS.rentreurs.map((r,i)=>{ const rMt=baseRent*(parseFloat(r.pct)||0)/100; return`<div style="display:grid;grid-template-columns:2fr 80px 80px auto;gap:8px;align-items:center;margin-bottom:6px"><select id="nd-rent-${i}" onchange="ndS.rentreurs[${i}].nom=this.value;const found=(DB.negociateurs||[]).find(n=>n.nom===this.value);ndS.rentreurs[${i}].negId=found?found.id:null;" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"><option value="">— Choisir —</option>${rentDispo.map(n=>`<option value="${n.nom}" ${r.nom===n.nom?'selected':''}>${n.nom}</option>`).join('')}</select><input id="nd-rentp-${i}" type="number" value="${r.pct||0}" min="0" max="100" step="0.01" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;text-align:center;font-family:inherit" oninput="ndS.rentreurs[${i}].pct=parseFloat(this.value)||0;ndUpdateCA()"/><div id="nd-rmt-${i}" style="padding:8px 10px;background:var(--bg-secondary,#f8fafc);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted)">${ndFmt(rMt)}</div>${i>0?`<button onclick="ndRemRent(${i})" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:#E24B4A;font-size:13px">✕</button>`:'<div></div>'}</div>`; }).join(''); })()}
       <button onclick="ndAddRent()" style="width:100%;padding:8px;border:1px dashed var(--border);border-radius:8px;font-size:13px;cursor:pointer;background:transparent;color:var(--text-muted)">+ Ajouter un rentreur</button>
     </div><div style="flex:1;min-width:220px"></div></div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
@@ -19750,11 +19808,13 @@ function ndUpdateCA(){
       if(negMtEl) negMtEl.textContent=ndFmt(agMt*negPct/100);
     });
   });
+  const ag1PctCA=(parseFloat(ndS.agences[0]?.pct)||0)/100;
+  const baseRentCA=base*ag1PctCA;
   ndS.rentreurs.forEach((r,i)=>{
     const rPctEl=document.getElementById('nd-rentp-'+i);
     const rPct=rPctEl?parseFloat(rPctEl.value)||0:r.pct;
     const rMtEl=document.getElementById('nd-rmt-'+i);
-    if(rMtEl) rMtEl.textContent=ndFmt(base*rPct/100);
+    if(rMtEl) rMtEl.textContent=ndFmt(baseRentCA*rPct/100);
   });
   if(ndS.nbAgences>1){
     const tot=Array.from(document.querySelectorAll('[id^="nd-ag-pct-"]')).reduce((s,e)=>s+(parseFloat(e.value)||0),0);
