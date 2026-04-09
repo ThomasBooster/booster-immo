@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        SCORIM — v1.5.4-test                               ║
+║                        SCORIM — v1.5.5-test                               ║
 ║          Application de suivi des ventes — Booster Immobilier              ║
 ║          Environnement : TEST (Supabase upprurqivgjypumzwftq)              ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -104,7 +104,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCORIM v1.5.4-test</title>
+<title>SCORIM v1.5.5-test</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <style>
@@ -985,7 +985,7 @@
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.4-test</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;letter-spacing:.05em">v1.5.5-test</div>
     </div>
   </div>
 </div>
@@ -1147,7 +1147,7 @@
             <div class="user-role" id="sidebar-role">—</div>
           </div>
         </div>
-        <div class="sidebar-version">v1.5.4-test</div>
+        <div class="sidebar-version">v1.5.5-test</div>
         <div class="sidebar-footer-actions">
           <div class="btn-logout-cell">
             <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
@@ -18097,8 +18097,15 @@ async function ndSubmit(){
       ndStepSnapshot = null;
       ndDraftId = null;
       showToast('Modifications enregistrées ✓', 'success');
-      const navSSP = document.getElementById('nav-ssp-dashboard');
-      showPage('ssp-dashboard', navSSP);
+      if(currentUser.role==='saisie'||currentUser.role==='admin'){
+        const navSSP = document.getElementById('nav-ssp-dashboard');
+        showPage('ssp-dashboard', navSSP);
+      } else if(currentUser.role==='gratuit'||currentUser.role==='agence'){
+        const navIC = document.getElementById('nav-ic-validation') || document.getElementById('nav-ic-validation-gratuit');
+        showPage('ic-validation', navIC);
+      } else {
+        showPage('dashboard', null);
+      }
       return;
     }
 
@@ -18149,8 +18156,12 @@ async function ndSubmit(){
     }
 
     // Détection pièces bloquantes manquantes → statut bloque si nécessaire
-    // On bloque uniquement si la pièce est explicitement décochée (false), pas si non renseignée (undefined)
-    const _piecesBloquantesManquantes = ndGetPiecesBloquantes().filter(p => ndS.piecesCochees && ndS.piecesCochees[p] === false);
+    // Si le draft était déjà bloqué (renvoi après refus IC) : bloquant si non coché (true)
+    // Si première soumission : bloquant uniquement si explicitement décoché (false)
+    const _draftEtaitBloque = ndDraftId && (DB.drafts||[]).find(x=>x.id==ndDraftId)?.statut === 'bloque';
+    const _piecesBloquantesManquantes = _draftEtaitBloque
+      ? ndGetPiecesBloquantes().filter(p => !(ndS.piecesCochees && ndS.piecesCochees[p] === true))
+      : ndGetPiecesBloquantes().filter(p => ndS.piecesCochees && ndS.piecesCochees[p] === false);
     const _estBloque = _piecesBloquantesManquantes.length > 0;
 
     // Intercabinet : statut en_attente_ic, sinon en_attente direct (ou bloque)
