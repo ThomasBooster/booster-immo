@@ -18106,7 +18106,8 @@ async function ndSubmit(){
     if(ndS._vientBanette && ndDraftId){
       const _draftIdBanette = ndDraftId;
       ndS._vientBanette = false;
-      const _bloquantesRest = ndGetPiecesBloquantes().filter(p => ndS.piecesCochees && ndS.piecesCochees[p] === false);
+      // Depuis la banette : bloquant si non explicitement coché (true) — l'agence doit confirmer avoir la pièce
+      const _bloquantesRest = ndGetPiecesBloquantes().filter(p => !(ndS.piecesCochees && ndS.piecesCochees[p] === true));
       const _isIC2 = ndS.nbAgences > 1;
       if(_bloquantesRest.length > 0){
         ndS.statutDraft = 'bloque';
